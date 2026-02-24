@@ -1,6 +1,7 @@
 /// <reference types="vite/client" />
 import { HeadContent, Link, Outlet, Scripts, createRootRoute } from '@tanstack/react-router'
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
+import { Terminal } from 'lucide-react'
 import appCss from '~/styles/app.css?url'
 
 export const Route = createRootRoute({
@@ -8,7 +9,7 @@ export const Route = createRootRoute({
     meta: [
       { charSet: 'utf-8' },
       { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-      { title: 'Tailwatch' },
+      { title: 'Tailwatch | Event Monitor' },
       {
         name: 'description',
         content: 'Hierarchical event, task, and message dashboard with log and status views.',
@@ -21,37 +22,42 @@ export const Route = createRootRoute({
 
 function RootDocument() {
   return (
-    <html lang="en">
+    <html lang="en" className="dark">
       <head>
         <HeadContent />
       </head>
-      <body>
-        <div className="mx-auto min-h-screen max-w-[1440px] px-4 py-6 md:px-6">
-          <header className="mb-6 rounded-2xl border border-white/60 bg-white/75 p-4 backdrop-blur">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div>
-                <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Tailwatch</p>
-                <h1 className="text-2xl font-semibold tracking-tight">Realtime Hierarchical Event Monitor</h1>
+      <body className="antialiased selection:bg-primary/30">
+        <div className="flex min-h-screen flex-col">
+          <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <div className="flex h-16 items-center px-4 md:px-8">
+              <div className="flex items-center gap-3 mr-8">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/20 text-primary">
+                  <Terminal className="h-5 w-5" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-sm font-semibold leading-none tracking-tight text-foreground">Tailwatch</span>
+                  <span className="text-[10px] uppercase tracking-widest text-muted-foreground mt-1">Monitor</span>
+                </div>
               </div>
-              <nav className="flex items-center gap-2">
+              <nav className="flex items-center gap-6 text-sm font-medium">
                 <Link
                   to="/"
-                  activeProps={{ className: 'bg-primary text-primary-foreground' }}
-                  className="rounded-md border px-3 py-2 text-sm font-medium"
+                  activeProps={{ className: 'text-foreground' }}
+                  className="transition-colors hover:text-foreground/80 text-foreground/60"
                 >
                   Log Stream
                 </Link>
                 <Link
                   to="/status"
-                  activeProps={{ className: 'bg-primary text-primary-foreground' }}
-                  className="rounded-md border px-3 py-2 text-sm font-medium"
+                  activeProps={{ className: 'text-foreground' }}
+                  className="transition-colors hover:text-foreground/80 text-foreground/60"
                 >
                   Status Board
                 </Link>
               </nav>
             </div>
           </header>
-          <main>
+          <main className="flex-1 p-4 md:p-8 2xl:px-12 w-full mx-auto max-w-[1920px]">
             <Outlet />
           </main>
         </div>

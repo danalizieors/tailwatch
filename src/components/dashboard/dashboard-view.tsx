@@ -1,5 +1,5 @@
 import { useDeferredValue, useState } from 'react'
-import { RefreshCw } from 'lucide-react'
+import { RefreshCw, Activity } from 'lucide-react'
 import { Button } from '~/components/ui/button'
 import { Card, CardContent } from '~/components/ui/card'
 import { formatRelative } from '~/lib/format'
@@ -35,43 +35,63 @@ export function DashboardView({ mode }: DashboardViewProps) {
   })
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-white/60 bg-white/70 p-3 backdrop-blur">
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-700">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border/40 pb-4">
         <div>
-          <h1 className="text-lg font-semibold">
-            {mode === 'logs' ? 'Event Stream Dashboard' : 'Status Board Dashboard'}
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            {data ? `Updated ${formatRelative(data.fetchedAt)}` : 'Loading dashboard data...'}
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-semibold tracking-tight">
+              {mode === 'logs' ? 'Event Stream Dashboard' : 'Status Board Dashboard'}
+            </h1>
+            {data && <span className="flex h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />}
+          </div>
+          <p className="text-sm text-muted-foreground mt-1">
+            {data ? (
+              <span className="flex items-center gap-1.5">
+                <Activity className="h-3 w-3 text-emerald-500" />
+                Updated {formatRelative(data.fetchedAt)}
+              </span>
+            ) : (
+              'Initializing real-time connection...'
+            )}
           </p>
         </div>
-        <Button variant="outline" onClick={refresh} disabled={isRefreshing}>
-          <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-          Refresh
+        <Button 
+          variant="outline" 
+          onClick={refresh} 
+          disabled={isRefreshing}
+          className="border-border/60 bg-background/50 backdrop-blur hover:bg-muted"
+        >
+          <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin text-primary' : 'text-muted-foreground'}`} />
+          {isRefreshing ? 'Syncing...' : 'Sync'}
         </Button>
       </div>
 
       {error && (
-        <Card className="border-red-200 bg-red-50/80 text-red-800">
-          <CardContent className="p-4 text-sm">{error}</CardContent>
+        <Card className="border-red-900/50 bg-red-950/20 text-red-400 backdrop-blur">
+          <CardContent className="p-4 text-sm font-mono">{error}</CardContent>
         </Card>
       )}
 
       {isLoading && !data ? (
-        <Card className="border-white/70 bg-white/80">
-          <CardContent className="p-6 text-sm text-muted-foreground">Loading dashboard…</CardContent>
+        <Card className="border-border/50 bg-background/40 backdrop-blur shadow-sm">
+          <CardContent className="flex items-center justify-center p-12 text-sm text-muted-foreground">
+            <div className="flex items-center gap-3">
+              <RefreshCw className="h-5 w-5 animate-spin text-primary/70" />
+              Loading dimensional data...
+            </div>
+          </CardContent>
         </Card>
       ) : null}
 
       {data ? (
-        <>
+        <div className="space-y-6">
           <StatCards stats={data.stats} />
-          <div className="grid gap-4 xl:grid-cols-[340px_minmax(0,1fr)]">
-            <div className="space-y-4">
+          <div className="grid gap-6 xl:grid-cols-[380px_minmax(0,1fr)]">
+            <div className="space-y-6">
               <TopicTreePanel tree={data.topicTree} selectedTopic={selectedTopic} onSelectTopic={setSelectedTopic} />
               {mode === 'logs' ? <PublishPanel onPublished={refresh} /> : null}
             </div>
-            <div>
+            <div className="min-w-0 h-full">
               {mode === 'logs' ? (
                 <LogStream
                   events={filteredEvents}
@@ -85,7 +105,7 @@ export function DashboardView({ mode }: DashboardViewProps) {
               )}
             </div>
           </div>
-        </>
+        </div>
       ) : null}
     </div>
   )
