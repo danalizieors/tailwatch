@@ -143,91 +143,94 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic }: TopicSelec
     }, [activeIndex])
   
     return (
-      <div className="relative space-y-2" ref={dropdownRef}>
-              <div 
+          <div className="relative flex-1 max-w-2xl mx-auto px-4" ref={dropdownRef}>
+            <div 
+              className={cn(
+                "group flex items-center min-h-[36px] px-3 bg-white/5 border rounded-lg transition-all shadow-inner gap-0.5",
+                isOpen ? "border-primary/40 ring-1 ring-primary/40 bg-white/10" : "border-white/10 hover:border-white/20"
+              )}
+              onClick={() => inputRef.current?.focus()}
+            >
+              {/* ROOT / */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onSelectTopic(undefined)
+                }}
                 className={cn(
-                  "group flex flex-wrap items-center min-h-[40px] px-2.5 py-1.5 bg-background/50 border rounded-xl transition-all shadow-sm gap-y-1",
-                  isOpen ? "border-primary/40 ring-1 ring-primary/40" : "border-border/50 hover:border-border"
+                  "text-[12px] font-mono px-1 rounded hover:bg-white/10 transition-colors font-bold shrink-0",
+                  !selectedTopic ? "text-primary" : "text-muted-foreground/40"
                 )}
-                onClick={() => inputRef.current?.focus()}
+                aria-label="Go to root"
               >
-                {/* ROOT / */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onSelectTopic(undefined)
-                  }}
-                  className={cn(
-                    "text-[11px] font-mono px-1 rounded hover:bg-white/10 transition-colors font-bold shrink-0",
-                    !selectedTopic ? "text-primary" : "text-muted-foreground/60"
-                  )}
-                  aria-label="Go to root"
-                >
-                  /
-                </button>
-        
-                {/* BREADCRUMB SEGMENTS */}
+                /
+              </button>
+      
+              {/* BREADCRUMB SEGMENTS */}
+              <div className="flex items-center overflow-x-auto no-scrollbar shrink-0 max-w-[60%]">
                 {segments.map((segment, idx) => {
                   const path = segments.slice(0, idx + 1).join('/')
                   const color = getPathColor(path)
                   const isLast = idx === segments.length - 1
                   
                   return (
-                    <div key={path} className="flex items-center shrink-0 h-full">
+                    <div key={path} className="flex items-center shrink-0">
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
                           onSelectTopic(path)
                         }}
                         className={cn(
-                          "text-[11px] font-mono px-1 py-0.5 rounded transition-all",
-                          isLast ? "bg-white/10 font-bold" : "text-muted-foreground/80 hover:text-foreground hover:bg-white/5"
+                          "text-[12px] font-mono px-1 py-0.5 rounded transition-all whitespace-nowrap",
+                          isLast ? "font-bold" : "text-muted-foreground/60 hover:text-foreground hover:bg-white/5"
                         )}
                         style={{ color: isLast ? color : undefined }}
                       >
                         {segment}
                       </button>
-                      <span className="text-muted-foreground/20 font-mono text-[11px] px-0.5 select-none">/</span>
+                      <span className="text-white/10 font-mono text-[12px] px-0.5 select-none">/</span>
                     </div>
                   )
                 })}
-        
-                {/* INLINE SEARCH */}
-                <div className="relative flex-1 min-w-[60px] h-full flex items-center">
-                  <input
-                    ref={inputRef}
-                    type="text"
-                    role="combobox"
-                    aria-expanded={isOpen}
-                    aria-haspopup="listbox"
-                    aria-controls="topic-listbox"
-                    aria-activedescendant={activeIndex >= 0 ? `topic-item-${activeIndex}` : undefined}
-                    className="w-full bg-transparent text-[11px] font-mono focus:outline-none placeholder:text-muted-foreground/20 text-foreground leading-none h-full py-0"
-                    placeholder={segments.length === 0 ? "namespace..." : "..."}
-                    value={query}
-                    onChange={(e) => {
-                      setQuery(e.target.value)
-                      setIsOpen(true)
-                    }}
-                    onFocus={() => setIsOpen(true)}
-                    onKeyDown={handleKeyDown}
-                  />
-                </div>
-        
-                {(query || selectedTopic) && (
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setQuery('')
-                      if (!query) onSelectTopic(undefined)
-                    }}
-                    className="ml-auto text-muted-foreground/30 hover:text-foreground/60 transition-colors p-1 flex items-center shrink-0"
-                    aria-label="Clear selection"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                )}
               </div>
+      
+              {/* INLINE SEARCH */}
+              <div className="relative flex-1 min-w-[40px] flex items-center h-full">
+                <input
+                  ref={inputRef}
+                  type="text"
+                  role="combobox"
+                  aria-expanded={isOpen}
+                  aria-haspopup="listbox"
+                  aria-controls="topic-listbox"
+                  aria-activedescendant={activeIndex >= 0 ? `topic-item-${activeIndex}` : undefined}
+                  className="w-full bg-transparent text-[12px] font-mono focus:outline-none placeholder:text-muted-foreground/20 text-foreground leading-none h-full"
+                  placeholder={segments.length === 0 ? "search namespace..." : "..."}
+                  value={query}
+                  onChange={(e) => {
+                    setQuery(e.target.value)
+                    setIsOpen(true)
+                  }}
+                  onFocus={() => setIsOpen(true)}
+                  onKeyDown={handleKeyDown}
+                />
+              </div>
+      
+              {(query || selectedTopic) && (
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setQuery('')
+                    if (!query) onSelectTopic(undefined)
+                  }}
+                  className="ml-2 text-muted-foreground/20 hover:text-foreground/50 transition-colors p-0.5 flex items-center shrink-0"
+                  aria-label="Clear selection"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+      
                 {/* DROPDOWN */}
         {isOpen && filteredTopics.length > 0 && (
           <div className="absolute top-full left-0 right-0 mt-2 bg-card border border-border shadow-2xl rounded-xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">

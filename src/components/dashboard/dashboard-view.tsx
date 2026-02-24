@@ -1,16 +1,14 @@
 import { useDeferredValue, useState } from 'react'
 import { Link } from '@tanstack/react-router'
-import { RefreshCw, Activity, Terminal, LayoutGrid } from 'lucide-react'
-import { Button } from '~/components/ui/button'
+import { RefreshCw, Activity, Terminal, LayoutGrid, ListTree } from 'lucide-react'
 import { Card, CardContent } from '~/components/ui/card'
-import { formatRelative } from '~/lib/format'
 import type { EventType } from '~/lib/types'
 import { LogStream } from './log-stream'
-import { PublishPanel } from './publish-panel'
 import { StatCards } from './stat-cards'
 import { StatusBoard } from './status-board'
 import { TopicSelector } from './topic-selector'
 import { useDashboardData } from './use-dashboard-data'
+import { cn } from '~/lib/utils'
 
 interface DashboardViewProps {
   mode: 'logs' | 'status'
@@ -22,7 +20,7 @@ export function DashboardView({ mode }: DashboardViewProps) {
   const [typeFilter, setTypeFilter] = useState<EventType | 'all'>('all')
   const deferredSearch = useDeferredValue(search)
 
-  const { data, error, isLoading, isRefreshing, refresh } = useDashboardData({
+  const { data, error, isLoading } = useDashboardData({
     mode,
     topicPrefix: selectedTopic,
   })
@@ -36,119 +34,89 @@ export function DashboardView({ mode }: DashboardViewProps) {
   })
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-background text-foreground animate-in fade-in duration-1000">
+    <div className="flex h-screen w-full flex-col bg-background text-foreground selection:bg-primary/20 animate-in fade-in duration-700">
       
-      {/* LEFT SIDEBAR (Navigation & Filters) */}
-      <aside className="w-72 flex flex-col border-r border-border/40 bg-background/95 backdrop-blur z-20 shrink-0 shadow-[4px_0_24px_-10px_rgba(0,0,0,0.5)]">
-        {/* Branding & Status */}
-        <div className="flex h-16 items-center px-6 border-b border-border/40 shrink-0 gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/20 text-primary shrink-0 shadow-inner border border-primary/20">
-            <Terminal className="h-4 w-4" />
+      {/* PANORAMIC TOP BAR */}
+      <header className="h-16 shrink-0 border-b border-white/5 bg-background/50 backdrop-blur-xl z-50 flex items-center px-6 gap-8">
+        {/* Branding */}
+        <div className="flex items-center gap-3 shrink-0 group cursor-default">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/20 group-hover:bg-primary/20 transition-all shadow-[0_0_15px_-5px_rgba(var(--primary),0.3)]">
+            <Terminal className="h-5 w-5" />
           </div>
-          <div className="flex flex-col flex-1 min-w-0">
-            <span className="text-sm font-bold leading-none tracking-tight text-foreground truncate">Tailwatch</span>
-            <div className="flex items-center gap-1.5 mt-1.5">
-              <span className={`h-1.5 w-1.5 rounded-full ${data ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]' : 'bg-muted-foreground/50'}`} />
-              <span className="text-[10px] uppercase tracking-widest text-muted-foreground truncate">
-                {data ? 'Connected' : 'Connecting...'}
+          <div className="flex flex-col">
+            <span className="text-sm font-bold leading-none tracking-tight text-foreground uppercase tracking-widest">Tailwatch</span>
+            <div className="flex items-center gap-1.5 mt-1">
+              <span className={cn("h-1.5 w-1.5 rounded-full", data ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-muted-foreground/30")} />
+              <span className="text-[9px] uppercase tracking-tighter text-muted-foreground/60 font-mono">
+                {data ? "LIVE_DATA_FEED" : "CONNECTING..."}
               </span>
             </div>
           </div>
         </div>
 
-        {/* Primary Navigation */}
-        <nav className="p-4 space-y-1.5 border-b border-border/20 shrink-0">
-          <Link
-            to="/"
-            activeProps={{ className: 'bg-primary/10 text-primary font-medium ring-1 ring-primary/20 shadow-sm' }}
-            className="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-foreground/70 hover:bg-white/5 transition-all"
-          >
-            <Terminal className="h-4 w-4 opacity-70" />
-            Event Stream
-          </Link>
-          <Link
-            to="/status"
-            activeProps={{ className: 'bg-primary/10 text-primary font-medium ring-1 ring-primary/20 shadow-sm' }}
-            className="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-foreground/70 hover:bg-white/5 transition-all"
-          >
-            <LayoutGrid className="h-4 w-4 opacity-70" />
-            Entity Status Matrix
-          </Link>
-        </nav>
-
-        {/* Contextual Sidebar: Topic Selector */}
-        <div className="flex-1 overflow-y-auto p-4 flex flex-col min-h-0 scroll-thin">
-          <h3 className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-3 px-1">Namespace Filter</h3>
-          {data ? (
-            <div className="flex-1 min-h-0">
-              <TopicSelector tree={data.topicTree} selectedTopic={selectedTopic} onSelectTopic={setSelectedTopic} />
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground/50 font-mono px-1">
-              <RefreshCw className="h-3 w-3 animate-spin" /> Fetching nodes...
-            </div>
+        {/* TOP CENTER: Global Address Bar (Context) */}
+        <div className="flex-1 max-w-2xl">
+          {data && (
+            <TopicSelector tree={data.topicTree} selectedTopic={selectedTopic} onSelectTopic={setSelectedTopic} />
           )}
         </div>
-      </aside>
 
-      {/* CENTER & RIGHT (Main Content Area) */}
-      <main className="flex-1 flex flex-col min-w-0 bg-black/20 relative">
-        {/* Subtle grid pattern overlay */}
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCI+PGNpcmNsZSBjeD0iMSIgY3k9IjEiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4wNSkiLz48L3N2Zz4=')] opacity-50 pointer-events-none" />
-
-        {/* Topbar: Title, Stats & Sync */}
-        <header className="flex h-16 items-center justify-between px-6 border-b border-border/40 bg-background/40 backdrop-blur z-20 shrink-0 gap-4">
-          <div className="flex items-center gap-3 min-w-0">
-            <h1 className="text-lg font-semibold tracking-tight truncate uppercase tracking-widest text-primary/80">
-              {mode === 'logs' ? 'System.EventStream' : 'Entity.StatusMatrix'}
-            </h1>
-            <div className="hidden sm:flex items-center gap-1.5 px-2 py-0.5 rounded bg-background/60 border border-border/40 text-[10px] text-muted-foreground uppercase tracking-widest font-mono">
-              <Activity className="h-3 w-3 text-emerald-500" />
-              {data ? `SYNCED_${formatRelative(data.fetchedAt).toUpperCase().replace(/\s+/g, '_')}` : 'SYNCING...'}
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4 shrink-0 overflow-x-auto no-scrollbar">
-            {data && <StatCards stats={data.stats} />}
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={refresh} 
-              disabled={isRefreshing}
-              className="h-8 border-border/60 bg-background/50 backdrop-blur hover:bg-muted font-mono text-[10px] uppercase tracking-widest"
-            >
-              <RefreshCw className={`mr-2 h-3.5 w-3.5 ${isRefreshing ? 'animate-spin text-primary' : 'text-muted-foreground'}`} />
-              {isRefreshing ? 'SYNC' : 'REFRESH'}
-            </Button>
-          </div>
-        </header>
-
-        {/* Error State Banner */}
-        {error && (
-          <div className="px-6 pt-4 shrink-0 z-30 relative">
-            <Card className="border-red-900/50 bg-red-950/40 text-red-400 backdrop-blur shadow-lg">
-              <CardContent className="p-3 text-xs font-mono flex items-center gap-3">
-                <Activity className="h-3 w-3 text-red-400" />
-                {error}
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {/* Main Application Canvas */}
-        <div className="flex-1 flex overflow-hidden z-10 p-6">
+        {/* View Switcher & Stats */}
+        <div className="flex items-center gap-4 shrink-0">
+          {data && <div className="hidden 2xl:block"><StatCards stats={data.stats} /></div>}
           
-          {/* Main List / Grid */}
-          <div className="flex-1 flex flex-col min-w-0 overflow-hidden h-full">
+          <nav className="flex items-center p-1 bg-white/5 rounded-xl border border-white/5 shadow-inner">
+            <Link
+              to="/"
+              activeProps={{ className: 'bg-white/10 text-primary border-white/10 shadow-sm' }}
+              className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest text-muted-foreground transition-all hover:text-foreground border border-transparent"
+            >
+              <ListTree className="h-3.5 w-3.5" />
+              Stream
+            </Link>
+            <Link
+              to="/status"
+              activeProps={{ className: 'bg-white/10 text-primary border-white/10 shadow-sm' }}
+              className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest text-muted-foreground transition-all hover:text-foreground border border-transparent"
+            >
+              <LayoutGrid className="h-3.5 w-3.5" />
+              Matrix
+            </Link>
+          </nav>
+        </div>
+      </header>
+
+      {/* MAIN VIEWPORT */}
+      <main className="flex-1 flex overflow-hidden relative">
+        {/* Sub-header background glow */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-32 bg-primary/5 blur-3xl rounded-full pointer-events-none opacity-50" />
+
+        {/* Primary Content Canvas */}
+        <div className="flex-1 overflow-hidden p-6 z-10 flex flex-col">
+          {error && (
+            <div className="mb-6 animate-in slide-in-from-top-2">
+              <Card className="border-red-900/50 bg-red-950/20 text-red-400 backdrop-blur shadow-xl">
+                <CardContent className="p-3 text-xs font-mono flex items-center gap-3">
+                  <Activity className="h-3.5 w-3.5" />
+                  [ERROR]: {error}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          <div className="flex-1 min-h-0 flex flex-col">
              {isLoading && !data ? (
-                <div className="flex-1 flex items-center justify-center rounded-xl border border-dashed border-border/40 bg-background/20 backdrop-blur shadow-sm">
-                  <div className="flex items-center gap-3 text-muted-foreground/60 font-mono text-sm uppercase tracking-widest">
-                    <RefreshCw className="h-4 w-4 animate-spin text-primary/70" />
-                    Initializing data stream...
+                <div className="flex-1 flex flex-col items-center justify-center rounded-2xl border border-white/5 bg-white/5 backdrop-blur-sm shadow-2xl">
+                  <div className="relative flex items-center justify-center mb-6">
+                    <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full animate-pulse" />
+                    <RefreshCw className="h-10 w-10 animate-spin text-primary" />
+                  </div>
+                  <div className="text-muted-foreground/60 font-mono text-xs uppercase tracking-[0.2em] animate-pulse">
+                    Initializing Data Matrix...
                   </div>
                 </div>
               ) : data ? (
-                <div className="flex-1 flex flex-col min-h-0 h-full overflow-hidden">
+                <div className="flex-1 flex flex-col min-h-0 h-full overflow-hidden animate-in fade-in zoom-in-95 duration-500">
                   {mode === 'logs' ? (
                     <LogStream
                       events={filteredEvents}
@@ -163,20 +131,8 @@ export function DashboardView({ mode }: DashboardViewProps) {
                 </div>
               ) : null}
           </div>
-
-          {/* Right Sidebar: Injector (Logs mode only) */}
-          {mode === 'logs' && data && (
-            <aside className="w-80 ml-6 shrink-0 border border-border/40 rounded-xl bg-background/40 backdrop-blur flex flex-col overflow-y-auto scroll-thin shadow-xl">
-              <div className="p-6">
-                <h3 className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-4 border-b border-border/20 pb-2">Debug Utilities</h3>
-                <PublishPanel onPublished={refresh} />
-              </div>
-            </aside>
-          )}
-
         </div>
       </main>
-
     </div>
   )
 }
