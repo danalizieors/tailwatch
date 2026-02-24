@@ -1,9 +1,9 @@
-import { AlertCircle, LayoutGrid, Layers, Timer, RefreshCcw } from 'lucide-react'
+import { AlertCircle, LayoutGrid, Timer, Clock, Info } from 'lucide-react'
 import { Badge } from '~/components/ui/badge'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/card'
+import { Card, CardHeader, CardTitle, CardContent } from '~/components/ui/card'
 import type { EntitySnapshot } from '~/lib/types'
-import { formatDateTime, formatDuration, formatRelative } from '~/lib/format'
-import { cn } from '~/lib/utils'
+import { formatDuration, formatRelative } from '~/lib/format'
+import { cn, getPathColor } from '~/lib/utils'
 
 interface StatusBoardProps {
   rows: EntitySnapshot[]
@@ -11,128 +11,124 @@ interface StatusBoardProps {
 
 export function StatusBoard({ rows }: StatusBoardProps) {
   return (
-    <Card className="flex flex-col flex-1 border-border/40 bg-card/40 backdrop-blur shadow-sm card-hover-effect overflow-hidden">
-      <CardHeader className="pb-4 border-b border-border/20 bg-background/20">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <LayoutGrid className="h-5 w-5 text-primary" />
-            <CardTitle className="font-mono text-lg tracking-tight uppercase tracking-widest">Entity.StatusMatrix</CardTitle>
+    <div className="flex flex-col flex-1 overflow-hidden">
+      <div className="py-3 mb-4 flex items-center justify-between border-b border-border/20 shrink-0">
+        <div className="flex items-center gap-2">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/20">
+            <LayoutGrid className="h-4 w-4" />
           </div>
-          <Badge variant="outline" className="font-mono text-[10px] bg-primary/5 text-primary border-primary/20">
-            {rows.length} TRACKED_ENTITIES
-          </Badge>
+          <h2 className="text-sm font-bold text-foreground/90 uppercase tracking-tight">System Registry</h2>
+          <span className="text-[10px] font-bold text-muted-foreground/60 bg-muted/20 px-1.5 py-0.5 rounded-md ml-1 border border-border/10">
+            {rows.length} TRACKED
+          </span>
         </div>
-      </CardHeader>
+      </div>
       
-      <div className="flex-1 overflow-y-auto p-6 bg-background/5 scroll-thin min-h-[400px]">
+      <div className="flex-1 overflow-y-auto scroll-thin">
         {rows.length === 0 ? (
-          <div className="flex h-full min-h-[300px] items-center justify-center flex-col gap-3 text-sm text-muted-foreground font-mono">
-            <AlertCircle className="h-6 w-6 opacity-30" />
-            <span className="opacity-50 uppercase tracking-widest text-xs">Awaiting entity registrations...</span>
+          <div className="flex h-full min-h-[300px] items-center justify-center flex-col gap-2 text-muted-foreground">
+            <AlertCircle className="h-5 w-5 opacity-40" />
+            <span className="text-xs font-medium opacity-60">Registry empty</span>
           </div>
         ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {rows.map((row) => (
-              <div 
-                key={row.key} 
-                className={cn(
-                  "group relative rounded-xl border p-5 shadow-sm transition-all hover:shadow-md hover:-translate-y-1",
-                  statusBorderColor(row.currentStatus),
-                  "bg-gradient-to-br from-background/90 to-background/50 backdrop-blur-md"
-                )}
-              >
-                {/* Status Indicator Bar */}
-                <div className={cn("absolute top-0 left-0 right-0 h-1 rounded-t-xl", statusBgColor(row.currentStatus))} />
-
-                <div className="flex items-start justify-between gap-3 mb-5">
-                  <div className="flex flex-col min-w-0">
-                    <span className="text-sm font-bold text-foreground group-hover:text-primary transition-colors truncate">{row.entityId}</span>
-                    <span className="text-[10px] font-mono text-muted-foreground/60 uppercase tracking-widest mt-1 flex items-center gap-1.5">
-                      <Layers className="h-3 w-3" />
-                      {row.entityType}
-                    </span>
-                  </div>
-                  <div className={cn(
-                    "flex items-center gap-1.5 rounded px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest border",
-                    statusBadgeColors(row.currentStatus)
-                  )}>
-                    <span className={cn("h-1.5 w-1.5 rounded-full", statusDotColors(row.currentStatus))} />
-                    {row.currentStatus}
-                  </div>
-                </div>
-                
-                <div className="space-y-3 text-[11px] font-mono">
-                  <div className="flex justify-between items-center text-muted-foreground/60">
-                    <span className="flex items-center gap-1.5"><Layers className="h-3 w-3" /> PATH</span>
-                    <span className="text-foreground/80 truncate max-w-[140px]" title={row.path}>{row.path}</span>
-                  </div>
-                  <div className="flex justify-between items-center text-muted-foreground/60">
-                    <span className="flex items-center gap-1.5"><RefreshCcw className="h-3 w-3" /> UPDATED</span>
-                    <span className="text-foreground/80">{formatRelative(row.lastSeenAt)}</span>
-                  </div>
-                  <div className="flex justify-between items-center text-muted-foreground/60">
-                    <span className="flex items-center gap-1.5"><Timer className="h-3 w-3" /> UPTIME</span>
-                    <span className="text-foreground/80">{formatDuration(row.activeForMs)}</span>
-                  </div>
-                  
-                  <div className="mt-4 pt-3 border-t border-border/10">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-[9px] uppercase tracking-tighter text-muted-foreground/40 font-bold">Latest Snapshot</span>
-                      <span className="text-[9px] text-muted-foreground/40 font-bold">{row.lastEventType.toUpperCase()}</span>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 pb-6">
+            {rows.map((row) => {
+              const pathColor = getPathColor(row.path)
+              const jewelBg = `oklch(from ${pathColor} 0.16 0.12 h / 0.9)`
+              const jewelBorder = `oklch(from ${pathColor} 0.45 0.18 h / 0.5)`
+              const jewelText = `oklch(from ${pathColor} 0.98 0.01 h)`
+              
+              return (
+                <div 
+                  key={row.key} 
+                  className="group relative rounded-2xl border-2 p-6 card-hover-effect backdrop-blur-3xl overflow-hidden"
+                  style={{ 
+                    backgroundColor: jewelBg,
+                    borderColor: jewelBorder,
+                  }}
+                >
+                  <div className="flex items-start justify-between gap-4 mb-6">
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-lg font-black truncate tracking-tight" style={{ color: jewelText }}>
+                        {row.entityId}
+                      </span>
+                      <span className="text-[10px] font-bold uppercase tracking-[0.2em] mt-1 opacity-60" style={{ color: jewelText }}>
+                        {row.entityType}
+                      </span>
                     </div>
                     <div className={cn(
-                      "rounded-lg bg-black/40 p-3 text-[11px] leading-relaxed line-clamp-2 border border-border/5 group-hover:border-primary/20 transition-all",
-                      row.currentStatus === 'error' ? "text-red-400/90 border-red-500/20 shadow-[0_0_15px_-5px_rgba(239,68,68,0.2)]" : "text-muted-foreground/80"
+                      "flex items-center gap-2 rounded-lg px-3 py-1.5 text-[10px] font-black uppercase tracking-widest border-2",
+                      statusBadgeColors(row.currentStatus)
                     )}>
-                      {row.lastError ?? row.lastContent ?? <span className="italic opacity-30 text-[10px]">{"<DATA_EMPTY>"}</span>}
+                      <span className={cn("h-2 w-2 rounded-full", statusDotColors(row.currentStatus))} />
+                      {row.currentStatus}
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-3.5 text-[11px] font-semibold">
+                    <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                      <span className="opacity-50 uppercase text-[9px] font-black tracking-widest" style={{ color: jewelText }}>Path</span>
+                      <span className="font-mono truncate max-w-[160px] opacity-90" style={{ color: jewelText }}>{row.path}</span>
+                    </div>
+                    <div className="flex justify-between items-center opacity-70">
+                      <span className="opacity-50 uppercase text-[9px] font-black tracking-widest" style={{ color: jewelText }}>Last Seen</span>
+                      <span style={{ color: jewelText }}>{formatRelative(row.lastSeenAt)}</span>
+                    </div>
+                    {row.activeForMs !== undefined && (
+                      <div className="flex justify-between items-center opacity-70">
+                        <span className="opacity-50 uppercase text-[9px] font-black tracking-widest" style={{ color: jewelText }}>Duration</span>
+                        <span style={{ color: jewelText }}>{formatDuration(row.activeForMs)}</span>
+                      </div>
+                    )}
+                    
+                    <div className="mt-4 pt-4 border-t border-white/5">
+                      <div 
+                        className="rounded-xl p-3.5 text-[11px] leading-relaxed line-clamp-2 font-bold shadow-inner"
+                        style={{ 
+                          backgroundColor: `oklch(from ${pathColor} 0.12 0.04 h / 0.4)`,
+                          color: row.currentStatus === 'error' ? 'var(--destructive)' : `oklch(from ${pathColor} 0.85 0.05 h)`,
+                          border: `1px solid oklch(from ${pathColor} 0.25 0.08 h / 0.3)`
+                        }}
+                      >
+                        {row.lastError ?? row.lastContent ?? <span className="italic opacity-30 uppercase tracking-tighter">No Payload</span>}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>
-    </Card>
+    </div>
   )
 }
 
 function statusBorderColor(status: EntitySnapshot['currentStatus']) {
   switch (status) {
-    case 'working': return 'border-border/40 group-hover:border-border/80'
-    case 'error': return 'border-red-500/30 group-hover:border-red-500/60 shadow-[0_4px_20px_-10px_rgba(239,68,68,0.3)]'
-    case 'idle': return 'border-sky-500/30 group-hover:border-sky-500/60'
-    case 'stopped': return 'border-emerald-500/30 group-hover:border-emerald-500/60'
-    default: return 'border-border/40'
-  }
-}
-
-function statusBgColor(status: EntitySnapshot['currentStatus']) {
-  switch (status) {
-    case 'working': return 'bg-muted-foreground/20'
-    case 'error': return 'bg-red-500/50'
-    case 'idle': return 'bg-sky-500/50'
-    case 'stopped': return 'bg-emerald-500/50'
-    default: return 'bg-muted-foreground/20'
+    case 'error': return 'border-destructive/20 hover:border-destructive/40'
+    case 'idle': return 'border-info/20 hover:border-info/40'
+    case 'stopped': return 'border-success/20 hover:border-success/40'
+    default: return 'border-border/60'
   }
 }
 
 function statusBadgeColors(status: EntitySnapshot['currentStatus']) {
   switch (status) {
-    case 'working': return 'bg-secondary/50 text-muted-foreground border-border/40'
-    case 'error': return 'bg-red-500/10 text-red-400 border-red-500/20 shadow-inner'
-    case 'idle': return 'bg-sky-500/10 text-sky-400 border-sky-500/20'
-    case 'stopped': return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-    default: return 'bg-secondary text-muted-foreground border-border'
+    case 'working': return 'bg-muted/50 text-muted-foreground border-border'
+    case 'error': return 'bg-destructive/10 text-destructive border-destructive/20 shadow-inner'
+    case 'idle': return 'bg-info/10 text-info border-info/20'
+    case 'stopped': return 'bg-success/10 text-success border-success/20'
+    default: return 'bg-muted/50 text-muted-foreground border-border'
   }
 }
 
 function statusDotColors(status: EntitySnapshot['currentStatus']) {
   switch (status) {
-    case 'working': return 'bg-muted-foreground opacity-50'
-    case 'error': return 'bg-red-400 shadow-[0_0_8px_rgba(239,68,68,0.5)]'
-    case 'idle': return 'bg-sky-400 shadow-[0_0_8px_rgba(56,189,248,0.5)]'
-    case 'stopped': return 'bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.5)]'
+    case 'working': return 'bg-muted-foreground opacity-40'
+    case 'error': return 'bg-destructive shadow-[0_0_8px_oklch(from_var(--destructive)_l_c_h_/_0.5)]'
+    case 'idle': return 'bg-info shadow-[0_0_8px_oklch(from_var(--info)_l_c_h_/_0.5)]'
+    case 'stopped': return 'bg-success shadow-[0_0_8px_oklch(from_var(--success)_l_c_h_/_0.5)]'
     default: return 'bg-muted-foreground'
   }
 }

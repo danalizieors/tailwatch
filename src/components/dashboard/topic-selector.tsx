@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
-import { ChevronRight, Search, X, Home } from 'lucide-react'
+import { Search, X } from 'lucide-react'
 import { Badge } from '~/components/ui/badge'
 import type { TopicNode } from '~/lib/types'
 import { cn, getPathColor } from '~/lib/utils'
@@ -31,253 +31,221 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic }: TopicSelec
     return list
   }, [tree])
 
-    const filteredTopics = useMemo(() => {
-      if (query) {
-        return allTopics
-          .filter((t) => t.path.toLowerCase().includes(query.toLowerCase()))
-          .sort((a, b) => b.count - a.count)
-          .slice(0, 15)
-      }
-  
-      // If no query, show children of the selected topic
-      if (selectedTopic) {
-        return allTopics
-          .filter(
-            (t) =>
-              t.path.startsWith(selectedTopic + '/') &&
-              t.path.split('/').length === selectedTopic.split('/').length + 1
-          )
-          .sort((a, b) => b.count - a.count)
-          .slice(0, 15)
-      }
-  
-      // If no query and no selection, show root topics
+  const filteredTopics = useMemo(() => {
+    if (query) {
       return allTopics
-        .filter((t) => !t.path.includes('/'))
+        .filter((t) => t.path.toLowerCase().includes(query.toLowerCase()))
         .sort((a, b) => b.count - a.count)
-        .slice(0, 15)
-    }, [allTopics, query, selectedTopic])
-  
-    const segments = useMemo(() => {
-      if (!selectedTopic) return []
-      return selectedTopic.split('/')
-    }, [selectedTopic])
-  
-    // Reset active index when dropdown opens or query changes
-    useEffect(() => {
-      setActiveIndex(-1)
-    }, [isOpen, query, selectedTopic])
-  
-    // Handle clicking outside to close
-    useEffect(() => {
-      const handleClickOutside = (event: MouseEvent) => {
-        if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-          setIsOpen(false)
-        }
+        .slice(0, 12)
+    }
+
+    if (selectedTopic) {
+      return allTopics
+        .filter(
+          (t) =>
+            t.path.startsWith(selectedTopic + '/') &&
+            t.path.split('/').length === selectedTopic.split('/').length + 1
+        )
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 12)
+    }
+
+    return allTopics
+      .filter((t) => !t.path.includes('/'))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 12)
+  }, [allTopics, query, selectedTopic])
+
+  const segments = useMemo(() => {
+    if (!selectedTopic) return []
+    return selectedTopic.split('/')
+  }, [selectedTopic])
+
+  useEffect(() => {
+    setActiveIndex(-1)
+  }, [isOpen, query, selectedTopic])
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false)
       }
-      document.addEventListener('mousedown', handleClickOutside)
-      return () => document.removeEventListener('mousedown', handleClickOutside)
-    }, [])
-  
-    const handleKeyDown = (e: React.KeyboardEvent) => {
-      if (!isOpen) {
-        if (e.key === 'ArrowDown') setIsOpen(true)
-        if (e.key === 'Backspace' && query === '' && segments.length > 0) {
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!isOpen) {
+      if (e.key === 'ArrowDown') setIsOpen(true)
+      if (e.key === 'Backspace' && query === '' && segments.length > 0) {
+        e.preventDefault()
+        const parentPath = segments.slice(0, -1).join('/')
+        onSelectTopic(parentPath || undefined)
+      }
+      return
+    }
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault()
+        setActiveIndex((prev) => (prev < filteredTopics.length - 1 ? prev + 1 : prev))
+        break
+      case 'ArrowUp':
+        e.preventDefault()
+        setActiveIndex((prev) => (prev > 0 ? prev - 1 : prev))
+        break
+      case 'Enter':
+        e.preventDefault()
+        if (activeIndex >= 0 && activeIndex < filteredTopics.length) {
+          const topic = filteredTopics[activeIndex]
+          onSelectTopic(topic.path)
+          setQuery('')
+          const hasChildren = allTopics.some(t => 
+            t.path.startsWith(topic.path + '/') && 
+            t.path.split('/').length === topic.path.split('/').length + 1
+          )
+          setIsOpen(hasChildren)
+        }
+        break
+      case 'Escape':
+        e.preventDefault()
+        setIsOpen(false)
+        break
+      case 'Backspace':
+        if (query === '' && segments.length > 0) {
           e.preventDefault()
           const parentPath = segments.slice(0, -1).join('/')
           onSelectTopic(parentPath || undefined)
+          setIsOpen(true)
         }
-        return
-      }
-  
-      switch (e.key) {
-        case 'ArrowDown':
-          e.preventDefault()
-          setActiveIndex((prev) => (prev < filteredTopics.length - 1 ? prev + 1 : prev))
-          break
-        case 'ArrowUp':
-          e.preventDefault()
-          setActiveIndex((prev) => (prev > 0 ? prev - 1 : prev))
-          break
-        case 'Enter':
-          e.preventDefault()
-          if (activeIndex >= 0 && activeIndex < filteredTopics.length) {
-            const topic = filteredTopics[activeIndex]
-            onSelectTopic(topic.path)
-            setQuery('')
-            
-            // Check if the selected topic has any children
-            const hasChildren = allTopics.some(t => 
-              t.path.startsWith(topic.path + '/') && 
-              t.path.split('/').length === topic.path.split('/').length + 1
-            )
-            setIsOpen(hasChildren)
-          }
-          break
-        case 'Escape':
-          e.preventDefault()
-          setIsOpen(false)
-          break
-        case 'Backspace':
-          if (query === '' && segments.length > 0) {
-            e.preventDefault()
-            const parentPath = segments.slice(0, -1).join('/')
-            onSelectTopic(parentPath || undefined)
-            setIsOpen(true)
-          }
-          break
-        case 'Tab':
-          setIsOpen(false)
-          break
-      }
+        break
+      case 'Tab':
+        setIsOpen(false)
+        break
     }
-  
-    // Scroll active item into view
-    useEffect(() => {
-      if (activeIndex >= 0 && listRef.current) {
-        const activeElement = listRef.current.children[activeIndex] as HTMLElement
-        if (activeElement) {
-          activeElement.scrollIntoView({ block: 'nearest' })
-        }
-      }
-    }, [activeIndex])
-  
-    return (
-          <div className="relative flex-1 max-w-2xl mx-auto px-4" ref={dropdownRef}>
-            <div 
-              className={cn(
-                "group flex items-center min-h-[36px] px-3 bg-white/5 border rounded-lg transition-all shadow-inner gap-0.5",
-                isOpen ? "border-primary/40 ring-1 ring-primary/40 bg-white/10" : "border-white/10 hover:border-white/20"
-              )}
-              onClick={() => inputRef.current?.focus()}
-            >
-              {/* ROOT / */}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onSelectTopic(undefined)
-                }}
-                className={cn(
-                  "text-[12px] font-mono px-1 rounded hover:bg-white/10 transition-colors font-bold shrink-0",
-                  !selectedTopic ? "text-primary" : "text-muted-foreground/40"
-                )}
-                aria-label="Go to root"
-              >
-                /
-              </button>
-      
-              {/* BREADCRUMB SEGMENTS */}
-              <div className="flex items-center overflow-x-auto no-scrollbar shrink-0 max-w-[60%]">
-                {segments.map((segment, idx) => {
-                  const path = segments.slice(0, idx + 1).join('/')
-                  const color = getPathColor(path)
-                  const isLast = idx === segments.length - 1
-                  
-                  return (
-                    <div key={path} className="flex items-center shrink-0">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          onSelectTopic(path)
-                        }}
-                        className={cn(
-                          "text-[12px] font-mono px-1 py-0.5 rounded transition-all whitespace-nowrap",
-                          isLast ? "font-bold" : "text-muted-foreground/60 hover:text-foreground hover:bg-white/5"
-                        )}
-                        style={{ color: isLast ? color : undefined }}
-                      >
-                        {segment}
-                      </button>
-                      <span className="text-white/10 font-mono text-[12px] px-0.5 select-none">/</span>
-                    </div>
-                  )
-                })}
-              </div>
-      
-              {/* INLINE SEARCH */}
-              <div className="relative flex-1 min-w-[40px] flex items-center h-full">
-                <input
-                  ref={inputRef}
-                  type="text"
-                  role="combobox"
-                  aria-expanded={isOpen}
-                  aria-haspopup="listbox"
-                  aria-controls="topic-listbox"
-                  aria-activedescendant={activeIndex >= 0 ? `topic-item-${activeIndex}` : undefined}
-                  className="w-full bg-transparent text-[12px] font-mono focus:outline-none placeholder:text-muted-foreground/20 text-foreground leading-none h-full"
-                  placeholder={segments.length === 0 ? "search namespace..." : "..."}
-                  value={query}
-                  onChange={(e) => {
-                    setQuery(e.target.value)
-                    setIsOpen(true)
-                  }}
-                  onFocus={() => setIsOpen(true)}
-                  onKeyDown={handleKeyDown}
-                />
-              </div>
-      
-              {(query || selectedTopic) && (
-                <button 
+  }
+
+  return (
+    <div className="relative flex-1 max-w-2xl" ref={dropdownRef}>
+      <div 
+        className={cn(
+          "flex items-center min-h-[34px] px-3 bg-secondary/30 border rounded-lg transition-all gap-0.5",
+          isOpen ? "border-primary/50 ring-2 ring-primary/10 bg-background shadow-sm" : "border-border/60 hover:border-border"
+        )}
+        onClick={() => inputRef.current?.focus()}
+      >
+        <Search className="h-3.5 w-3.5 text-muted-foreground/60 mr-1.5 shrink-0" />
+        
+        {/* ROOT */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation()
+            onSelectTopic(undefined)
+          }}
+          className={cn(
+            "text-[11px] font-mono px-1 rounded hover:bg-muted transition-colors font-bold shrink-0",
+            !selectedTopic ? "text-primary" : "text-muted-foreground/40"
+          )}
+        >
+          /
+        </button>
+
+        {/* SEGMENTS */}
+        <div className="flex items-center overflow-x-auto no-scrollbar shrink-0 max-w-[70%]">
+          {segments.map((segment, idx) => {
+            const path = segments.slice(0, idx + 1).join('/')
+            const color = getPathColor(path)
+            const isLast = idx === segments.length - 1
+            
+            return (
+              <div key={path} className="flex items-center shrink-0">
+                <button
                   onClick={(e) => {
                     e.stopPropagation()
-                    setQuery('')
-                    if (!query) onSelectTopic(undefined)
+                    onSelectTopic(path)
                   }}
-                  className="ml-2 text-muted-foreground/20 hover:text-foreground/50 transition-colors p-0.5 flex items-center shrink-0"
-                  aria-label="Clear selection"
+                  className={cn(
+                    "text-[11px] font-mono px-1 py-0.5 rounded transition-all whitespace-nowrap",
+                    isLast ? "font-bold text-foreground/90" : "text-muted-foreground/60 hover:text-foreground hover:bg-muted"
+                  )}
+                  style={{ color: isLast ? color : undefined }}
                 >
-                  <X className="h-3 w-3" />
+                  {segment}
                 </button>
-              )}
-            </div>
-      
-                {/* DROPDOWN */}
-        {isOpen && filteredTopics.length > 0 && (
-          <div className="absolute top-full left-0 right-0 mt-2 bg-card border border-border shadow-2xl rounded-xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
-            <div 
-              id="topic-listbox"
-              role="listbox"
-              className="max-h-64 overflow-y-auto scroll-thin" 
-              ref={listRef}
-            >
-              {filteredTopics.map((topic, index) => {
-                const color = getPathColor(topic.path)
-                const isSelected = selectedTopic === topic.path
-                const isActive = activeIndex === index
-                
-                return (
-                  <button
-                    id={`topic-item-${index}`}
-                    key={topic.path}
-                    role="option"
-                    aria-selected={isActive}
-                    className={cn(
-                      "w-full flex items-center justify-between px-4 py-2.5 text-left text-[11px] font-mono transition-colors border-b border-border/5 last:border-0",
-                      isActive ? "bg-white/10" : isSelected ? "bg-white/5" : "hover:bg-white/5"
-                    )}
-                      onClick={() => {
-                        onSelectTopic(topic.path)
-                        setQuery('')
-                        // Only keep open if there are children to drill into
-                        const hasChildren = allTopics.some(t => 
-                          t.path.startsWith(topic.path + '/') && 
-                          t.path.split('/').length === topic.path.split('/').length + 1
-                        )
-                        setIsOpen(hasChildren)
-                      }}
-                    
-                    onMouseEnter={() => setActiveIndex(index)}
-                  >
-  
+                <span className="text-border font-mono text-[11px] px-0.5 select-none opacity-60">/</span>
+              </div>
+            )
+          })}
+        </div>
+
+        {/* INPUT */}
+        <div className="relative flex-1 min-w-[40px] flex items-center h-full">
+          <input
+            ref={inputRef}
+            type="text"
+            className="w-full bg-transparent text-[11px] font-mono focus:outline-none placeholder:text-muted-foreground/50 text-foreground font-medium"
+            placeholder={segments.length === 0 ? "Filter by path..." : "..."}
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value)
+              setIsOpen(true)
+            }}
+            onFocus={() => setIsOpen(true)}
+            onKeyDown={handleKeyDown}
+          />
+        </div>
+
+        {(query || selectedTopic) && (
+          <button 
+            onClick={(e) => {
+              e.stopPropagation()
+              setQuery('')
+              if (!query) onSelectTopic(undefined)
+            }}
+            className="ml-2 text-muted-foreground/40 hover:text-destructive transition-colors p-0.5 shrink-0"
+          >
+            <X className="h-3 w-3" />
+          </button>
+        )}
+      </div>
+
+      {/* DROPDOWN */}
+      {isOpen && filteredTopics.length > 0 && (
+        <div className="absolute top-full left-0 right-0 mt-1.5 bg-popover border border-border shadow-xl rounded-xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-1 duration-200">
+          <div role="listbox" className="max-h-60 overflow-y-auto scroll-thin py-1" ref={listRef}>
+            {filteredTopics.map((topic, index) => {
+              const color = getPathColor(topic.path)
+              const isSelected = selectedTopic === topic.path
+              const isActive = activeIndex === index
+              
+              return (
+                <button
+                  key={topic.path}
+                  className={cn(
+                    "w-full flex items-center justify-between px-3 py-2.5 text-left transition-colors",
+                    isActive ? "bg-accent" : isSelected ? "bg-accent/50" : "hover:bg-accent/30"
+                  )}
+                  onClick={() => {
+                    onSelectTopic(topic.path)
+                    setQuery('')
+                    const hasChildren = allTopics.some(t => 
+                      t.path.startsWith(topic.path + '/') && 
+                      t.path.split('/').length === topic.path.split('/').length + 1
+                    )
+                    setIsOpen(hasChildren)
+                  }}
+                  onMouseEnter={() => setActiveIndex(index)}
+                >
                   <div className="flex flex-col min-w-0">
-                    <span className="truncate text-foreground/90" style={{ color: isSelected || isActive ? color : undefined }}>
+                    <span className="text-xs font-mono font-bold text-foreground/90" style={{ color: isSelected || isActive ? color : undefined }}>
                       {topic.path}
                     </span>
-                    <span className="text-[9px] text-muted-foreground/40 uppercase tracking-tighter">
+                    <span className="text-[10px] text-muted-foreground/50 font-bold uppercase tracking-tighter">
                       {topic.name}
                     </span>
                   </div>
-                  <Badge variant="outline" className="text-[9px] shrink-0 ml-4 opacity-50 bg-background/50 border-border/40">
+                  <Badge variant="secondary" className="text-[10px] tabular-nums font-mono opacity-40">
                     {topic.count}
                   </Badge>
                 </button>

@@ -7,22 +7,19 @@ interface StatCardsProps {
 
 export function StatCards({ stats }: StatCardsProps) {
   const items = [
-    { label: 'Events Streamed', value: stats.totalEvents, icon: Binary, tone: 'text-primary', bg: 'bg-primary/10' },
-    { label: 'Tracked Entities', value: stats.entityCount, icon: Shapes, tone: 'text-sky-400', bg: 'bg-sky-500/10' },
-    { label: 'Active Processes', value: stats.activeCount, icon: Activity, tone: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-    { label: 'Anomalies', value: stats.errorCount, icon: AlertTriangle, tone: 'text-red-400', bg: 'bg-red-500/10' },
+    { label: 'Events', value: stats.totalEvents, icon: Binary, color: 'text-primary' },
+    { label: 'Tracked', value: stats.entityCount, icon: Shapes, color: 'text-info' },
+    { label: 'Active', value: stats.activeCount, icon: Activity, color: 'text-success' },
+    { label: 'Errors', value: stats.errorCount, icon: AlertTriangle, color: 'text-destructive' },
   ]
 
   return (
-    <div className="flex flex-wrap items-center gap-4">
+    <div className="flex items-center gap-6 px-4 h-full">
       {items.map((item) => (
-        <div key={item.label} className="flex items-center gap-3 bg-background/50 border border-border/40 rounded-lg px-4 py-2 shadow-sm backdrop-blur">
-          <div className={`p-1.5 rounded-md ${item.bg}`}>
-            <item.icon className={`h-4 w-4 ${item.tone}`} />
-          </div>
+        <div key={item.label} className="flex items-center gap-2">
           <div className="flex flex-col">
-            <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{item.label}</span>
-            <span className="text-sm font-semibold font-mono leading-none tracking-tight text-foreground/90 mt-0.5">{item.value.toLocaleString()}</span>
+            <span className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest leading-none">{item.label}</span>
+            <span className={`text-sm font-semibold font-mono tabular-nums mt-1 ${item.color}`}>{item.value.toLocaleString()}</span>
           </div>
         </div>
       ))}

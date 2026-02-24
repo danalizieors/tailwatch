@@ -8,35 +8,39 @@
 }
 
 :root {
-  --background: oklch(0.13 0.028 261.69);
-  --foreground: oklch(0.985 0.001 278);
+  /* "Ember & Ash" - A sophisticated, high-contrast monitoring palette */
+  --background: oklch(0.12 0.012 40); /* Deep charcoal with a warm undertone */
+  --foreground: oklch(0.92 0.01 40);
   
-  --card: oklch(0.15 0.028 261.69);
-  --card-foreground: oklch(0.985 0.001 278);
+  --card: oklch(0.15 0.02 40);
+  --card-foreground: oklch(0.92 0.01 40);
   
-  --popover: oklch(0.15 0.028 261.69);
-  --popover-foreground: oklch(0.985 0.001 278);
+  --popover: oklch(0.15 0.02 40);
+  --popover-foreground: oklch(0.92 0.01 40);
   
-  --primary: oklch(0.7 0.15 250);
-  --primary-foreground: oklch(0.13 0.028 261.69);
+  --primary: oklch(0.72 0.16 45); /* Vibrant Amber / Tangerine */
+  --primary-foreground: oklch(0.12 0.012 40);
   
-  --secondary: oklch(0.19 0.028 261.69);
-  --secondary-foreground: oklch(0.985 0.001 278);
+  --secondary: oklch(0.22 0.03 40);
+  --secondary-foreground: oklch(0.92 0.01 40);
   
-  --muted: oklch(0.19 0.028 261.69);
-  --muted-foreground: oklch(0.7 0.028 261.69);
+  --muted: oklch(0.22 0.03 40);
+  --muted-foreground: oklch(0.7 0.02 40);
   
-  --accent: oklch(0.19 0.028 261.69);
-  --accent-foreground: oklch(0.985 0.001 278);
+  --accent: oklch(0.22 0.03 40);
+  --accent-foreground: oklch(0.92 0.01 40);
   
-  --destructive: oklch(0.57 0.2 25);
-  --destructive-foreground: oklch(0.985 0.001 278);
+  /* Refined state colors */
+  --success: oklch(0.75 0.15 160); /* Electric Mint */
+  --warning: oklch(0.82 0.16 85);  /* Golden Sulfur */
+  --destructive: oklch(0.68 0.18 30); /* Vivid Crimson */
+  --info: oklch(0.72 0.14 210);      /* Azure Sky */
   
-  --border: oklch(0.23 0.028 261.69);
-  --input: oklch(0.23 0.028 261.69);
-  --ring: oklch(0.7 0.15 250);
+  --border: oklch(0.24 0.02 40);
+  --input: oklch(0.24 0.02 40);
+  --ring: oklch(0.72 0.16 45);
   
-  --radius: 0.5rem;
+  --radius: 0.75rem;
 }
 
 @theme inline {
@@ -55,7 +59,10 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
+  --color-destructive-foreground: var(--foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-info: var(--info);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -72,10 +79,11 @@ body {
   background-color: var(--background);
   color: var(--foreground);
   min-height: 100vh;
-  /* Dark, dev-focused modern gradient background */
+  /* Multi-layered glow + subtle terminal dot pattern */
   background-image: 
-    radial-gradient(ellipse 80% 80% at 50% -20%, rgba(120, 119, 198, 0.08), transparent),
-    radial-gradient(ellipse 60% 60% at 100% 100%, rgba(120, 119, 198, 0.05), transparent);
+    radial-gradient(circle at 1px 1px, oklch(var(--primary) / 0.08) 1px, transparent 0),
+    radial-gradient(ellipse 80% 50% at 50% -10%, oklch(var(--primary) / 0.12), transparent);
+  background-size: 32px 32px, 100% 100%;
   background-attachment: fixed;
   font-feature-settings: "rlig" 1, "calt" 1;
 }
@@ -91,8 +99,8 @@ body {
 }
 
 .scroll-thin::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 
 .scroll-thin::-webkit-scrollbar-track {
@@ -108,19 +116,19 @@ body {
   background: var(--muted-foreground);
 }
 
-/* Redefined glass effect for pure dark mode */
-.glass-panel {
-  background: color-mix(in oklab, var(--card) 40%, transparent);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid color-mix(in oklab, var(--border) 60%, transparent);
-  box-shadow: 0 4px 24px -1px rgba(0, 0, 0, 0.3);
-}
-
 .card-hover-effect {
-  transition: all 0.2s ease-in-out;
+  /* Removed transition for static feel */
 }
 .card-hover-effect:hover {
-  border-color: color-mix(in oklab, var(--primary) 50%, var(--border));
-  box-shadow: 0 0 16px -4px color-mix(in oklab, var(--primary) 30%, transparent);
+  border-color: color-mix(in oklab, var(--primary) 40%, var(--border));
+  background-color: oklch(0.17 0.02 40);
+  /* Removed transform: translateY(-1px) */
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
