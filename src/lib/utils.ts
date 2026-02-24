@@ -16,17 +16,16 @@ export function getPathColor(path: string) {
     hash = path.charCodeAt(i) + ((hash << 5) - hash)
   }
   
-  // Use a more sophisticated hue range
-  // We want to avoid "standard" blues (240-260) and maybe standard greens (120-140) 
-  // to keep it feeling custom and "high-end".
-  const rawHue = Math.abs(hash) % 360
+  // Golden Ratio Hue Distribution
+  // Multiplying by the golden ratio conjugate (~0.618) ensures that 
+  // hues are spread as far apart as possible across the spectrum.
+  const phiConjugate = 0.618033988749895
+  const h = (Math.abs(hash) * phiConjugate * 360) % 360
   
-  let h = rawHue
-  // Avoid the "blue/indigo" dead zone for this theme
-  if (h > 210 && h < 280) h = (h + 100) % 360
-  // Avoid the "standard lime green" to keep it unique
-  if (h > 100 && h < 140) h = (h + 60) % 360
+  // Maintain the "Jewel Tone" look but add slight variations in 
+  // Lightness and Chroma based on the hash to help differentiate similar hues.
+  const l = 0.82 + (Math.abs(hash >> 4) % 6) / 100   // Range: 0.82 - 0.88
+  const c = 0.28 + (Math.abs(hash >> 8) % 10) / 100  // Range: 0.28 - 0.38
 
-  // L = 0.85 (Extremely bright), C = 0.3 (Maximum saturation for high pop)
-  return `oklch(0.85 0.3 ${h})`
+  return `oklch(${l.toFixed(3)} ${c.toFixed(3)} ${h.toFixed(2)})`
 }
