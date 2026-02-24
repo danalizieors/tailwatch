@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect } from 'react'
+import { useState, useMemo, useRef, useEffect, KeyboardEvent } from 'react'
 import { Search, X } from 'lucide-react'
 import { Badge } from '~/components/ui/badge'
 import type { TopicNode } from '~/lib/types'
@@ -75,7 +75,7 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic }: TopicSelec
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: KeyboardEvent) => {
     if (!isOpen) {
       if (e.key === 'ArrowDown') setIsOpen(true)
       if (e.key === 'Backspace' && query === '' && segments.length > 0) {

@@ -8,11 +8,12 @@ interface LogStreamProps {
   onSearchChange: (value: string) => void
   typeFilter: EventType | 'all'
   onTypeFilterChange: (value: EventType | 'all') => void
+  lastSeenAt: number
 }
 
 const EVENT_TYPES: Array<EventType | 'all'> = ['all', 'start', 'log', 'stop', 'error', 'heartbeat', 'status']
 
-export function LogStream({ events, searchValue, onSearchChange, typeFilter, onTypeFilterChange }: LogStreamProps) {
+export function LogStream({ events, searchValue, onSearchChange, typeFilter, onTypeFilterChange, lastSeenAt }: LogStreamProps) {
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
       <div className="py-3 mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/20 shrink-0">
@@ -73,19 +74,23 @@ export function LogStream({ events, searchValue, onSearchChange, typeFilter, onT
               {events.map((event) => {
                 const pathColor = getPathColor(event.path)
                 const isInProgress = event.type === 'start' || event.type === 'heartbeat'
+                const isUnread = new Date(event.timestamp).getTime() > lastSeenAt
                 
                 return (
                   <div 
                     key={event.id} 
                     className={cn(
-                      "group flex flex-col md:grid md:grid-cols-[100px_80px_minmax(0,1fr)_100px] gap-1 md:gap-4 px-4 md:px-6 py-3 md:py-2 border-l-[4px] hover:bg-white/[0.02]",
-                      isInProgress ? "opacity-60" : "opacity-100"
+                      "group flex flex-col md:grid md:grid-cols-[100px_80px_minmax(0,1fr)_100px] gap-1 md:gap-4 px-4 md:px-6 py-3 md:py-2 border-l-[4px] relative",
+                      isInProgress ? "opacity-60" : "opacity-100",
+                      isUnread && "bg-amber-500/[0.08]"
                     )}
                     style={{ 
                       borderLeftColor: pathColor,
-                      backgroundColor: `oklch(from ${pathColor} 0.12 0.04 h / 0.1)`
                     }}
                   >
+                    {isUnread && (
+                       <div className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
+                    )}
                     {/* Meta Row (Timestamp & Level) */}
                     <div className="flex items-center justify-between md:contents">
                       <div className="text-muted-foreground/50 text-[10px] tabular-nums whitespace-nowrap self-center font-medium">

@@ -7,9 +7,10 @@ import { cn, getPathColor } from '~/lib/utils'
 
 interface StatusBoardProps {
   rows: EntitySnapshot[]
+  lastSeenAt: number
 }
 
-export function StatusBoard({ rows }: StatusBoardProps) {
+export function StatusBoard({ rows, lastSeenAt }: StatusBoardProps) {
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
       <div className="py-3 mb-4 flex items-center justify-between border-b border-border/20 shrink-0">
@@ -37,16 +38,25 @@ export function StatusBoard({ rows }: StatusBoardProps) {
               const jewelBg = `oklch(from ${pathColor} 0.16 0.12 h / 0.9)`
               const jewelBorder = `oklch(from ${pathColor} 0.45 0.18 h / 0.5)`
               const jewelText = `oklch(from ${pathColor} 0.98 0.01 h)`
+              const isUnread = new Date(row.lastSeenAt).getTime() > lastSeenAt
               
               return (
                 <div 
                   key={row.key} 
-                  className="group relative rounded-2xl border-2 p-6 card-hover-effect backdrop-blur-3xl overflow-hidden"
+                  className={cn(
+                    "group relative rounded-2xl border-2 p-6 card-hover-effect backdrop-blur-3xl overflow-hidden",
+                    isUnread && "ring-2 ring-amber-500 ring-offset-4 ring-offset-background/20 shadow-[0_0_20px_rgba(245,158,11,0.3)]"
+                  )}
                   style={{ 
                     backgroundColor: jewelBg,
-                    borderColor: jewelBorder,
+                    borderColor: isUnread ? 'oklch(0.7 0.2 80)' : jewelBorder,
                   }}
                 >
+                  {isUnread && (
+                    <div className="absolute top-2 right-2 bg-amber-500 text-[8px] font-black px-1.5 py-0.5 rounded text-black uppercase tracking-tighter animate-pulse">
+                      Update
+                    </div>
+                  )}
                   <div className="flex items-start justify-between gap-4 mb-6">
                     <div className="flex flex-col min-w-0">
                       <span className="text-lg font-black truncate tracking-tight" style={{ color: jewelText }}>
