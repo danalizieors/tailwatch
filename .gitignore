@@ -1,0 +1,14 @@
+node_modules
+.pnpm-store
+.env
+.env.local
+.DS_Store
+dist
+.vinxi
+.output
+.tanstack
+src/routeTree.gen.ts
+convex/_generated
+convex/.tmp
+data/*.json
+!data/.gitkeep
