@@ -31,7 +31,7 @@ export function StatusBoard({ rows }: StatusBoardProps) {
             <span className="text-xs font-medium opacity-60">Registry empty</span>
           </div>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 pb-6">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 pb-6 px-1">
             {rows.map((row) => {
               const pathColor = getPathColor(row.path)
               const jewelBg = `oklch(from ${pathColor} 0.16 0.12 h / 0.9)`

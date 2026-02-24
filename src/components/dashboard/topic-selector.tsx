@@ -127,15 +127,15 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic }: TopicSelec
   }
 
   return (
-    <div className="relative flex-1 max-w-2xl" ref={dropdownRef}>
+    <div className="relative flex-1" ref={dropdownRef}>
       <div 
         className={cn(
-          "flex items-center min-h-[34px] px-3 bg-secondary/30 border rounded-lg transition-all gap-0.5",
+          "flex items-center min-h-[38px] md:min-h-[34px] px-2 md:px-3 bg-secondary/30 border rounded-lg transition-all gap-0.5",
           isOpen ? "border-primary/50 ring-2 ring-primary/10 bg-background shadow-sm" : "border-border/60 hover:border-border"
         )}
         onClick={() => inputRef.current?.focus()}
       >
-        <Search className="h-3.5 w-3.5 text-muted-foreground/60 mr-1.5 shrink-0" />
+        <Search className="h-3.5 w-3.5 text-muted-foreground/60 mr-1 md:mr-1.5 shrink-0" />
         
         {/* ROOT */}
         <button
@@ -144,7 +144,7 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic }: TopicSelec
             onSelectTopic(undefined)
           }}
           className={cn(
-            "text-[11px] font-mono px-1 rounded hover:bg-muted transition-colors font-bold shrink-0",
+            "text-[10px] md:text-[11px] font-mono px-1 rounded hover:bg-muted font-bold shrink-0",
             !selectedTopic ? "text-primary" : "text-muted-foreground/40"
           )}
         >
@@ -152,7 +152,7 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic }: TopicSelec
         </button>
 
         {/* SEGMENTS */}
-        <div className="flex items-center overflow-x-auto no-scrollbar shrink-0 max-w-[70%]">
+        <div className="flex items-center overflow-x-auto no-scrollbar shrink-0 max-w-[50%] sm:max-w-[70%]">
           {segments.map((segment, idx) => {
             const path = segments.slice(0, idx + 1).join('/')
             const color = getPathColor(path)
@@ -166,26 +166,26 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic }: TopicSelec
                     onSelectTopic(path)
                   }}
                   className={cn(
-                    "text-[11px] font-mono px-1 py-0.5 rounded transition-all whitespace-nowrap",
+                    "text-[10px] md:text-[11px] font-mono px-0.5 md:px-1 py-0.5 rounded transition-all whitespace-nowrap",
                     isLast ? "font-bold text-foreground/90" : "text-muted-foreground/60 hover:text-foreground hover:bg-muted"
                   )}
                   style={{ color: isLast ? color : undefined }}
                 >
                   {segment}
                 </button>
-                <span className="text-border font-mono text-[11px] px-0.5 select-none opacity-60">/</span>
+                <span className="text-border font-mono text-[10px] md:text-[11px] px-0.5 select-none opacity-60">/</span>
               </div>
             )
           })}
         </div>
 
         {/* INPUT */}
-        <div className="relative flex-1 min-w-[40px] flex items-center h-full">
+        <div className="relative flex-1 min-w-[30px] flex items-center h-full">
           <input
             ref={inputRef}
             type="text"
-            className="w-full bg-transparent text-[11px] font-mono focus:outline-none placeholder:text-muted-foreground/50 text-foreground font-medium"
-            placeholder={segments.length === 0 ? "Filter by path..." : "..."}
+            className="w-full bg-transparent text-[10px] md:text-[11px] font-mono focus:outline-none placeholder:text-muted-foreground/50 text-foreground font-medium"
+            placeholder={segments.length === 0 ? "Filter..." : "..."}
             value={query}
             onChange={(e) => {
               setQuery(e.target.value)
@@ -203,7 +203,7 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic }: TopicSelec
               setQuery('')
               if (!query) onSelectTopic(undefined)
             }}
-            className="ml-2 text-muted-foreground/40 hover:text-destructive transition-colors p-0.5 shrink-0"
+            className="ml-1 md:ml-2 text-muted-foreground/40 hover:text-destructive p-1 shrink-0"
           >
             <X className="h-3 w-3" />
           </button>
@@ -212,7 +212,7 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic }: TopicSelec
 
       {/* DROPDOWN */}
       {isOpen && filteredTopics.length > 0 && (
-        <div className="absolute top-full left-0 right-0 mt-1.5 bg-popover border border-border shadow-xl rounded-xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-1 duration-200">
+        <div className="absolute top-full left-0 right-0 mt-2 bg-popover border border-border shadow-2xl rounded-xl overflow-hidden z-[100] animate-in fade-in slide-in-from-top-1 duration-200">
           <div role="listbox" className="max-h-60 overflow-y-auto scroll-thin py-1" ref={listRef}>
             {filteredTopics.map((topic, index) => {
               const color = getPathColor(topic.path)

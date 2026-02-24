@@ -37,14 +37,14 @@ export function DashboardView({ mode }: DashboardViewProps) {
     <div className="flex h-screen w-full flex-col text-foreground">
       
       {/* PROFESSIONAL NAV BAR */}
-      <header className="h-16 shrink-0 z-50 flex items-center px-8 gap-8">
+      <header className="h-16 shrink-0 z-50 flex items-center px-4 md:px-8 gap-4 md:gap-8">
         {/* Branding */}
-        <div className="flex items-center gap-3 shrink-0 group cursor-default">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/20 shadow-sm group-hover:border-primary/40">
-            <Terminal className="h-5 w-5" />
+        <div className="flex items-center gap-2 md:gap-3 shrink-0 group cursor-default">
+          <div className="flex h-8 w-8 md:h-9 md:h-9 items-center justify-center rounded-lg md:rounded-xl bg-primary/10 text-primary border border-primary/20 shadow-sm">
+            <Terminal className="h-4 w-4 md:h-5 md:h-5" />
           </div>
-          <div className="flex flex-col">
-            <span className="text-base font-black tracking-tight text-foreground uppercase">Tailwatch</span>
+          <div className="flex flex-col hidden sm:flex">
+            <span className="text-sm md:text-base font-black tracking-tight text-foreground uppercase">Tailwatch</span>
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className={cn("h-1.5 w-1.5 rounded-full", data ? "bg-success shadow-[0_0_8px_oklch(from_var(--success)_l_c_h_/_0.5)]" : "bg-muted-foreground/40")} />
               <span className="text-[10px] font-bold text-muted-foreground/80 uppercase tracking-tight">
@@ -55,32 +55,32 @@ export function DashboardView({ mode }: DashboardViewProps) {
         </div>
 
         {/* Global Navigation Input */}
-        <div className="flex-1 max-w-2xl px-2">
+        <div className="flex-1 min-w-0">
           {data && (
             <TopicSelector tree={data.topicTree} selectedTopic={selectedTopic} onSelectTopic={setSelectedTopic} />
           )}
         </div>
 
         {/* View Switcher & Stats */}
-        <div className="flex items-center gap-6 shrink-0">
+        <div className="flex items-center gap-3 md:gap-6 shrink-0">
           {data && <div className="hidden xl:block"><StatCards stats={data.stats} /></div>}
           
           <nav className="flex items-center p-1 bg-primary/5 rounded-lg border border-primary/10 shadow-sm backdrop-blur-sm">
             <Link
               to="/"
               activeProps={{ className: 'bg-background text-primary border-border/60 shadow-sm' }}
-              className="flex items-center gap-2 px-3.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 hover:text-foreground border border-transparent"
+              className="flex items-center gap-2 px-2.5 md:px-3.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 hover:text-foreground border border-transparent"
             >
               <ListTree className="h-3.5 w-3.5" />
-              Logs
+              <span className="hidden xs:inline">Logs</span>
             </Link>
             <Link
               to="/status"
               activeProps={{ className: 'bg-background text-primary border-border/60 shadow-sm' }}
-              className="flex items-center gap-2 px-3.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 hover:text-foreground border border-transparent"
+              className="flex items-center gap-2 px-2.5 md:px-3.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 hover:text-foreground border border-transparent"
             >
               <LayoutGrid className="h-3.5 w-3.5" />
-              Status
+              <span className="hidden xs:inline">Status</span>
             </Link>
           </nav>
         </div>
@@ -88,7 +88,7 @@ export function DashboardView({ mode }: DashboardViewProps) {
 
       {/* VIEWPORT CONTENT */}
       <main className="flex-1 flex overflow-hidden">
-        <div className="flex-1 overflow-hidden px-8 py-4 flex flex-col gap-4">
+        <div className="flex-1 overflow-hidden px-4 md:px-8 py-4 flex flex-col gap-4">
           {error && (
             <Card className="border-destructive/20 bg-destructive/10 text-destructive-foreground backdrop-blur shadow-sm overflow-hidden shrink-0">
               <CardContent className="p-3 text-xs font-medium flex items-center gap-3">

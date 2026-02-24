@@ -1,6 +1,4 @@
 import { AlertCircle, Search, Filter, Hash } from 'lucide-react'
-import { Badge } from '~/components/ui/badge'
-import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
 import type { EventType, StoredEvent } from '~/lib/types'
 import { cn, getPathColor } from '~/lib/utils'
 
@@ -56,21 +54,22 @@ export function LogStream({ events, searchValue, onSearchChange, typeFilter, onT
       </div>
       
       <div className="flex flex-col flex-1 min-h-0 bg-card/10 border border-primary/10 rounded-2xl overflow-hidden backdrop-blur-md">
-        <div className="grid grid-cols-[110px_90px_minmax(0,1fr)_120px] gap-4 px-6 py-4 bg-primary/5 text-[10px] uppercase font-bold tracking-widest text-muted-foreground/80">
+        {/* Table Header - Desktop Only */}
+        <div className="hidden md:grid grid-cols-[100px_80px_minmax(0,1fr)_100px] gap-4 px-6 py-2.5 bg-primary/5 text-[9px] uppercase font-black tracking-[0.2em] text-muted-foreground/60 border-b border-white/5">
           <div>Timestamp</div>
           <div>Level</div>
           <div>Message</div>
-          <div className="text-right">Entity</div>
+          <div className="text-right">Run ID</div>
         </div>
 
         <div className="scroll-thin flex-1 overflow-y-auto">
           {events.length === 0 ? (
             <div className="flex h-full min-h-[300px] items-center justify-center flex-col gap-2 text-muted-foreground">
               <AlertCircle className="h-5 w-5 opacity-40" />
-              <span className="text-xs font-medium opacity-60">Empty dataset</span>
+              <span className="text-xs font-medium opacity-60 uppercase tracking-widest font-bold">Registry empty</span>
             </div>
           ) : (
-            <div className="divide-y divide-border/10 font-sans text-xs">
+            <div className="divide-y divide-white/5 font-mono text-xs">
               {events.map((event) => {
                 const pathColor = getPathColor(event.path)
                 const isInProgress = event.type === 'start' || event.type === 'heartbeat'
@@ -79,44 +78,51 @@ export function LogStream({ events, searchValue, onSearchChange, typeFilter, onT
                   <div 
                     key={event.id} 
                     className={cn(
-                      "group grid grid-cols-[110px_90px_minmax(0,1fr)_120px] gap-4 px-6 py-5 border-l-[6px]",
-                      isInProgress ? "opacity-75" : "opacity-100"
+                      "group flex flex-col md:grid md:grid-cols-[100px_80px_minmax(0,1fr)_100px] gap-1 md:gap-4 px-4 md:px-6 py-3 md:py-2 border-l-[4px] hover:bg-white/[0.02]",
+                      isInProgress ? "opacity-60" : "opacity-100"
                     )}
                     style={{ 
                       borderLeftColor: pathColor,
-                      backgroundColor: `oklch(from ${pathColor} 0.18 0.08 h / 0.25)`
+                      backgroundColor: `oklch(from ${pathColor} 0.12 0.04 h / 0.1)`
                     }}
                   >
-                    <div className="text-muted-foreground/80 font-mono text-[11px] tabular-nums whitespace-nowrap self-center font-bold">
-                      {new Date(event.timestamp).toLocaleTimeString(undefined, { hour12: false, fractionalSecondDigits: 3 })}
-                    </div>
-
-                    <div className="flex items-center">
-                      <span className={cn('font-black text-[10px] px-3 py-1.5 rounded-lg border-2 leading-none uppercase tracking-widest shadow-sm', eventTypeColors(event.type))}>
-                        {event.type}
-                      </span>
-                    </div>
-
-                    <div className="min-w-0 self-center">
-                      <div 
-                        className="text-[11px] mb-1.5 truncate group-hover:opacity-100 font-mono font-black tracking-widest uppercase"
-                        style={{ color: pathColor }}
-                      >
-                        {event.path}
+                    {/* Meta Row (Timestamp & Level) */}
+                    <div className="flex items-center justify-between md:contents">
+                      <div className="text-muted-foreground/50 text-[10px] tabular-nums whitespace-nowrap self-center font-medium">
+                        {new Date(event.timestamp).toLocaleTimeString(undefined, { hour12: false, fractionalSecondDigits: 3 })}
                       </div>
-                      <p className={cn('break-words leading-relaxed text-foreground font-bold text-sm tracking-tight', event.type === 'error' && 'text-destructive')}>
-                        {event.content ?? <span className="text-white/20 italic font-medium">No payload content</span>}
+
+                      <div className="flex items-center">
+                        <span className={cn('font-black text-[8px] px-1.5 py-0.5 rounded border leading-none uppercase tracking-tighter', eventTypeColors(event.type))}>
+                          {event.type}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Content Row */}
+                    <div className="min-w-0 self-center w-full md:w-auto mt-0.5 md:mt-0">
+                      <div className="flex items-center gap-2 mb-0.5 overflow-hidden">
+                        <span 
+                          className="text-[9px] truncate font-black tracking-widest uppercase opacity-60"
+                          style={{ color: pathColor }}
+                        >
+                          {event.path}
+                        </span>
+                        {event.entityId && (
+                          <span className="text-[9px] font-bold opacity-30 shrink-0" style={{ color: pathColor }}>
+                            @{event.entityId}
+                          </span>
+                        )}
+                      </div>
+                      <p className={cn('break-words leading-tight text-foreground/90 font-medium text-[11px] tracking-tight', event.type === 'error' && 'text-destructive font-bold')}>
+                        {event.content ?? <span className="text-white/10 italic font-normal">empty_payload</span>}
                       </p>
                     </div>
 
-                    <div className="flex flex-col items-end justify-center gap-1 opacity-50 group-hover:opacity-100 overflow-hidden">
-                      {event.entityId && (
-                        <span className="text-[11px] font-mono font-black truncate max-w-full" style={{ color: pathColor }}>
-                          @{event.entityId}
-                        </span>
-                      )}
+                    {/* Run ID (Desktop Only) */}
+                    <div className="hidden md:flex flex-col items-end justify-center opacity-20 group-hover:opacity-100 overflow-hidden">
                       {event.runId && (
-                        <span className="text-[9px] font-mono text-muted-foreground/60 truncate">
+                        <span className="text-[9px] truncate font-medium">
                           {event.runId.slice(0, 8)}
                         </span>
                       )}
@@ -134,11 +140,11 @@ export function LogStream({ events, searchValue, onSearchChange, typeFilter, onT
 
 function eventTypeColors(type: EventType) {
   switch (type) {
-    case 'start': return 'text-muted-foreground border-border bg-muted/5'
+    case 'start': return 'text-muted-foreground/60 border-white/10 bg-white/5'
     case 'stop': return 'text-success border-success/30 bg-success/10'
     case 'error': return 'text-destructive border-destructive/30 bg-destructive/10'
-    case 'heartbeat': return 'text-muted-foreground border-border bg-muted/5'
+    case 'heartbeat': return 'text-muted-foreground/60 border-white/10 bg-white/5'
     case 'status': return 'text-info border-info/30 bg-info/10'
-    default: return 'text-foreground border-border bg-muted/5'
+    default: return 'text-foreground/60 border-white/10 bg-white/5'
   }
 }
