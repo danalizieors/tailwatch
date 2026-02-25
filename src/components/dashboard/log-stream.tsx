@@ -1,6 +1,7 @@
-import { AlertCircle, Search, Filter, Hash } from 'lucide-react'
+import { AlertCircle, Search, Filter, Hash, CheckCircle2 } from 'lucide-react'
 import type { EventType, StoredEvent } from '~/lib/types'
 import { cn, getPathColor } from '~/lib/utils'
+import { Button } from '~/components/ui/button'
 
 interface LogStreamProps {
   events: StoredEvent[]
@@ -9,13 +10,14 @@ interface LogStreamProps {
   typeFilter: EventType | 'all'
   onTypeFilterChange: (value: EventType | 'all') => void
   lastSeenAt: number
+  onAcknowledge?: () => void
 }
 
 const EVENT_TYPES: Array<EventType | 'all'> = ['all', 'start', 'log', 'stop', 'error', 'heartbeat', 'status']
 
-export function LogStream({ events, searchValue, onSearchChange, typeFilter, onTypeFilterChange, lastSeenAt }: LogStreamProps) {
+export function LogStream({ events, searchValue, onSearchChange, typeFilter, onTypeFilterChange, lastSeenAt, onAcknowledge }: LogStreamProps) {
   return (
-    <div className="flex flex-col flex-1 overflow-hidden">
+    <div className="flex flex-col h-full overflow-hidden">
       <div className="py-3 mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/20 shrink-0">
         <div className="flex items-center gap-2">
           <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/20">
@@ -28,6 +30,17 @@ export function LogStream({ events, searchValue, onSearchChange, typeFilter, onT
         </div>
         
         <div className="flex items-center gap-2.5">
+          {onAcknowledge && (
+            <Button 
+              size="sm" 
+              variant="outline" 
+              className="h-8 border-primary/20 bg-primary/5 hover:bg-primary/10 text-[9px] font-black uppercase tracking-widest text-primary gap-1.5 px-3 rounded-lg mr-2"
+              onClick={onAcknowledge}
+            >
+              <CheckCircle2 className="h-3 w-3" />
+              Acknowledge
+            </Button>
+          )}
           <div className="relative group">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/60 group-focus-within:text-primary transition-colors" />
             <input
@@ -89,7 +102,12 @@ export function LogStream({ events, searchValue, onSearchChange, typeFilter, onT
                     }}
                   >
                     {isUnread && (
-                       <div className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
+                      <div className="absolute top-1/2 -translate-y-1/2 right-4 z-10">
+                        <span className="relative flex h-2 w-2">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500 shadow-[0_0_12px_rgba(245,158,11,1)]"></span>
+                        </span>
+                      </div>
                     )}
                     {/* Meta Row (Timestamp & Level) */}
                     <div className="flex items-center justify-between md:contents">

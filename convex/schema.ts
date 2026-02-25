@@ -3,6 +3,7 @@ import { v } from 'convex/values'
 
 export default defineSchema({
   events: defineTable({
+    workspace: v.optional(v.string()),
     path: v.string(),
     segments: v.array(v.string()),
     type: v.union(
@@ -23,11 +24,14 @@ export default defineSchema({
     content: v.optional(v.string()),
     meta: v.optional(v.any()),
     metrics: v.optional(v.any()),
+    _tempSync: v.optional(v.string()),
   })
+    .index('by_workspace_timestamp', ['workspace', 'timestamp'])
     .index('by_path', ['path'])
     .index('by_timestamp', ['timestamp'])
     .index('by_entity', ['entityId']),
   entity_state: defineTable({
+    workspace: v.optional(v.string()),
     key: v.string(),
     path: v.string(),
     entityId: v.string(),
@@ -40,6 +44,7 @@ export default defineSchema({
     lastContent: v.optional(v.string()),
     lastError: v.optional(v.string()),
   })
+    .index('by_workspace', ['workspace'])
     .index('by_key', ['key'])
     .index('by_path', ['path'])
     .index('by_status', ['currentStatus']),

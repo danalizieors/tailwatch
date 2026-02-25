@@ -33,6 +33,7 @@ type StoreFile = {
 }
 
 export interface DashboardFilters {
+  workspace?: string
   topicPrefix?: string
   type?: string
   q?: string
@@ -84,6 +85,7 @@ function normalizeStoredEvent(raw: unknown): StoredEvent | null {
 
   return {
     id: typeof value.id === 'string' ? value.id : randomId('evt'),
+    workspace: typeof value.workspace === 'string' ? value.workspace : 'default',
     path,
     segments:
       Array.isArray(value.segments) && value.segments.every((segment) => typeof segment === 'string')
@@ -124,8 +126,13 @@ async function ensureStoreFile() {
       }
 
       return normalized
+    } else {
+      console.error('[EventStore] Validation failed for events.json:', parsed.error)
     }
-  } catch {
+  } catch (err) {
+    if ((err as any).code !== 'ENOENT') {
+      console.error('[EventStore] Error reading events.json:', err)
+    }
     // Seed file below.
   }
 
@@ -236,6 +243,7 @@ function createSeedEvents(): StoredEvent[] {
     const timestamp = new Date(now - row.offsetMs).toISOString()
     return {
       id: `seed_${index + 1}`,
+      workspace: 'default',
       path: normalizeTopicPath(row.path),
       segments: splitTopicPath(row.path),
       timestamp,
@@ -246,6 +254,13 @@ function createSeedEvents(): StoredEvent[] {
 }
 
 function eventMatchesFilters(event: StoredEvent, filters: DashboardFilters) {
+  if (filters.workspace) {
+    if (event.workspace !== filters.workspace) return false
+  } else if (event.workspace !== 'default') {
+    // If no workspace requested, default to 'default' workspace only
+    return false
+  }
+
   if (filters.topicPrefix) {
     const prefix = normalizeTopicPath(filters.topicPrefix)
     if (!event.path.startsWith(prefix)) return false
@@ -281,10 +296,8 @@ function buildEntitySnapshots(events: StoredEvent[]) {
   const map = new Map<string, EntitySnapshot>()
 
   for (const event of sorted) {
-    const entityId = event.entityId ?? (event.runId ? `run:${event.runId}` : undefined)
-    if (!entityId) continue
-
-    const entityType = event.entityType ?? (event.runId ? 'run' : 'entity')
+    const entityId = event.entityId ?? event.runId ?? event.path
+    const entityType = event.entityType ?? (event.runId ? 'run' : event.entityId ? 'entity' : 'topic')
     const key = `${event.path}::${entityId}`
     const previous = map.get(key)
     const currentStatus = getEntityStatusFromEvent(event, previous)
@@ -297,6 +310,7 @@ function buildEntitySnapshots(events: StoredEvent[]) {
 
     const next: EntitySnapshot = {
       key,
+      workspace: event.workspace,
       path: event.path,
       entityId,
       entityType,
@@ -395,8 +409,14 @@ export async function appendEvent(topicPath: string, payload: unknown): Promise<
     throw new Error('Topic path is required')
   }
 
-  const parsedPayload = publishSchema.parse(payload)
+  const result = publishSchema.safeParse(payload)
+  if (!result.success) {
+    console.error('[EventStore] Schema validation failed:', result.error.format())
+    throw new Error(`Schema validation failed: ${result.error.issues.map((e: any) => `${e.path.join('.')}: ${e.message}`).join(', ')}`)
+  }
+  const parsedPayload = result.data
   const { message: legacyMessage, ...payloadRest } = parsedPayload
+  const workspace = (payload as any).workspace || 'default'
   const normalizedPayload: PublishEventPayload = {
     ...payloadRest,
     content: payloadRest.content ?? legacyMessage,
@@ -404,6 +424,7 @@ export async function appendEvent(topicPath: string, payload: unknown): Promise<
   const timestamp = normalizedPayload.timestamp ?? nowIso()
   const event: StoredEvent = {
     id: randomId('evt'),
+    workspace,
     path: parsedTopic,
     segments: splitTopicPath(parsedTopic),
     timestamp,
@@ -445,6 +466,6 @@ export async function getDashboardSnapshot(filters: DashboardFilters = {}): Prom
   }
 }
 
-export async function getStatusSnapshot(topicPrefix?: string) {
-  return getDashboardSnapshot({ topicPrefix, limit: 200 })
+export async function getStatusSnapshot(topicPrefix?: string, workspace?: string) {
+  return getDashboardSnapshot({ topicPrefix, workspace, limit: 200 })
 }

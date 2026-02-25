@@ -3,14 +3,17 @@ import { Search, X } from 'lucide-react'
 import { Badge } from '~/components/ui/badge'
 import type { TopicNode } from '~/lib/types'
 import { cn, getPathColor } from '~/lib/utils'
+import { PathDisplay } from './path-display'
 
 interface TopicSelectorProps {
   tree: TopicNode[]
   selectedTopic?: string
   onSelectTopic: (topic?: string) => void
+  placeholder?: string
+  className?: string
 }
 
-export function TopicSelector({ tree, selectedTopic, onSelectTopic }: TopicSelectorProps) {
+export function TopicSelector({ tree, selectedTopic, onSelectTopic, placeholder = "Filter...", className }: TopicSelectorProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [activeIndex, setActiveIndex] = useState(-1)
@@ -56,11 +59,6 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic }: TopicSelec
       .slice(0, 12)
   }, [allTopics, query, selectedTopic])
 
-  const segments = useMemo(() => {
-    if (!selectedTopic) return []
-    return selectedTopic.split('/')
-  }, [selectedTopic])
-
   useEffect(() => {
     if (isOpen && filteredTopics.length > 0) {
       setActiveIndex(0)
@@ -82,9 +80,9 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic }: TopicSelec
   const handleKeyDown = (e: KeyboardEvent) => {
     if (!isOpen) {
       if (e.key === 'ArrowDown') setIsOpen(true)
-      if (e.key === 'Backspace' && query === '' && segments.length > 0) {
+      if (e.key === 'Backspace' && query === '' && selectedTopic) {
         e.preventDefault()
-        const parentPath = segments.slice(0, -1).join('/')
+        const parentPath = selectedTopic.split('/').slice(0, -1).join('/')
         onSelectTopic(parentPath || undefined)
       }
       return
@@ -117,9 +115,9 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic }: TopicSelec
         setIsOpen(false)
         break
       case 'Backspace':
-        if (query === '' && segments.length > 0) {
+        if (query === '' && selectedTopic) {
           e.preventDefault()
-          const parentPath = segments.slice(0, -1).join('/')
+          const parentPath = selectedTopic.split('/').slice(0, -1).join('/')
           onSelectTopic(parentPath || undefined)
           setIsOpen(true)
         }
@@ -131,56 +129,24 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic }: TopicSelec
   }
 
   return (
-    <div className="relative flex-1" ref={dropdownRef}>
+    <div className={cn("relative flex-1", className)} ref={dropdownRef}>
       <div 
         className={cn(
           "flex items-center min-h-[38px] md:min-h-[34px] px-2 md:px-3 bg-secondary/30 border rounded-lg transition-all gap-0.5",
-          isOpen ? "border-primary/50 ring-2 ring-primary/10 bg-background shadow-sm" : "border-border/60 hover:border-border"
+          isOpen ? "border-primary/50 ring-2 ring-primary/10 bg-background shadow-sm" : "border-border/60 hover:border-border",
+          className?.includes('!bg-transparent') && !isOpen && "bg-transparent border-transparent"
         )}
         onClick={() => inputRef.current?.focus()}
       >
         <Search className="h-3.5 w-3.5 text-muted-foreground/60 mr-1 md:mr-1.5 shrink-0" />
         
-        {/* ROOT */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation()
-            onSelectTopic(undefined)
-          }}
-          className={cn(
-            "text-[10px] md:text-[11px] font-mono px-1 rounded hover:bg-muted font-bold shrink-0",
-            !selectedTopic ? "text-primary" : "text-muted-foreground/40"
-          )}
-        >
-          /
-        </button>
-
-        {/* SEGMENTS */}
-        <div className="flex items-center overflow-x-auto no-scrollbar shrink-0 max-w-[50%] sm:max-w-[70%]">
-          {segments.map((segment, idx) => {
-            const path = segments.slice(0, idx + 1).join('/')
-            const color = getPathColor(path)
-            const isLast = idx === segments.length - 1
-            
-            return (
-              <div key={path} className="flex items-center shrink-0">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onSelectTopic(path)
-                  }}
-                  className={cn(
-                    "text-[10px] md:text-[11px] font-mono px-0.5 md:px-1 py-0.5 rounded transition-all whitespace-nowrap",
-                    isLast ? "font-bold text-foreground/90" : "text-muted-foreground/60 hover:text-foreground hover:bg-muted"
-                  )}
-                  style={{ color: isLast ? color : undefined }}
-                >
-                  {segment}
-                </button>
-                <span className="text-border font-mono text-[10px] md:text-[11px] px-0.5 select-none opacity-60">/</span>
-              </div>
-            )
-          })}
+        {/* DRILLDOWN / BREADCRUMBS */}
+        <div className="flex items-center no-scrollbar shrink-0 max-w-[80%]">
+           <PathDisplay 
+             path={selectedTopic || ''} 
+             onClickSegment={onSelectTopic} 
+             segmentClassName="text-[10px] md:text-[11px]"
+           />
         </div>
 
         {/* INPUT */}
@@ -189,7 +155,7 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic }: TopicSelec
             ref={inputRef}
             type="text"
             className="w-full bg-transparent text-[10px] md:text-[11px] font-mono focus:outline-none placeholder:text-muted-foreground/50 text-foreground font-medium"
-            placeholder={segments.length === 0 ? "Filter..." : "..."}
+            placeholder={!selectedTopic ? placeholder : "..."}
             value={query}
             onChange={(e) => {
               setQuery(e.target.value)
@@ -202,6 +168,7 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic }: TopicSelec
 
         {(query || selectedTopic) && (
           <button 
+            type="button"
             onClick={(e) => {
               e.stopPropagation()
               setQuery('')
@@ -226,11 +193,14 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic }: TopicSelec
               return (
                 <button
                   key={topic.path}
+                  type="button"
                   className={cn(
                     "w-full flex items-center justify-between px-3 py-2.5 text-left transition-colors",
                     isActive ? "bg-accent" : isSelected ? "bg-accent/50" : "hover:bg-accent/30"
                   )}
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
                     onSelectTopic(topic.path)
                     setQuery('')
                     const hasChildren = allTopics.some(t => 

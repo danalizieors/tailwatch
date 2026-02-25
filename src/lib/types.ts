@@ -27,6 +27,7 @@ export interface PublishEventPayload {
 
 export interface StoredEvent extends PublishEventPayload {
   id: string
+  workspace: string
   path: string
   segments: string[]
   timestamp: string
@@ -35,6 +36,7 @@ export interface StoredEvent extends PublishEventPayload {
 
 export interface EntitySnapshot {
   key: string
+  workspace: string
   path: string
   entityId: string
   entityType: string

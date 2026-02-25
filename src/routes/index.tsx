@@ -6,6 +6,6 @@ export const Route = createFileRoute('/')({
 })
 
 function LogDashboardPage() {
-  return <DashboardView mode="logs" />
+  return <DashboardView mode="logs" workspace="default" />
 }
 

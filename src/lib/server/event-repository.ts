@@ -36,6 +36,7 @@ function parseConvexStoredEvent(value: any): StoredEvent {
 
   return {
     id: String(value.id ?? value._id ?? ''),
+    workspace: String(value.workspace ?? 'default'),
     path: String(value.path ?? value.topicPath ?? ''),
     segments: Array.isArray(value.segments) ? value.segments.map((segment: unknown) => String(segment)) : [],
     type: value.type,
@@ -71,11 +72,34 @@ export async function appendEvent(topicPath: string, payload: unknown): Promise<
   }
 
   const client = createConvexClient()
-  const result = await client.mutation(convexApi.events.publish, {
+  const workspace = payloadRecord.workspace as string | undefined
+
+  // Sanitize for Convex publish mutation args
+  const convexArgs: Record<string, any> = {
     path: topicPath,
-    ...payloadRecord,
-  })
-  return parseConvexStoredEvent(result)
+    workspace,
+    type: payloadRecord.type,
+    timestamp: payloadRecord.timestamp,
+    runId: payloadRecord.runId,
+    entityId: payloadRecord.entityId,
+    entityType: payloadRecord.entityType,
+    level: payloadRecord.level,
+    status: payloadRecord.status,
+    content: payloadRecord.content,
+    meta: payloadRecord.meta,
+    metrics: payloadRecord.metrics,
+  }
+
+  // Remove undefined to avoid sending them as nulls/undefineds if mutation args don't like it
+  Object.keys(convexArgs).forEach(key => convexArgs[key] === undefined && delete convexArgs[key])
+
+  try {
+    const result = await client.mutation(convexApi.events.publish, convexArgs)
+    return parseConvexStoredEvent(result)
+  } catch (err) {
+    console.error('[EventRepository] Convex publish failed:', err)
+    throw err
+  }
 }
 
 export async function getDashboardSnapshot(filters: DashboardFilters = {}): Promise<DashboardSnapshot> {
@@ -84,23 +108,31 @@ export async function getDashboardSnapshot(filters: DashboardFilters = {}): Prom
   }
 
   const client = createConvexClient()
-  const result = await client.query(convexApi.events.dashboardSnapshot, {
+  const args: Record<string, any> = {
+    workspace: typeof filters.workspace === 'string' ? filters.workspace : undefined,
     topicPrefix: filters.topicPrefix,
     type: filters.type,
     q: filters.q,
     limit: filters.limit,
-  })
+  }
+  Object.keys(args).forEach(key => (args[key] === undefined || args[key] === null) && delete args[key])
+
+  const result = await client.query(convexApi.events.dashboardSnapshot, args)
   return parseConvexDashboardSnapshot(result)
 }
 
-export async function getStatusSnapshot(topicPrefix?: string): Promise<DashboardSnapshot> {
+export async function getStatusSnapshot(topicPrefix?: string, workspace?: string): Promise<DashboardSnapshot> {
   if (getBackendMode() === 'local') {
-    return getLocalStatusSnapshot(topicPrefix)
+    return getLocalStatusSnapshot(topicPrefix, workspace)
   }
 
   const client = createConvexClient()
-  const result = await client.query(convexApi.events.statusSnapshot, {
+  const args: Record<string, any> = {
+    workspace: typeof workspace === 'string' ? workspace : undefined,
     topicPrefix,
-  })
+  }
+  Object.keys(args).forEach(key => (args[key] === undefined || args[key] === null) && delete args[key])
+
+  const result = await client.query(convexApi.events.statusSnapshot, args)
   return parseConvexDashboardSnapshot(result)
 }

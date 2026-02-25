@@ -1,6 +1,7 @@
 import type { DashboardSnapshot, EventType, PublishEventPayload, StoredEvent } from '~/lib/types'
 
 export interface DashboardQuery {
+  workspace?: string
   topicPrefix?: string
   type?: EventType | 'all'
   q?: string
@@ -18,16 +19,24 @@ function toQueryString(query: DashboardQuery) {
 }
 
 export async function fetchDashboardSnapshot(query: DashboardQuery = {}): Promise<DashboardSnapshot> {
-  const response = await fetch(`/api/dashboard${toQueryString(query)}`)
+  const response = await fetch(`/api/dashboard${toQueryString(query)}`, {
+    headers: {
+      'x-tailwatch-workspace': query.workspace || 'default'
+    }
+  })
   if (!response.ok) {
     throw new Error(`Failed to load dashboard: ${response.status}`)
   }
   return response.json()
 }
 
-export async function fetchStatusSnapshot(topicPrefix?: string): Promise<DashboardSnapshot> {
+export async function fetchStatusSnapshot(topicPrefix?: string, workspace?: string): Promise<DashboardSnapshot> {
   const suffix = topicPrefix ? `?topicPrefix=${encodeURIComponent(topicPrefix)}` : ''
-  const response = await fetch(`/api/status${suffix}`)
+  const response = await fetch(`/api/status${suffix}`, {
+    headers: {
+      'x-tailwatch-workspace': workspace || 'default'
+    }
+  })
   if (!response.ok) {
     throw new Error(`Failed to load status board: ${response.status}`)
   }

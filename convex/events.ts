@@ -1,3 +1,4 @@
+// Kick convex watcher
 import { v } from 'convex/values'
 import { mutation, query } from './_generated/server'
 
@@ -134,6 +135,7 @@ function buildTopicTree(events: Array<{ segments: string[] }>) {
 function mapEventDoc(doc: any) {
   return {
     id: String(doc._id),
+    workspace: doc.workspace ?? 'default',
     path: doc.path,
     segments: doc.segments,
     type: doc.type,
@@ -161,6 +163,7 @@ function mapEntityStateDoc(doc: any, nowMs: number) {
 
   return {
     key: doc.key,
+    workspace: doc.workspace ?? 'default',
     path: doc.path,
     entityId: doc.entityId,
     entityType: doc.entityType,
@@ -178,17 +181,19 @@ function mapEntityStateDoc(doc: any, nowMs: number) {
 async function buildDashboardSnapshot(
   ctx: any,
   args: {
+    workspace?: string
     topicPrefix?: string
     type?: string
     q?: string
     limit?: number
   },
 ) {
+  const workspace = args.workspace ?? 'default'
   const limit = Math.min(Math.max(args.limit ?? 200, 1), 500)
 
   const rawEvents = await ctx.db
     .query('events')
-    .withIndex('by_timestamp')
+    .withIndex('by_workspace_timestamp', (q: any) => q.eq('workspace', workspace))
     .order('desc')
     .take(MAX_EVENTS_FOR_SNAPSHOT)
 
@@ -207,7 +212,11 @@ async function buildDashboardSnapshot(
 
   const events = filteredEventDocs.slice(0, limit).map(mapEventDoc)
 
-  const allEntityDocs = await ctx.db.query('entity_state').collect()
+  const allEntityDocs = await ctx.db
+    .query('entity_state')
+    .withIndex('by_workspace', (q: any) => q.eq('workspace', workspace))
+    .collect()
+
   const nowMs = Date.now()
   const entities = allEntityDocs
     .filter((doc: any) =>
@@ -239,6 +248,7 @@ async function buildDashboardSnapshot(
 export const publish = mutation({
   args: {
     path: v.string(),
+    workspace: v.optional(v.string()),
     type: v.union(
       v.literal('start'),
       v.literal('log'),
@@ -258,21 +268,27 @@ export const publish = mutation({
     metrics: v.optional(v.any()),
   },
   handler: async (ctx, args) => {
-    const path = normalizeTopicPath(args.path)
+    const rawSegments = splitTopicPath(args.path)
+    if (rawSegments.length === 0) throw new Error('Path is required')
+
+    const finalPath = normalizeTopicPath(args.path)
+    const workspace = args.workspace ?? 'default'
+
     const timestamp = args.timestamp ?? new Date().toISOString()
     const ingestedAt = new Date().toISOString()
 
     const insertedId = await ctx.db.insert('events', {
       ...args,
-      path,
-      segments: splitTopicPath(path),
+      workspace,
+      path: finalPath,
+      segments: splitTopicPath(finalPath),
       timestamp,
       ingestedAt,
     })
 
-    const entityId = args.entityId ?? (args.runId ? `run:${args.runId}` : `topic:${path}`)
+    const entityId = args.entityId ?? args.runId ?? finalPath
     const entityType = args.entityType ?? (args.runId ? 'run' : args.entityId ? 'entity' : 'topic')
-    const key = `${path}::${entityId}`
+    const key = `${finalPath}::${entityId}`
     const existing = await ctx.db
       .query('entity_state')
       .withIndex('by_key', (q) => q.eq('key', key))
@@ -285,8 +301,9 @@ export const publish = mutation({
     })
 
     const patch = {
+      workspace,
       key,
-      path,
+      path: finalPath,
       entityId,
       entityType,
       currentStatus,
@@ -306,8 +323,8 @@ export const publish = mutation({
 
     return {
       id: String(insertedId),
-      path,
-      segments: splitTopicPath(path),
+      path: finalPath,
+      segments: splitTopicPath(finalPath),
       type: args.type,
       timestamp,
       ingestedAt,
@@ -351,6 +368,7 @@ export const listEntityState = query({
 
 export const dashboardSnapshot = query({
   args: {
+    workspace: v.optional(v.string()),
     topicPrefix: v.optional(v.string()),
     type: v.optional(v.string()),
     q: v.optional(v.string()),
@@ -363,12 +381,29 @@ export const dashboardSnapshot = query({
 
 export const statusSnapshot = query({
   args: {
+    workspace: v.optional(v.string()),
     topicPrefix: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     return buildDashboardSnapshot(ctx, {
+      workspace: args.workspace,
       topicPrefix: args.topicPrefix,
       limit: 200,
     })
+  },
+})
+
+export const clearAll = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const events = await ctx.db.query('events').collect()
+    for (const doc of events) {
+      await ctx.db.delete(doc._id)
+    }
+    const entities = await ctx.db.query('entity_state').collect()
+    for (const doc of entities) {
+      await ctx.db.delete(doc._id)
+    }
+    return { success: true, deletedEvents: events.length, deletedEntities: entities.length }
   },
 })

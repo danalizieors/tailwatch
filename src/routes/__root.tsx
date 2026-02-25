@@ -3,6 +3,9 @@ import { HeadContent, Outlet, Scripts, createRootRoute } from '@tanstack/react-r
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 import appCss from '~/styles/app.css?url'
 import { useRegisterSW } from 'virtual:pwa-register/react'
+import { ConvexProvider, ConvexReactClient } from 'convex/react'
+
+const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string)
 
 export const Route = createRootRoute({
   head: () => ({
@@ -44,7 +47,9 @@ function RootDocument() {
         <HeadContent />
       </head>
       <body className="antialiased selection:bg-primary/30 h-screen w-screen overflow-hidden bg-background text-foreground flex">
-        <Outlet />
+        <ConvexProvider client={convex}>
+          <Outlet />
+        </ConvexProvider>
         {typeof document !== 'undefined' ? <TanStackRouterDevtools position="bottom-right" /> : null}
         <Scripts />
       </body>

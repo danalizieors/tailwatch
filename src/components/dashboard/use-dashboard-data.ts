@@ -5,11 +5,12 @@ import { NotificationManager, getLastSeenTimestamp, setLastSeenTimestamp } from 
 
 interface UseDashboardDataOptions {
   mode: 'logs' | 'status'
+  workspace?: string
   topicPrefix?: string
   pollMs?: number
 }
 
-export function useDashboardData({ mode, topicPrefix, pollMs = 4000 }: UseDashboardDataOptions) {
+export function useDashboardData({ mode, workspace, topicPrefix, pollMs = 4000 }: UseDashboardDataOptions) {
   const [data, setData] = useState<DashboardSnapshot | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -39,7 +40,9 @@ export function useDashboardData({ mode, topicPrefix, pollMs = 4000 }: UseDashbo
         }
 
         const next =
-          mode === 'status' ? await fetchStatusSnapshot(topicPrefix) : await fetchDashboardSnapshot({ topicPrefix })
+          mode === 'status' 
+            ? await fetchStatusSnapshot(topicPrefix, workspace) 
+            : await fetchDashboardSnapshot({ topicPrefix, workspace })
 
         if (!cancelled) {
           // Check for new events since last poll to trigger beep/notify

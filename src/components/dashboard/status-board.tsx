@@ -1,18 +1,20 @@
-import { AlertCircle, LayoutGrid, Timer, Clock, Info } from 'lucide-react'
+import { AlertCircle, LayoutGrid, Timer, Clock, Info, CheckCircle2 } from 'lucide-react'
 import { Badge } from '~/components/ui/badge'
 import { Card, CardHeader, CardTitle, CardContent } from '~/components/ui/card'
 import type { EntitySnapshot } from '~/lib/types'
 import { formatDuration, formatRelative } from '~/lib/format'
 import { cn, getPathColor } from '~/lib/utils'
+import { Button } from '~/components/ui/button'
 
 interface StatusBoardProps {
   rows: EntitySnapshot[]
   lastSeenAt: number
+  onAcknowledge?: () => void
 }
 
-export function StatusBoard({ rows, lastSeenAt }: StatusBoardProps) {
+export function StatusBoard({ rows, lastSeenAt, onAcknowledge }: StatusBoardProps) {
   return (
-    <div className="flex flex-col flex-1 overflow-hidden">
+    <div className="flex flex-col h-full overflow-hidden">
       <div className="py-3 mb-4 flex items-center justify-between border-b border-border/20 shrink-0">
         <div className="flex items-center gap-2">
           <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/20">
@@ -23,6 +25,18 @@ export function StatusBoard({ rows, lastSeenAt }: StatusBoardProps) {
             {rows.length} TRACKED
           </span>
         </div>
+
+        {onAcknowledge && (
+          <Button 
+            size="sm" 
+            variant="outline" 
+            className="h-8 border-primary/20 bg-primary/5 hover:bg-primary/10 text-[9px] font-black uppercase tracking-widest text-primary gap-1.5 px-3 rounded-lg"
+            onClick={onAcknowledge}
+          >
+            <CheckCircle2 className="h-3.5 w-3.5" />
+            Acknowledge
+          </Button>
+        )}
       </div>
       
       <div className="flex-1 overflow-y-auto scroll-thin">
@@ -45,16 +59,19 @@ export function StatusBoard({ rows, lastSeenAt }: StatusBoardProps) {
                   key={row.key} 
                   className={cn(
                     "group relative rounded-2xl border-2 p-6 card-hover-effect backdrop-blur-3xl overflow-hidden",
-                    isUnread && "ring-2 ring-amber-500 ring-offset-4 ring-offset-background/20 shadow-[0_0_20px_rgba(245,158,11,0.3)]"
+                    isUnread ? "border-amber-500/50 shadow-[0_0_20px_rgba(245,158,11,0.15)]" : ""
                   )}
                   style={{ 
                     backgroundColor: jewelBg,
-                    borderColor: isUnread ? 'oklch(0.7 0.2 80)' : jewelBorder,
+                    borderColor: isUnread ? undefined : jewelBorder,
                   }}
                 >
                   {isUnread && (
-                    <div className="absolute top-2 right-2 bg-amber-500 text-[8px] font-black px-1.5 py-0.5 rounded text-black uppercase tracking-tighter animate-pulse">
-                      Update
+                    <div className="absolute top-4 right-4 z-10">
+                      <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500 shadow-[0_0_12px_rgba(245,158,11,1)]"></span>
+                      </span>
                     </div>
                   )}
                   <div className="flex items-start justify-between gap-4 mb-6">

@@ -1,6 +1,6 @@
 import { useDeferredValue, useState, useEffect } from 'react'
 import { Link } from '@tanstack/react-router'
-import { Activity, Terminal, LayoutGrid, ListTree, Info, Bell, BellOff, Volume2, VolumeX, CheckCircle2 } from 'lucide-react'
+import { Activity, Terminal, LayoutGrid, ListTree, Info, Bell, BellOff, Volume2, VolumeX, CheckCircle2, ShieldCheck } from 'lucide-react'
 import { Card, CardContent } from '~/components/ui/card'
 import { Button } from '~/components/ui/button'
 import type { EventType } from '~/lib/types'
@@ -14,9 +14,10 @@ import { NotificationManager } from '~/lib/notifications'
 
 interface DashboardViewProps {
   mode: 'logs' | 'status'
+  workspace?: string
 }
 
-export function DashboardView({ mode }: DashboardViewProps) {
+export function DashboardView({ mode, workspace }: DashboardViewProps) {
   const [selectedTopic, setSelectedTopic] = useState<string | undefined>(undefined)
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<EventType | 'all'>('all')
@@ -27,6 +28,7 @@ export function DashboardView({ mode }: DashboardViewProps) {
 
   const { data, error, isLoading, markAllSeen, lastSeenAt } = useDashboardData({
     mode,
+    workspace,
     topicPrefix: selectedTopic,
   })
 
@@ -114,7 +116,8 @@ export function DashboardView({ mode }: DashboardViewProps) {
 
           <nav className="flex items-center p-1 bg-primary/5 rounded-lg border border-primary/10 shadow-sm backdrop-blur-sm">
             <Link
-              to="/"
+              to={workspace && workspace !== 'default' ? '/$workspaceId' : '/'}
+              params={workspace && workspace !== 'default' ? { workspaceId: workspace } : {}}
               activeProps={{ className: 'bg-background text-primary border-border/60 shadow-sm' }}
               className="flex items-center gap-2 px-2.5 md:px-3.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 hover:text-foreground border border-transparent"
             >
@@ -122,7 +125,8 @@ export function DashboardView({ mode }: DashboardViewProps) {
               <span className="hidden xs:inline">Logs</span>
             </Link>
             <Link
-              to="/status"
+              to={workspace && workspace !== 'default' ? '/$workspaceId/status' : '/status'}
+              params={workspace && workspace !== 'default' ? { workspaceId: workspace } : {}}
               activeProps={{ className: 'bg-background text-primary border-border/60 shadow-sm' }}
               className="flex items-center gap-2 px-2.5 md:px-3.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 hover:text-foreground border border-transparent"
             >
@@ -134,23 +138,8 @@ export function DashboardView({ mode }: DashboardViewProps) {
       </header>
 
       {/* VIEWPORT CONTENT */}
-      <main className="flex-1 flex overflow-hidden">
-        <div className="flex-1 overflow-hidden px-4 md:px-8 py-4 flex flex-col gap-4">
-          {/* Action Bar */}
-          <div className="flex items-center justify-between shrink-0">
-            <div className="flex items-center gap-2">
-               {/* Any future action icons could go here */}
-            </div>
-            <Button 
-              size="sm" 
-              variant="outline" 
-              className="h-8 border-primary/20 bg-primary/5 hover:bg-primary/10 text-[10px] font-black uppercase tracking-widest text-primary gap-2 px-4 rounded-xl"
-              onClick={markAllSeen}
-            >
-              <CheckCircle2 className="h-3.5 w-3.5" />
-              Acknowledge All
-            </Button>
-          </div>
+      <main className="flex-1 flex min-h-0">
+        <div className="flex-1 min-h-0 px-4 md:px-8 py-4 flex flex-col gap-4">
 
           {error && (
             <Card className="border-destructive/20 bg-destructive/10 text-destructive-foreground backdrop-blur shadow-sm overflow-hidden shrink-0">
@@ -170,7 +159,7 @@ export function DashboardView({ mode }: DashboardViewProps) {
                   </div>
                 </div>
               ) : data ? (
-                <div className="flex-1 min-h-0 h-full overflow-hidden">
+                <div className="flex-1 min-h-0">
                   {mode === 'logs' ? (
                     <LogStream
                       events={filteredEvents}
@@ -179,9 +168,14 @@ export function DashboardView({ mode }: DashboardViewProps) {
                       typeFilter={typeFilter}
                       onTypeFilterChange={setTypeFilter}
                       lastSeenAt={lastSeenAt}
+                      onAcknowledge={markAllSeen}
                     />
                   ) : (
-                    <StatusBoard rows={data.entities} lastSeenAt={lastSeenAt} />
+                    <StatusBoard 
+                      rows={data.entities} 
+                      lastSeenAt={lastSeenAt} 
+                      onAcknowledge={markAllSeen}
+                    />
                   )}
                 </div>
               ) : null}
