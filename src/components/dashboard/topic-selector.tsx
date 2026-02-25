@@ -62,8 +62,12 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic }: TopicSelec
   }, [selectedTopic])
 
   useEffect(() => {
-    setActiveIndex(-1)
-  }, [isOpen, query, selectedTopic])
+    if (isOpen && filteredTopics.length > 0) {
+      setActiveIndex(0)
+    } else {
+      setActiveIndex(-1)
+    }
+  }, [isOpen, query, selectedTopic, filteredTopics.length])
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

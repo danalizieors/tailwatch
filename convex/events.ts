@@ -270,9 +270,8 @@ export const publish = mutation({
       ingestedAt,
     })
 
-    const entityId = args.entityId ?? (args.runId ? `run:${args.runId}` : undefined)
-    if (!entityId) return { ok: true }
-
+    const entityId = args.entityId ?? (args.runId ? `run:${args.runId}` : `topic:${path}`)
+    const entityType = args.entityType ?? (args.runId ? 'run' : args.entityId ? 'entity' : 'topic')
     const key = `${path}::${entityId}`
     const existing = await ctx.db
       .query('entity_state')
@@ -289,7 +288,7 @@ export const publish = mutation({
       key,
       path,
       entityId,
-      entityType: args.entityType ?? (args.runId ? 'run' : 'entity'),
+      entityType,
       currentStatus,
       currentRunId: args.runId ?? existing?.currentRunId,
       startedAt: args.type === 'start' ? timestamp : currentStatus === 'working' ? existing?.startedAt ?? timestamp : undefined,

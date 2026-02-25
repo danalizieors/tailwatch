@@ -127,7 +127,7 @@ export function DashboardView({ mode }: DashboardViewProps) {
               className="flex items-center gap-2 px-2.5 md:px-3.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 hover:text-foreground border border-transparent"
             >
               <LayoutGrid className="h-3.5 w-3.5" />
-              <span className="hidden xs:inline">Status</span>
+              <span className="hidden xs:inline">Registry</span>
             </Link>
           </nav>
         </div>
