@@ -9,7 +9,7 @@
     "build": "vite build",
     "typecheck": "tsc --noEmit",
     "convex:dev": "convex dev",
-    "deploy": "pnpm build && wrangler deploy"
+    "deploy": "wrangler deploy"
   },
   "dependencies": {
     "@auth/core": "^0.37.0",
