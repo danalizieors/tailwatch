@@ -130,6 +130,27 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
     return haystack.includes(q)
   })
 
+  const randomBurstControl = (
+    <>
+      {generatorMessage && (
+        <span className="hidden md:inline text-[10px] font-semibold text-muted-foreground/80">
+          {generatorMessage}
+        </span>
+      )}
+      <Button
+        size="sm"
+        variant="outline"
+        className="h-8 rounded-lg border-primary/20 bg-primary/5 px-3 text-[9px] font-black uppercase tracking-widest text-primary gap-1.5"
+        onClick={generateRandomEvents}
+        disabled={isGeneratingRandomEvents}
+        title="Publish a varied random burst of sample events"
+      >
+        <Shuffle className="h-3.5 w-3.5" />
+        {isGeneratingRandomEvents ? 'Generating…' : 'Random Burst'}
+      </Button>
+    </>
+  )
+
   const dashboardContent = (
     <div className="flex h-screen w-full flex-col text-foreground">
       
@@ -247,35 +268,18 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
                       onTypeFilterChange={setTypeFilter}
                       lastSeenAt={lastSeenAt}
                       onAcknowledge={markAllSeen}
+                      headerActions={randomBurstControl}
                     />
                   ) : (
                     <StatusBoard 
                       rows={data.entities} 
                       lastSeenAt={lastSeenAt} 
                       onAcknowledge={markAllSeen}
+                      headerActions={randomBurstControl}
                     />
                   )}
                 </div>
               ) : null}
-          </div>
-
-          <div className="shrink-0 flex items-center justify-start gap-2 pt-1">
-            {generatorMessage && (
-              <span className="text-[10px] font-semibold text-muted-foreground/80">
-                {generatorMessage}
-              </span>
-            )}
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-7 rounded-md border-primary/20 bg-primary/5 px-2.5 text-[10px] font-bold tracking-tight text-primary"
-              onClick={generateRandomEvents}
-              disabled={isGeneratingRandomEvents}
-              title="Publish a varied random burst of sample events"
-            >
-              <Shuffle className="h-3 w-3" />
-              {isGeneratingRandomEvents ? 'Generating…' : 'Random Burst'}
-            </Button>
           </div>
         </div>
       </main>

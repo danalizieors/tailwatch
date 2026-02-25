@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { AlertCircle, LayoutGrid, Timer, Clock, Info, CheckCircle2 } from 'lucide-react'
 import { Badge } from '~/components/ui/badge'
 import { Card, CardHeader, CardTitle, CardContent } from '~/components/ui/card'
@@ -10,12 +11,13 @@ interface StatusBoardProps {
   rows: EntitySnapshot[]
   lastSeenAt: number
   onAcknowledge?: () => void
+  headerActions?: ReactNode
 }
 
-export function StatusBoard({ rows, lastSeenAt, onAcknowledge }: StatusBoardProps) {
+export function StatusBoard({ rows, lastSeenAt, onAcknowledge, headerActions }: StatusBoardProps) {
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="py-3 mb-4 flex items-center justify-between border-b border-border/20 shrink-0">
+      <div className="py-3 mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-border/20 shrink-0">
         <div className="flex items-center gap-2">
           <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/20">
             <LayoutGrid className="h-4 w-4" />
@@ -26,17 +28,20 @@ export function StatusBoard({ rows, lastSeenAt, onAcknowledge }: StatusBoardProp
           </span>
         </div>
 
-        {onAcknowledge && (
-          <Button 
-            size="sm" 
-            variant="outline" 
-            className="h-8 border-primary/20 bg-primary/5 hover:bg-primary/10 text-[9px] font-black uppercase tracking-widest text-primary gap-1.5 px-3 rounded-lg"
-            onClick={onAcknowledge}
-          >
-            <CheckCircle2 className="h-3.5 w-3.5" />
-            Acknowledge
-          </Button>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {onAcknowledge && (
+            <Button 
+              size="sm" 
+              variant="outline" 
+              className="h-8 border-primary/20 bg-primary/5 hover:bg-primary/10 text-[9px] font-black uppercase tracking-widest text-primary gap-1.5 px-3 rounded-lg"
+              onClick={onAcknowledge}
+            >
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              Acknowledge
+            </Button>
+          )}
+          {headerActions}
+        </div>
       </div>
       
       <div className="flex-1 overflow-y-auto scroll-thin">

@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { AlertCircle, Search, Filter, Hash, CheckCircle2 } from 'lucide-react'
 import type { EventType, StoredEvent } from '~/lib/types'
 import { cn, getPathColor } from '~/lib/utils'
@@ -12,11 +13,12 @@ interface LogStreamProps {
   onTypeFilterChange: (value: EventType | 'all') => void
   lastSeenAt: number
   onAcknowledge?: () => void
+  headerActions?: ReactNode
 }
 
 const EVENT_TYPES: Array<EventType | 'all'> = ['all', 'start', 'log', 'stop', 'error', 'heartbeat', 'status']
 
-export function LogStream({ events, searchValue, onSearchChange, typeFilter, onTypeFilterChange, lastSeenAt, onAcknowledge }: LogStreamProps) {
+export function LogStream({ events, searchValue, onSearchChange, typeFilter, onTypeFilterChange, lastSeenAt, onAcknowledge, headerActions }: LogStreamProps) {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <div className="py-3 mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/20 shrink-0">
@@ -30,18 +32,19 @@ export function LogStream({ events, searchValue, onSearchChange, typeFilter, onT
           </span>
         </div>
         
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center justify-end gap-2.5">
           {onAcknowledge && (
             <Button 
               size="sm" 
               variant="outline" 
-              className="h-8 border-primary/20 bg-primary/5 hover:bg-primary/10 text-[9px] font-black uppercase tracking-widest text-primary gap-1.5 px-3 rounded-lg mr-2"
+              className="h-8 border-primary/20 bg-primary/5 hover:bg-primary/10 text-[9px] font-black uppercase tracking-widest text-primary gap-1.5 px-3 rounded-lg"
               onClick={onAcknowledge}
             >
               <CheckCircle2 className="h-3 w-3" />
               Acknowledge
             </Button>
           )}
+          {headerActions}
           <div className="relative group">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/60 group-focus-within:text-primary transition-colors" />
             <input
