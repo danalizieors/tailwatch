@@ -103,7 +103,7 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
             <Terminal className="h-4 w-4 md:h-5" />
           </div>
           <div className="flex flex-col hidden sm:flex">
-            <span className="text-sm md:text-base font-black tracking-tight text-foreground uppercase">Tailwatch!!</span>
+            <span className="text-sm md:text-base font-black tracking-tight text-foreground uppercase">Tailwatch1!!</span>
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className={cn("h-1.5 w-1.5 rounded-full", data ? "bg-success shadow-[0_0_8px_oklch(from_var(--success)_l_c_h_/_0.5)]" : "bg-muted-foreground/40")} />
               <span className="text-[10px] font-bold text-muted-foreground/80 uppercase tracking-tight">
