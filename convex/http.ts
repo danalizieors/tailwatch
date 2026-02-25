@@ -1,9 +1,8 @@
-import { httpRouter } from 'convex/server'
+import { httpRouter } from "convex/server";
+import { auth } from "./auth";
 
-const http = httpRouter()
+const http = httpRouter();
 
-// Placeholder for future Convex-native publish endpoint wiring.
-// The current app uses TanStack Start API routes for /api/publish/*topicPath.
+auth.addHttpRoutes(http);
 
-export default http
-
+export default http;

@@ -11,12 +11,15 @@
     "convex:dev": "convex dev"
   },
   "dependencies": {
+    "@auth/core": "^0.37.0",
+    "@convex-dev/auth": "^0.0.90",
     "@tanstack/react-router": "^1.0.0",
     "@tanstack/react-router-devtools": "^1.0.0",
     "@tanstack/react-start": "^1.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "convex": "^1.16.0",
+    "jose": "^6.1.3",
     "lucide-react": "^0.542.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",

@@ -1,7 +1,9 @@
-import { defineSchema, defineTable } from 'convex/server'
-import { v } from 'convex/values'
+import { defineSchema, defineTable } from "convex/server";
+import { v } from "convex/values";
+import { authTables } from "@convex-dev/auth/server";
 
 export default defineSchema({
+  ...authTables,
   events: defineTable({
     workspace: v.optional(v.string()),
     path: v.string(),
@@ -48,4 +50,4 @@ export default defineSchema({
     .index('by_key', ['key'])
     .index('by_path', ['path'])
     .index('by_status', ['currentStatus']),
-})
+});
