@@ -43,12 +43,13 @@ export async function fetchStatusSnapshot(topicPrefix?: string, workspace?: stri
   return response.json()
 }
 
-export async function publishEvent(path: string, payload: PublishEventPayload): Promise<StoredEvent> {
+export async function publishEvent(path: string, payload: PublishEventPayload, workspace?: string): Promise<StoredEvent> {
   const cleanPath = path.replace(/^\/+|\/+$/g, '')
   const response = await fetch(`/api/publish/${cleanPath}`, {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
+      ...(workspace ? { 'x-tailwatch-workspace': workspace } : {}),
     },
     body: JSON.stringify(payload),
   })

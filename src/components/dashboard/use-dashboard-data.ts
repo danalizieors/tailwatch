@@ -90,7 +90,7 @@ export function useDashboardData({ mode, workspace, topicPrefix, pollMs = 4000 }
       cancelled = true
       window.clearInterval(timer)
     }
-  }, [mode, topicPrefix, pollMs])
+  }, [mode, workspace, topicPrefix, pollMs])
 
   const markAllSeen = () => {
     // Determine the newest timestamp from current data (events or entity updates)
@@ -110,7 +110,9 @@ export function useDashboardData({ mode, workspace, topicPrefix, pollMs = 4000 }
     startTransition(() => {
       setIsRefreshing(true)
       const request =
-        mode === 'status' ? fetchStatusSnapshot(topicPrefix) : fetchDashboardSnapshot({ topicPrefix })
+        mode === 'status'
+          ? fetchStatusSnapshot(topicPrefix, workspace)
+          : fetchDashboardSnapshot({ topicPrefix, workspace })
 
       void request
         .then((next) => {
@@ -137,4 +139,3 @@ export function useDashboardData({ mode, workspace, topicPrefix, pollMs = 4000 }
     lastSeenAt
   }
 }
-
