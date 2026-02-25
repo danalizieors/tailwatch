@@ -1,6 +1,7 @@
 node_modules
 .pnpm-store
 .env
+.wrangler
 .env.local
 .DS_Store
 dist
