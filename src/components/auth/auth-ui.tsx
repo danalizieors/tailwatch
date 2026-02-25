@@ -6,6 +6,7 @@ import { Github, LogOut, User } from "lucide-react";
 
 export function SignIn() {
   const { signIn } = useAuthActions();
+  const enableDebug = import.meta.env.VITE_ENABLE_DEBUG_AUTH === 'true';
   
   const enterGuestMode = () => {
     const url = new URL(window.location.href);
@@ -32,14 +33,16 @@ export function SignIn() {
             Continue with GitHub
           </Button>
 
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="w-full text-muted-foreground hover:text-primary"
-            onClick={enterGuestMode}
-          >
-            Enter Guest Mode (Debug)
-          </Button>
+          {enableDebug && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="w-full text-muted-foreground hover:text-primary"
+              onClick={enterGuestMode}
+            >
+              Enter Guest Mode (Debug)
+            </Button>
+          )}
         </div>
         
         <p className="text-xs text-muted-foreground/60">

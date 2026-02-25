@@ -37,11 +37,12 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      const enableDebug = import.meta.env.VITE_ENABLE_DEBUG_AUTH === 'true'
       const urlParams = new URLSearchParams(window.location.search)
       const debugParam = urlParams.get('debug') === 'true'
       const debugStorage = localStorage.getItem('debug_auth') === 'true'
       
-      if (debugParam || debugStorage) {
+      if (enableDebug && (debugParam || debugStorage)) {
         setIsDebugMode(true)
         if (debugParam && !debugStorage) {
           localStorage.setItem('debug_auth', 'true')
