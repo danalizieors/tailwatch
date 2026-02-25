@@ -13,6 +13,16 @@ type BackendMode = 'local' | 'convex'
 
 const convexApi = anyApi as any
 
+export interface PushSubscriptionRecord {
+  endpoint: string
+  expirationTime?: number
+  p256dh?: string
+  auth?: string
+  workspace?: string
+  userAgent?: string
+  updatedAt?: string
+}
+
 function getConvexUrl() {
   const url = import.meta.env.VITE_CONVEX_URL || getProcessEnv('CONVEX_URL') || getProcessEnv('VITE_CONVEX_URL')
   return url?.replace(/\/+$/g, '') || undefined
@@ -147,4 +157,47 @@ export async function clearAll(): Promise<{ success: boolean; deletedEvents: num
   const client = createConvexClient()
   const result = await client.mutation(convexApi.events.clearAll, {})
   return result as any
+}
+
+export async function upsertPushSubscription(input: PushSubscriptionRecord): Promise<{ ok: boolean }> {
+  if (getBackendMode() === 'local') {
+    return { ok: true }
+  }
+
+  const client = createConvexClient()
+  const args: Record<string, any> = {
+    endpoint: input.endpoint,
+    expirationTime: input.expirationTime,
+    p256dh: input.p256dh,
+    auth: input.auth,
+    workspace: input.workspace,
+    userAgent: input.userAgent,
+  }
+  Object.keys(args).forEach((key) => args[key] === undefined && delete args[key])
+  const result = await client.mutation(convexApi.push.upsertSubscription, args)
+  return result as { ok: boolean }
+}
+
+export async function removePushSubscription(endpoint: string): Promise<{ ok: boolean; deleted?: number }> {
+  if (getBackendMode() === 'local') {
+    return { ok: true, deleted: 0 }
+  }
+
+  const client = createConvexClient()
+  const result = await client.mutation(convexApi.push.removeSubscription, { endpoint })
+  return result as { ok: boolean; deleted?: number }
+}
+
+export async function listPushSubscriptions(workspace?: string): Promise<PushSubscriptionRecord[]> {
+  if (getBackendMode() === 'local') {
+    return []
+  }
+
+  const client = createConvexClient()
+  const args: Record<string, any> = {
+    workspace: typeof workspace === 'string' ? workspace : undefined,
+  }
+  Object.keys(args).forEach((key) => args[key] === undefined && delete args[key])
+  const result = await client.query(convexApi.push.listSubscriptionsForWorkspace, args)
+  return Array.isArray(result) ? (result as PushSubscriptionRecord[]) : []
 }

@@ -1,8 +1,8 @@
 /// <reference types="vite/client" />
+import { useEffect } from 'react'
 import { HeadContent, Outlet, Scripts, createRootRoute } from '@tanstack/react-router'
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 import appCss from '~/styles/app.css?url'
-import { useRegisterSW } from 'virtual:pwa-register/react'
 import { ConvexAuthProvider } from '@convex-dev/auth/react'
 import { ConvexReactClient } from 'convex/react'
 
@@ -32,15 +32,18 @@ export const Route = createRootRoute({
 })
 
 function RootDocument() {
-  // Register Service Worker for PWA
-  useRegisterSW({
-    onRegistered(r: ServiceWorkerRegistration | undefined) {
-      console.log('SW Registered:', r)
-    },
-    onRegisterError(error: unknown) {
-      console.error('SW registration error', error)
-    },
-  })
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return
+
+    void navigator.serviceWorker
+      .register('/tailwatch-sw.js')
+      .then((registration) => {
+        console.log('SW Registered:', registration)
+      })
+      .catch((error) => {
+        console.error('SW registration error', error)
+      })
+  }, [])
 
   return (
     <html lang="en" className="dark">

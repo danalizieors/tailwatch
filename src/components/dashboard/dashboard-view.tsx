@@ -53,7 +53,7 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
       }
 
       if ('Notification' in window) {
-        setHasPushPermission(window.Notification.permission === 'granted')
+        void NotificationManager.isPushSubscribed().then(setHasPushPermission)
       }
     }
   }, [])
@@ -74,6 +74,10 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
         alert('Notifications are not supported in this browser.')
         return
       }
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        alert('Background push is not supported in this browser.')
+        return
+      }
       if (!window.isSecureContext) {
         alert('Browser security requirements: Push notifications require a secure context (HTTPS or localhost).')
         return
@@ -83,8 +87,14 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
         return
       }
     }
-    const granted = await NotificationManager.requestPushPermission()
-    setHasPushPermission(granted)
+    if (hasPushPermission) {
+      await NotificationManager.disableBackgroundPush()
+      setHasPushPermission(false)
+      return
+    }
+
+    const enabled = await NotificationManager.enableBackgroundPush(workspace)
+    setHasPushPermission(enabled)
   }
 
   const generateRandomEvents = async () => {
@@ -173,8 +183,8 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
                   : typeof window !== 'undefined' && !window.isSecureContext
                     ? "Notifications require HTTPS"
                     : hasPushPermission 
-                      ? "Notifications active" 
-                      : "Enable push notifications"
+                      ? "Disable background push notifications" 
+                      : "Enable background push notifications"
               }
             >
               {hasPushPermission ? <Bell className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}

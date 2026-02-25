@@ -2,6 +2,8 @@
 export class NotificationManager {
   private static audioCtx: AudioContext | null = null
   private static isSoundEnabled = false
+  private static readonly pushSubscribePath = '/api/push/subscribe'
+  private static readonly pushUnsubscribePath = '/api/push/unsubscribe'
 
   static enableSound() {
     if (typeof window === 'undefined') return
@@ -75,6 +77,107 @@ export class NotificationManager {
     }
   }
 
+  static isPushSupported() {
+    return (
+      typeof window !== 'undefined' &&
+      'Notification' in window &&
+      'serviceWorker' in navigator &&
+      'PushManager' in window
+    )
+  }
+
+  static async isPushSubscribed(): Promise<boolean> {
+    if (!this.isPushSupported()) return false
+    try {
+      const reg = await navigator.serviceWorker.ready
+      const subscription = await reg.pushManager.getSubscription()
+      return subscription !== null
+    } catch (error) {
+      console.warn('Failed to inspect push subscription', error)
+      return false
+    }
+  }
+
+  static async enableBackgroundPush(workspace?: string): Promise<boolean> {
+    try {
+      if (!this.isPushSupported()) {
+        console.warn('Push API is not supported in this browser')
+        return false
+      }
+
+      const granted = await this.requestPushPermission()
+      if (!granted) return false
+
+      const vapidPublicKey = import.meta.env.VITE_WEB_PUSH_PUBLIC_KEY as string | undefined
+      if (!vapidPublicKey) {
+        console.warn('VITE_WEB_PUSH_PUBLIC_KEY is not configured')
+        return false
+      }
+
+      const reg = await navigator.serviceWorker.ready
+      let subscription = await reg.pushManager.getSubscription()
+
+      if (!subscription) {
+        subscription = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: base64UrlToUint8Array(vapidPublicKey),
+        })
+      }
+
+      const response = await fetch(this.pushSubscribePath, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          ...(workspace ? { 'x-tailwatch-workspace': workspace } : {}),
+        },
+        body: JSON.stringify({
+          subscription: subscription.toJSON(),
+        }),
+      })
+
+      if (!response.ok) {
+        console.error('Failed to store push subscription', await safeReadText(response))
+        return false
+      }
+
+      return true
+    } catch (error) {
+      console.error('Failed to enable background push', error)
+      return false
+    }
+  }
+
+  static async disableBackgroundPush(): Promise<boolean> {
+    try {
+      if (!this.isPushSupported()) return false
+
+      const reg = await navigator.serviceWorker.ready
+      const subscription = await reg.pushManager.getSubscription()
+      if (!subscription) return true
+
+      const endpoint = subscription.endpoint
+      const [serverResult] = await Promise.allSettled([
+        fetch(this.pushUnsubscribePath, {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+          },
+          body: JSON.stringify({ endpoint }),
+        }),
+        subscription.unsubscribe(),
+      ])
+
+      if (serverResult.status === 'fulfilled' && !serverResult.value.ok) {
+        console.warn('Failed to remove push subscription from server', await safeReadText(serverResult.value))
+      }
+
+      return true
+    } catch (error) {
+      console.error('Failed to disable background push', error)
+      return false
+    }
+  }
+
   static async showLocalNotification(title: string, body: string) {
     if (typeof window !== 'undefined' && 'Notification' in window && window.Notification.permission === 'granted') {
       try {
@@ -101,6 +204,24 @@ export class NotificationManager {
         new window.Notification(title, { body })
       }
     }
+  }
+}
+
+function base64UrlToUint8Array(input: string) {
+  const padded = input.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(input.length / 4) * 4, '=')
+  const raw = atob(padded)
+  const bytes = new Uint8Array(raw.length)
+  for (let i = 0; i < raw.length; i += 1) {
+    bytes[i] = raw.charCodeAt(i)
+  }
+  return bytes
+}
+
+async function safeReadText(response: Response) {
+  try {
+    return await response.text()
+  } catch {
+    return ''
   }
 }
 

@@ -64,4 +64,17 @@ export default defineSchema({
     .index('by_key', ['key'])
     .index('by_path', ['path'])
     .index('by_status', ['currentStatus']),
+  push_subscriptions: defineTable({
+    endpoint: v.string(),
+    workspace: v.optional(v.string()),
+    expirationTime: v.optional(v.number()),
+    p256dh: v.optional(v.string()),
+    auth: v.optional(v.string()),
+    userAgent: v.optional(v.string()),
+    userId: v.optional(v.string()),
+    createdAt: v.string(),
+    updatedAt: v.string(),
+  })
+    .index('by_endpoint', ['endpoint'])
+    .index('by_workspace', ['workspace']),
 });
