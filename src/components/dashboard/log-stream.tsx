@@ -2,6 +2,7 @@ import { AlertCircle, Search, Filter, Hash, CheckCircle2 } from 'lucide-react'
 import type { EventType, StoredEvent } from '~/lib/types'
 import { cn, getPathColor } from '~/lib/utils'
 import { Button } from '~/components/ui/button'
+import { Markdown } from '~/components/ui/markdown'
 
 interface LogStreamProps {
   events: StoredEvent[]
@@ -137,9 +138,10 @@ export function LogStream({ events, searchValue, onSearchChange, typeFilter, onT
                           </span>
                         )}
                       </div>
-                      <p className={cn('break-words leading-tight text-foreground/90 font-medium text-[11px] tracking-tight', event.type === 'error' && 'text-destructive font-bold')}>
-                        {event.content ?? <span className="text-white/10 italic font-normal">empty_payload</span>}
-                      </p>
+                      <Markdown 
+                        className={cn('break-words leading-tight text-foreground/90 font-medium text-[11px] tracking-tight', event.type === 'error' && 'text-destructive font-bold')}
+                        content={event.content ?? 'empty_payload'}
+                      />
                     </div>
 
                     {/* Run ID (Desktop Only) */}

@@ -3,21 +3,32 @@ import { v } from "convex/values";
 import { authTables } from "@convex-dev/auth/server";
 
 export default defineSchema({
-  ...authTables,
+  authAccounts: defineTable(authTables.authAccounts.validator),
+  authRateLimits: defineTable(authTables.authRateLimits.validator),
+  authRefreshTokens: defineTable(authTables.authRefreshTokens.validator),
+  authSessions: defineTable(authTables.authSessions.validator),
+  authVerificationCodes: defineTable(authTables.authVerificationCodes.validator),
+  authVerifiers: defineTable(authTables.authVerifiers.validator),
+  users: defineTable({
+    ...authTables.users.validator.fields,
+    apiKey: v.optional(v.string()),
+  }),
   events: defineTable({
     workspace: v.optional(v.string()),
     path: v.string(),
     segments: v.array(v.string()),
-    type: v.union(
+    type: v.optional(v.union(
       v.literal('start'),
       v.literal('log'),
       v.literal('stop'),
       v.literal('error'),
       v.literal('heartbeat'),
       v.literal('status'),
-    ),
-    timestamp: v.string(),
-    ingestedAt: v.string(),
+    )),
+    timestamp: v.optional(v.any()),
+    ingestedAt: v.any(),
+    time: v.optional(v.any()),
+    userId: v.optional(v.string()),
     runId: v.optional(v.string()),
     entityId: v.optional(v.string()),
     entityType: v.optional(v.string()),
@@ -34,17 +45,18 @@ export default defineSchema({
     .index('by_entity', ['entityId']),
   entity_state: defineTable({
     workspace: v.optional(v.string()),
-    key: v.string(),
+    key: v.optional(v.string()),
     path: v.string(),
-    entityId: v.string(),
-    entityType: v.string(),
+    entityId: v.optional(v.string()),
+    entityType: v.optional(v.string()),
     currentStatus: v.string(),
     currentRunId: v.optional(v.string()),
     startedAt: v.optional(v.string()),
-    lastSeenAt: v.string(),
-    lastEventType: v.string(),
+    lastSeenAt: v.any(),
+    lastEventType: v.optional(v.string()),
     lastContent: v.optional(v.string()),
     lastError: v.optional(v.string()),
+    userId: v.optional(v.string()),
   })
     .index('by_workspace', ['workspace'])
     .index('by_key', ['key'])
