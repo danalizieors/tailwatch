@@ -6,14 +6,6 @@ export const Route = createFileRoute('/api/publish/$')({
     handlers: {
       POST: async ({ request, params }) => {
         try {
-          // Check for API Key / Bearer Token
-          const authHeader = request.headers.get('Authorization')
-          const adminSecret = process.env.TAILWATCH_ADMIN_SECRET
-          
-          if (adminSecret && authHeader !== `Bearer ${adminSecret}`) {
-            return Response.json({ error: 'Unauthorized' }, { status: 401 })
-          }
-
           const workspace = request.headers.get('x-tailwatch-workspace') ?? undefined
           const topicPath = params._splat ?? ''
           const payload = await request.json()

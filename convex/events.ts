@@ -1,7 +1,7 @@
 // Kick convex watcher
 import { v } from 'convex/values'
 import { mutation, query } from './_generated/server'
-import { getAuthenticatedContext, checkAdminSecret } from './functions'
+import { getAuthenticatedContext } from './functions'
 
 const MAX_EVENTS_FOR_SNAPSHOT = 5_000
 
@@ -267,13 +267,9 @@ export const publish = mutation({
     content: v.optional(v.string()),
     meta: v.optional(v.any()),
     metrics: v.optional(v.any()),
-    secret: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const isAdmin = checkAdminSecret(args.secret);
-    if (!isAdmin) {
-      await getAuthenticatedContext(ctx);
-    }
+    await getAuthenticatedContext(ctx)
 
     const rawSegments = splitTopicPath(args.path)
     if (rawSegments.length === 0) throw new Error('Path is required')
@@ -351,12 +347,9 @@ export const listRecentEvents = query({
   args: {
     limit: v.optional(v.number()),
     topicPrefix: v.optional(v.string()),
-    secret: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    if (!checkAdminSecret(args.secret)) {
-      await getAuthenticatedContext(ctx)
-    }
+    await getAuthenticatedContext(ctx)
     const limit = Math.min(Math.max(args.limit ?? 200, 1), 500)
     const rows = await ctx.db.query('events').withIndex('by_timestamp').order('desc').take(limit * 3)
     return rows
@@ -368,12 +361,9 @@ export const listRecentEvents = query({
 export const listEntityState = query({
   args: {
     topicPrefix: v.optional(v.string()),
-    secret: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    if (!checkAdminSecret(args.secret)) {
-      await getAuthenticatedContext(ctx)
-    }
+    await getAuthenticatedContext(ctx)
     const rows = await ctx.db.query('entity_state').collect()
     return rows
       .filter((row) => (args.topicPrefix ? row.path.startsWith(normalizeTopicPath(args.topicPrefix)) : true))
@@ -388,12 +378,9 @@ export const dashboardSnapshot = query({
     type: v.optional(v.string()),
     q: v.optional(v.string()),
     limit: v.optional(v.number()),
-    secret: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    if (!checkAdminSecret(args.secret)) {
-      await getAuthenticatedContext(ctx)
-    }
+    await getAuthenticatedContext(ctx)
     return buildDashboardSnapshot(ctx, args)
   },
 })
@@ -402,12 +389,9 @@ export const statusSnapshot = query({
   args: {
     workspace: v.optional(v.string()),
     topicPrefix: v.optional(v.string()),
-    secret: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    if (!checkAdminSecret(args.secret)) {
-      await getAuthenticatedContext(ctx)
-    }
+    await getAuthenticatedContext(ctx)
     return buildDashboardSnapshot(ctx, {
       workspace: args.workspace,
       topicPrefix: args.topicPrefix,
@@ -417,13 +401,9 @@ export const statusSnapshot = query({
 })
 
 export const clearAll = mutation({
-  args: {
-    secret: v.optional(v.string()),
-  },
-  handler: async (ctx, args) => {
-    if (!checkAdminSecret(args.secret)) {
-      await getAuthenticatedContext(ctx)
-    }
+  args: {},
+  handler: async (ctx) => {
+    await getAuthenticatedContext(ctx)
     const events = await ctx.db.query('events').collect()
     for (const doc of events) {
       await ctx.db.delete(doc._id)

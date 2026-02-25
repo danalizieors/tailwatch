@@ -4,16 +4,8 @@ import { clearAll, getBackendMode } from '~/lib/server/event-repository'
 export const Route = createFileRoute('/api/clear')({
   server: {
     handlers: {
-      POST: async ({ request }) => {
+      POST: async () => {
         try {
-          // Check for API Key / Bearer Token
-          const authHeader = request.headers.get('Authorization')
-          const adminSecret = process.env.TAILWATCH_ADMIN_SECRET
-          
-          if (adminSecret && authHeader !== `Bearer ${adminSecret}`) {
-            return Response.json({ error: 'Unauthorized' }, { status: 401 })
-          }
-
           const result = await clearAll()
           return Response.json(result, {
             headers: {

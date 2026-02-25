@@ -3,16 +3,18 @@ import { v } from "convex/values";
 import { authTables } from "@convex-dev/auth/server";
 
 export default defineSchema({
-  authAccounts: defineTable(authTables.authAccounts.validator),
-  authRateLimits: defineTable(authTables.authRateLimits.validator),
-  authRefreshTokens: defineTable(authTables.authRefreshTokens.validator),
-  authSessions: defineTable(authTables.authSessions.validator),
-  authVerificationCodes: defineTable(authTables.authVerificationCodes.validator),
-  authVerifiers: defineTable(authTables.authVerifiers.validator),
+  authAccounts: authTables.authAccounts,
+  authRateLimits: authTables.authRateLimits,
+  authRefreshTokens: authTables.authRefreshTokens,
+  authSessions: authTables.authSessions,
+  authVerificationCodes: authTables.authVerificationCodes,
+  authVerifiers: authTables.authVerifiers,
   users: defineTable({
     ...authTables.users.validator.fields,
     apiKey: v.optional(v.string()),
-  }),
+  })
+    .index("email", ["email"])
+    .index("phone", ["phone"]),
   events: defineTable({
     workspace: v.optional(v.string()),
     path: v.string(),

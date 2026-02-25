@@ -1,6 +1,7 @@
 import { ConvexHttpClient } from 'convex/browser'
 import { anyApi } from 'convex/server'
 import type { DashboardSnapshot, StoredEvent } from '~/lib/types'
+import { getProcessEnv } from '~/lib/server/runtime-env'
 import {
   appendEvent as appendLocalEvent,
   getDashboardSnapshot as getLocalDashboardSnapshot,
@@ -13,7 +14,7 @@ type BackendMode = 'local' | 'convex'
 const convexApi = anyApi as any
 
 function getConvexUrl() {
-  const url = process.env.CONVEX_URL || process.env.VITE_CONVEX_URL
+  const url = import.meta.env.VITE_CONVEX_URL || getProcessEnv('CONVEX_URL') || getProcessEnv('VITE_CONVEX_URL')
   return url?.replace(/\/+$/g, '') || undefined
 }
 
@@ -27,10 +28,6 @@ function createConvexClient() {
     throw new Error('Convex is not configured (set CONVEX_URL or VITE_CONVEX_URL)')
   }
   return new ConvexHttpClient(url, { logger: false })
-}
-
-function getAdminSecret() {
-  return process.env.TAILWATCH_ADMIN_SECRET
 }
 
 function parseConvexStoredEvent(value: any): StoredEvent {
@@ -92,7 +89,6 @@ export async function appendEvent(topicPath: string, payload: unknown): Promise<
     content: payloadRecord.content,
     meta: payloadRecord.meta,
     metrics: payloadRecord.metrics,
-    secret: getAdminSecret(),
   }
 
   // Remove undefined to avoid sending them as nulls/undefineds if mutation args don't like it
@@ -119,7 +115,6 @@ export async function getDashboardSnapshot(filters: DashboardFilters = {}): Prom
     type: filters.type,
     q: filters.q,
     limit: filters.limit,
-    secret: getAdminSecret(),
   }
   Object.keys(args).forEach(key => (args[key] === undefined || args[key] === null) && delete args[key])
 
@@ -136,7 +131,6 @@ export async function getStatusSnapshot(topicPrefix?: string, workspace?: string
   const args: Record<string, any> = {
     workspace: typeof workspace === 'string' ? workspace : undefined,
     topicPrefix,
-    secret: getAdminSecret(),
   }
   Object.keys(args).forEach(key => (args[key] === undefined || args[key] === null) && delete args[key])
 
@@ -151,8 +145,6 @@ export async function clearAll(): Promise<{ success: boolean; deletedEvents: num
   }
 
   const client = createConvexClient()
-  const result = await client.mutation(convexApi.events.clearAll, {
-    secret: getAdminSecret(),
-  })
+  const result = await client.mutation(convexApi.events.clearAll, {})
   return result as any
 }
