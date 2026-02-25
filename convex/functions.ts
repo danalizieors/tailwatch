@@ -3,22 +3,21 @@ import { auth } from "./auth";
 import { QueryCtx, MutationCtx } from "./_generated/server";
 
 export async function getAuthenticatedContext(ctx: QueryCtx | MutationCtx) {
-  // 1. Check if it's an internal admin call with the secret header
-  // Note: headers() is only available in HTTP actions in Convex, 
-  // but for standard queries we can't see the headers directly.
-  // We'll rely on the standard auth check for browser calls.
-  
+  // 1. Check for valid user session
   const userId = await auth.getUserId(ctx);
   if (userId !== null) {
     return { ...ctx, userId };
   }
 
   // 2. Fallback for server-to-server calls (like from TanStack Start API routes)
-  // We check if a special bypass is active.
-  // In Convex, we can use environment variables.
-  // If we are in a production environment and no user is found, we deny access
-  // unless we implement a custom bypass.
+  // If no admin secret is configured in the environment, we allow access (demo/open mode).
+  const adminSecret = process.env.TAILWATCH_ADMIN_SECRET;
+  if (!adminSecret) {
+    return { ...ctx, userId: null };
+  }
   
+  // If secret IS configured, we must have been authenticated via secret (checked by caller)
+  // or via session (checked above). If we reached here, it means both failed.
   throw new Error("Not authenticated");
 }
 

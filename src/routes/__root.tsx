@@ -34,10 +34,10 @@ export const Route = createRootRoute({
 function RootDocument() {
   // Register Service Worker for PWA
   useRegisterSW({
-    onRegistered(r) {
+    onRegistered(r: ServiceWorkerRegistration | undefined) {
       console.log('SW Registered:', r)
     },
-    onRegisterError(error) {
+    onRegisterError(error: unknown) {
       console.error('SW registration error', error)
     },
   })
