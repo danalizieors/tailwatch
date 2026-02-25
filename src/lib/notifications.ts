@@ -49,14 +49,30 @@ export class NotificationManager {
     }
   }
 
-  static async requestPushPermission() {
+  static async requestPushPermission(): Promise<boolean> {
     if (typeof window === 'undefined' || !('Notification' in window)) {
-      console.warn('Notifications not supported')
+      console.warn('Notifications not supported in this browser')
       return false
     }
 
-    const permission = await window.Notification.requestPermission()
-    return permission === 'granted'
+    if (window.Notification.permission === 'granted') {
+      return true
+    }
+
+    try {
+      // Modern browsers return a promise
+      const permission = await window.Notification.requestPermission()
+      console.log('Notification permission status:', permission)
+      return permission === 'granted'
+    } catch (e) {
+      // Fallback for older browsers
+      return new Promise((resolve) => {
+        window.Notification.requestPermission((permission) => {
+          console.log('Notification permission status (callback):', permission)
+          resolve(permission === 'granted')
+        })
+      })
+    }
   }
 
   static async showLocalNotification(title: string, body: string) {

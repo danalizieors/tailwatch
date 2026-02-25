@@ -49,6 +49,20 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
   }
 
   const requestNotifications = async () => {
+    if (typeof window !== 'undefined') {
+      if (!('Notification' in window)) {
+        alert('Notifications are not supported in this browser.')
+        return
+      }
+      if (!window.isSecureContext) {
+        alert('Browser security requirements: Push notifications require a secure context (HTTPS or localhost).')
+        return
+      }
+      if (window.Notification.permission === 'denied') {
+        alert('Notification permission was previously denied. Please reset it in your browser settings to enable notifications.')
+        return
+      }
+    }
     const granted = await NotificationManager.requestPushPermission()
     setHasPushPermission(granted)
   }
@@ -108,7 +122,15 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
               variant="ghost" 
               className={cn("h-8 w-8", hasPushPermission ? "text-primary" : "text-muted-foreground/40")}
               onClick={requestNotifications}
-              title={hasPushPermission ? "Notifications active" : "Enable push notifications"}
+              title={
+                typeof window !== 'undefined' && !('Notification' in window) 
+                  ? "Notifications not supported" 
+                  : typeof window !== 'undefined' && !window.isSecureContext
+                    ? "Notifications require HTTPS"
+                    : hasPushPermission 
+                      ? "Notifications active" 
+                      : "Enable push notifications"
+              }
             >
               {hasPushPermission ? <Bell className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
             </Button>
