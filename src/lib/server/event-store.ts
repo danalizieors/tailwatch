@@ -469,3 +469,11 @@ export async function getDashboardSnapshot(filters: DashboardFilters = {}): Prom
 export async function getStatusSnapshot(topicPrefix?: string, workspace?: string) {
   return getDashboardSnapshot({ topicPrefix, workspace, limit: 200 })
 }
+
+export async function clearAll() {
+  const store = await ensureStoreFile()
+  const eventCount = store.events.length
+  store.events = []
+  await saveStoreFile(store)
+  return { success: true, deletedEvents: eventCount, deletedEntities: 0 }
+}

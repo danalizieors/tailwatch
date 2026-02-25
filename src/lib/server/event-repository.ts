@@ -136,3 +136,14 @@ export async function getStatusSnapshot(topicPrefix?: string, workspace?: string
   const result = await client.query(convexApi.events.statusSnapshot, args)
   return parseConvexDashboardSnapshot(result)
 }
+
+export async function clearAll(): Promise<{ success: boolean; deletedEvents: number; deletedEntities: number }> {
+  if (getBackendMode() === 'local') {
+    const { appendEvent: _, getDashboardSnapshot: __, getStatusSnapshot: ___, clearAll: localClearAll } = await import('~/lib/server/event-store')
+    return localClearAll()
+  }
+
+  const client = createConvexClient()
+  const result = await client.mutation(convexApi.events.clearAll, {})
+  return result as any
+}
