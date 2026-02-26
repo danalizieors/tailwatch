@@ -9,7 +9,12 @@ interface MarkdownProps {
 
 export function Markdown({ content, className }: MarkdownProps) {
   return (
-    <div className={cn('markdown-content p-1 rounded bg-white/5 border border-white/5 my-0.5', className)}>
+    <div
+      className={cn(
+        'markdown-content my-0.5 min-w-0 overflow-hidden rounded border border-white/5 bg-white/5 p-1 [&_a]:break-all [&_li]:break-words [&_p]:break-words [&_pre]:max-w-full [&_pre]:overflow-x-auto [&_table]:block [&_table]:max-w-full [&_table]:overflow-x-auto',
+        className,
+      )}
+    >
       <ReactMarkdown remarkPlugins={[remarkGfm]}>
         {content}
       </ReactMarkdown>

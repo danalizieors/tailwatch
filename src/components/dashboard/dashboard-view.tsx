@@ -146,19 +146,20 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
         title="Publish a varied random burst of sample events"
       >
         <Shuffle className="h-3.5 w-3.5" />
-        {isGeneratingRandomEvents ? 'Generating…' : 'Random Burst'}
+        <span className="hidden sm:inline">{isGeneratingRandomEvents ? 'Generating…' : 'Random Burst'}</span>
+        <span className="sm:hidden">{isGeneratingRandomEvents ? 'Gen…' : 'Burst'}</span>
       </Button>
     </>
   )
 
   const dashboardContent = (
-    <div className="flex h-dvh min-h-dvh w-full flex-col text-foreground">
+    <div className="flex h-[100svh] min-h-[100svh] w-full flex-col overflow-hidden text-foreground md:h-dvh md:min-h-dvh">
       
       {/* PROFESSIONAL NAV BAR */}
-      <header className="z-50 shrink-0 border-b border-border/30 bg-background/70 px-3 py-3 backdrop-blur-md md:px-8 md:py-2">
-        <div className="flex flex-wrap items-center gap-3 md:gap-4">
+      <header className="z-50 shrink-0 border-b border-border/30 bg-background/70 px-3 py-2.5 backdrop-blur-md md:px-8 md:py-2">
+        <div className="flex flex-wrap items-start gap-3 md:items-center md:gap-4">
         {/* Branding */}
-        <div className="order-1 flex items-center gap-2 md:gap-3 shrink-0 group cursor-default">
+        <div className="order-1 flex min-w-0 shrink-0 items-center gap-2 md:gap-3 group cursor-default">
           <div className="flex h-8 w-8 md:h-9 items-center justify-center rounded-lg md:rounded-xl bg-primary/10 text-primary border border-primary/20 shadow-sm">
             <Terminal className="h-4 w-4 md:h-5" />
           </div>
@@ -174,7 +175,7 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
         </div>
 
         {/* View Switcher & Stats */}
-        <div className="order-2 ml-auto flex items-center gap-2 md:order-3 md:gap-4 shrink-0">
+        <div className="order-3 flex w-full min-w-0 flex-wrap items-center gap-2 sm:ml-auto sm:w-auto sm:flex-nowrap md:order-3 md:gap-4">
           {data && <div className="hidden xl:block"><StatCards stats={data.stats} /></div>}
           
           <div className="flex items-center gap-2">
@@ -206,7 +207,7 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
             </Button>
           </div>
 
-          <nav className="flex items-center p-1 bg-primary/5 rounded-lg border border-primary/10 shadow-sm backdrop-blur-sm">
+          <nav className="no-scrollbar flex max-w-full items-center overflow-x-auto rounded-lg border border-primary/10 bg-primary/5 p-1 shadow-sm backdrop-blur-sm">
             <Link
               to="/$workspaceId"
               params={{ workspaceId: workspace ?? 'default' }}
@@ -231,7 +232,7 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
         </div>
 
         {/* Global Navigation Input */}
-        <div className="order-3 w-full min-w-0 md:order-2 md:flex-1">
+        <div className="order-2 w-full min-w-0 md:order-2 md:flex-1">
           {data && (
             <TopicSelector tree={data.topicTree} selectedTopic={selectedTopic} onSelectTopic={setSelectedTopic} />
           )}
@@ -240,7 +241,7 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
       </header>
 
       {/* VIEWPORT CONTENT */}
-      <main className="flex-1 flex min-h-0">
+      <main className="flex min-h-0 flex-1 overflow-hidden">
         <div className="flex-1 min-h-0 px-3 py-3 md:px-8 md:py-4 flex flex-col gap-4">
           {data && (
             <div className="xl:hidden scroll-thin -mx-1 overflow-x-auto pb-1">

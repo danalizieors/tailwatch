@@ -52,7 +52,7 @@ function RootDocument() {
       <head>
         <HeadContent />
       </head>
-      <body className="antialiased selection:bg-primary/30 min-h-dvh w-full min-w-0 overflow-hidden bg-background text-foreground flex">
+      <body className="antialiased selection:bg-primary/30 min-h-dvh w-full min-w-0 overflow-x-hidden bg-background text-foreground flex">
         <ConvexAuthProvider client={convex}>
           <Outlet />
         </ConvexAuthProvider>

@@ -141,7 +141,7 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic, placeholder 
         <Search className="h-3.5 w-3.5 text-muted-foreground/60 mr-1 md:mr-1.5 shrink-0" />
         
         {/* DRILLDOWN / BREADCRUMBS */}
-        <div className="flex items-center no-scrollbar shrink-0 max-w-[65%] sm:max-w-[72%] md:max-w-[80%]">
+        <div className="no-scrollbar flex min-w-0 shrink max-w-[55%] items-center sm:max-w-[70%] md:max-w-[80%]">
            <PathDisplay 
              path={selectedTopic || ''} 
              onClickSegment={onSelectTopic} 

@@ -84,8 +84,20 @@ body {
     radial-gradient(circle at 1px 1px, oklch(var(--primary) / 0.08) 1px, transparent 0),
     radial-gradient(ellipse 80% 50% at 50% -10%, oklch(var(--primary) / 0.12), transparent);
   background-size: 32px 32px, 100% 100%;
-  background-attachment: fixed;
+  background-attachment: scroll;
   font-feature-settings: "rlig" 1, "calt" 1;
+}
+
+@supports (height: 100dvh) {
+  body {
+    min-height: 100dvh;
+  }
+}
+
+@media (min-width: 768px) {
+  body {
+    background-attachment: fixed;
+  }
 }
 
 ::selection {

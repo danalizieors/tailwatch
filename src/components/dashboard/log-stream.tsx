@@ -32,20 +32,21 @@ export function LogStream({ events, searchValue, onSearchChange, statusFilter, o
           </span>
         </div>
         
-        <div className="flex flex-wrap items-center justify-start gap-2.5 sm:justify-end">
+        <div className="flex w-full flex-wrap items-center justify-start gap-2.5 sm:w-auto sm:justify-end">
           {onAcknowledge && (
             <Button 
               size="sm" 
               variant="outline" 
-              className="h-8 border-primary/20 bg-primary/5 hover:bg-primary/10 text-[9px] font-black uppercase tracking-widest text-primary gap-1.5 px-3 rounded-lg"
+              className="h-8 rounded-lg border-primary/20 bg-primary/5 px-2.5 text-[9px] font-black uppercase tracking-widest text-primary gap-1.5 hover:bg-primary/10 sm:px-3"
               onClick={onAcknowledge}
             >
               <CheckCircle2 className="h-3 w-3" />
-              Acknowledge
+              <span className="hidden sm:inline">Acknowledge</span>
+              <span className="sm:hidden">Ack</span>
             </Button>
           )}
           {headerActions}
-          <div className="relative group flex-1 min-w-[11rem] sm:flex-none">
+          <div className="group relative order-last basis-full sm:order-none sm:basis-auto sm:flex-none sm:min-w-[11rem]">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/60 group-focus-within:text-primary transition-colors" />
             <input
               className="h-8 w-full sm:w-40 lg:w-56 rounded-lg border border-border/40 bg-background/30 pl-8 pr-4 text-[11px] focus:ring-1 focus:ring-primary/40 focus:border-primary/40 outline-none transition-all placeholder:text-muted-foreground/50 font-bold uppercase tracking-tight"

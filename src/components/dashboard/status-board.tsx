@@ -26,23 +26,24 @@ export function StatusBoard({ rows, lastSeenAt, onAcknowledge, headerActions }: 
           </span>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
           {onAcknowledge && (
             <Button 
               size="sm" 
               variant="outline" 
-              className="h-8 border-primary/20 bg-primary/5 hover:bg-primary/10 text-[9px] font-black uppercase tracking-widest text-primary gap-1.5 px-3 rounded-lg"
+              className="h-8 rounded-lg border-primary/20 bg-primary/5 px-2.5 text-[9px] font-black uppercase tracking-widest text-primary gap-1.5 hover:bg-primary/10 sm:px-3"
               onClick={onAcknowledge}
             >
               <CheckCircle2 className="h-3.5 w-3.5" />
-              Acknowledge
+              <span className="hidden sm:inline">Acknowledge</span>
+              <span className="sm:hidden">Ack</span>
             </Button>
           )}
           {headerActions}
         </div>
       </div>
       
-      <div className="flex-1 overflow-y-auto scroll-thin">
+      <div className="flex-1 min-h-0 overflow-y-auto scroll-thin">
         {rows.length === 0 ? (
           <div className="flex h-full min-h-[300px] items-center justify-center flex-col gap-2 text-muted-foreground">
             <AlertCircle className="h-5 w-5 opacity-40" />

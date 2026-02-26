@@ -184,26 +184,26 @@ const curlExample = `curl -X POST http://localhost:3000/api/publish/team-a/proje
 
 function TailwatchLandingPage() {
   return (
-    <div className="scroll-thin relative flex h-dvh min-h-dvh w-full flex-1 overflow-x-hidden overflow-y-auto">
+    <div className="scroll-thin relative flex min-h-[100svh] w-full min-w-0 flex-1 overflow-x-hidden md:min-h-dvh">
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute left-[-12rem] top-[-10rem] h-72 w-72 rounded-full bg-primary/8 blur-[120px]" />
         <div className="absolute right-[-8rem] top-32 h-64 w-64 rounded-full bg-info/6 blur-[120px]" />
         <div className="absolute bottom-0 left-1/2 h-80 w-[34rem] -translate-x-1/2 rounded-full bg-primary/5 blur-[140px]" />
       </div>
 
-      <div className="relative z-10 w-full">
+      <div className="relative z-10 w-full min-w-0">
         <header className="sticky top-0 z-50 border-b border-border/50 bg-background/90 backdrop-blur-md">
           <nav
             aria-label="Primary"
-            className="mx-auto flex min-h-16 w-full max-w-7xl items-center justify-between gap-3 px-4 py-2 md:h-16 md:gap-4 md:px-6 md:py-0"
+            className="mx-auto flex min-h-16 w-full max-w-7xl min-w-0 flex-wrap items-center justify-between gap-3 px-4 py-2 md:h-16 md:flex-nowrap md:gap-4 md:px-6 md:py-0"
           >
-            <a href="#top" className="group flex cursor-pointer items-center gap-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            <a href="#top" className="group flex min-w-0 shrink cursor-pointer items-center gap-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-primary/25 bg-primary/10 text-primary">
                 <Terminal className="h-4 w-4" />
               </div>
-              <div className="flex flex-col leading-none">
+              <div className="flex min-w-0 flex-col leading-none">
                 <span className="text-sm font-semibold tracking-[0.04em] text-foreground">Tailwatch</span>
-                <span className="text-[10px] font-medium tracking-[0.08em] text-muted-foreground">
+                <span className="truncate text-[10px] font-medium tracking-[0.08em] text-muted-foreground">
                   Event Monitor
                 </span>
               </div>
@@ -236,7 +236,7 @@ function TailwatchLandingPage() {
               </a>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="ml-auto flex w-full min-w-0 items-center justify-end gap-2 sm:w-auto">
               <Link
                 to="/$workspaceId/status"
                 params={{ workspaceId: 'default' }}
@@ -258,9 +258,9 @@ function TailwatchLandingPage() {
           </nav>
         </header>
 
-        <main id="top" className="mx-auto flex w-full max-w-7xl flex-col gap-14 px-4 py-8 md:gap-20 md:px-6 md:py-12">
-          <section className="grid items-start gap-8 lg:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)] lg:gap-10">
-            <div className="flex flex-col gap-6">
+        <main id="top" className="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-14 px-4 py-8 md:gap-20 md:px-6 md:py-12">
+          <section className="grid min-w-0 items-start gap-8 lg:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)] lg:gap-10">
+            <div className="flex min-w-0 flex-col gap-6">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge variant="outline" className="border-border/70 bg-card/70 px-3 py-1 text-[11px] tracking-[0.04em] text-foreground">
                   Realtime event telemetry
@@ -330,10 +330,10 @@ function TailwatchLandingPage() {
               </div>
             </div>
 
-            <div className="relative">
+            <div className="relative min-w-0">
               <div className="pointer-events-none absolute inset-0 rounded-2xl border border-border/40" />
 
-              <div className="relative space-y-4 rounded-2xl border border-border/60 bg-card/85 p-4 shadow-sm md:p-5">
+              <div className="relative min-w-0 space-y-4 rounded-2xl border border-border/60 bg-card/85 p-4 shadow-sm md:p-5">
                 <div className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-background/70 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
@@ -350,8 +350,8 @@ function TailwatchLandingPage() {
                   </div>
                 </div>
 
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <Card className="border-primary/15 bg-background/60 shadow-none">
+                <div className="grid min-w-0 gap-3 sm:grid-cols-2">
+                  <Card className="min-w-0 border-primary/15 bg-background/60 shadow-none">
                     <CardHeader className="pb-2">
                       <CardTitle className="flex items-center gap-2 text-xs font-semibold tracking-[0.04em] text-primary">
                         <ListTree className="h-3.5 w-3.5" />
@@ -361,21 +361,21 @@ function TailwatchLandingPage() {
                     </CardHeader>
                     <CardContent className="space-y-2 pb-4">
                       <div className="rounded-lg border border-border/60 bg-card/60 p-2">
-                        <p className="text-[11px] font-semibold text-foreground">team-a/project-x/task/planner</p>
+                        <p className="break-all text-[11px] font-semibold text-foreground">team-a/project-x/task/planner</p>
                         <p className="text-[10px] font-medium text-success">start • run_123</p>
                       </div>
                       <div className="rounded-lg border border-border/60 bg-card/60 p-2">
-                        <p className="text-[11px] font-semibold text-foreground">team-a/project-x/task/planner</p>
+                        <p className="break-all text-[11px] font-semibold text-foreground">team-a/project-x/task/planner</p>
                         <p className="text-[10px] font-medium text-muted-foreground">log • "Fetched repository files"</p>
                       </div>
                       <div className="rounded-lg border border-destructive/25 bg-destructive/10 p-2">
-                        <p className="text-[11px] font-semibold text-foreground">ops/cron/nightly-backup</p>
+                        <p className="break-all text-[11px] font-semibold text-foreground">ops/cron/nightly-backup</p>
                         <p className="text-[10px] font-medium text-destructive">error • disk snapshot timeout</p>
                       </div>
                     </CardContent>
                   </Card>
 
-                  <Card className="border-info/15 bg-background/60 shadow-none">
+                  <Card className="min-w-0 border-info/15 bg-background/60 shadow-none">
                     <CardHeader className="pb-2">
                       <CardTitle className="flex items-center gap-2 text-xs font-semibold tracking-[0.04em] text-info">
                         <LayoutGrid className="h-3.5 w-3.5" />
@@ -400,14 +400,14 @@ function TailwatchLandingPage() {
                   </Card>
                 </div>
 
-                <div className="rounded-2xl border border-border/60 bg-background/70 p-4">
+                  <div className="min-w-0 rounded-2xl border border-border/60 bg-background/70 p-4">
                   <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                     <p className="text-xs font-medium tracking-[0.04em] text-muted-foreground">Publish with HTTP</p>
                     <span className="rounded-full border border-border/60 bg-card/70 px-2 py-1 text-[10px] font-medium tracking-[0.04em] text-muted-foreground">
                       No SDK
                     </span>
                   </div>
-                  <pre className="overflow-x-auto rounded-xl border border-border/60 bg-card/60 p-3 text-[10px] leading-5 text-foreground sm:text-[11px]">
+                  <pre className="w-full max-w-full overflow-x-auto rounded-xl border border-border/60 bg-card/60 p-3 text-[10px] leading-5 text-foreground sm:text-[11px]">
                     <code>{curlExample}</code>
                   </pre>
                 </div>
@@ -651,7 +651,7 @@ function TailwatchLandingPage() {
         </main>
 
         <footer className="border-t border-border/40 bg-background/50">
-          <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 py-6 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between md:px-6">
+          <div className="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-4 px-4 py-6 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between md:px-6">
             <div className="flex flex-wrap items-center gap-2">
               <Terminal className="h-4 w-4 text-primary" />
               <span>Tailwatch</span>

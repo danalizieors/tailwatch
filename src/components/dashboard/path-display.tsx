@@ -11,7 +11,7 @@ export function PathDisplay({ path, className, segmentClassName, onClickSegment 
   const segments = path.split('/').filter(Boolean)
   
   return (
-    <div className={cn("flex items-center font-mono overflow-hidden shrink-0", className)}>
+    <div className={cn("flex min-w-0 items-center overflow-hidden font-mono", className)}>
       {/* ROOT */}
       <button
         type="button"
