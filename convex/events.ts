@@ -86,14 +86,16 @@ function toEntityCompat(row: any) {
   }
 }
 
-function hashWriteKey(value: string) {
-  // Non-cryptographic stable hash for lookup keys; replace with a stronger hash when bindings CRUD is added.
-  let hash = 2166136261
-  for (let i = 0; i < value.length; i += 1) {
-    hash ^= value.charCodeAt(i)
-    hash = Math.imul(hash, 16777619)
-  }
-  return `fnv1a_${(hash >>> 0).toString(16)}`
+function bytesToHex(input: ArrayBuffer) {
+  return Array.from(new Uint8Array(input))
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('')
+}
+
+async function hashWriteKey(value: string) {
+  const encoded = new TextEncoder().encode(value)
+  const digest = await crypto.subtle.digest('SHA-256', encoded)
+  return `sha256_${bytesToHex(digest)}`
 }
 
 async function ensureVolumeExists(ctx: any, workspace: string, userId?: string) {
@@ -443,7 +445,6 @@ export const publishByKey = mutation({
   args: {
     key: v.string(),
     subpath: v.optional(v.string()),
-    workspace: v.optional(v.string()),
     time: v.optional(v.string()),
     timestamp: v.optional(v.string()),
     status: v.optional(v.string()),
@@ -454,7 +455,7 @@ export const publishByKey = mutation({
   handler: async (ctx, args) => {
     await getAuthenticatedContext(ctx)
 
-    const keyHash = hashWriteKey(args.key)
+    const keyHash = await hashWriteKey(args.key)
     const binding = await ctx.db
       .query('bindings')
       .withIndex('by_key_hash', (q: any) => q.eq('keyHash', keyHash))
@@ -469,7 +470,8 @@ export const publishByKey = mutation({
     const path = suffix ? `${base}/${suffix}` : base
 
     return publishResolved(ctx, {
-      workspace: args.workspace ?? binding.workspace,
+      // Binding workspace is authoritative for keyed publishes.
+      workspace: binding.workspace,
       path,
       submittedPath: suffix || undefined,
       time: args.time,

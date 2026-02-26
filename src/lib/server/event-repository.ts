@@ -132,11 +132,9 @@ export async function appendEventByBindingKey(key: string, subpath: string, payl
   }
 
   const client = createConvexClient()
-  const workspace = payloadRecord.workspace as string | undefined
   const convexArgs: Record<string, any> = {
     key,
     subpath,
-    workspace,
     time: payloadRecord.time,
     timestamp: payloadRecord.timestamp,
     type: payloadRecord.type,

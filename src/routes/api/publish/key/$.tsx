@@ -7,7 +7,6 @@ export const Route = createFileRoute('/api/publish/key/$')({
     handlers: {
       POST: async ({ request, params }) => {
         try {
-          const workspace = request.headers.get('x-tailwatch-workspace') ?? undefined
           const splat = params._splat ?? ''
           const [key, ...subpathParts] = splat.split('/').filter(Boolean)
           if (!key) {
@@ -22,10 +21,7 @@ export const Route = createFileRoute('/api/publish/key/$')({
 
           const subpath = subpathParts.join('/')
           const payload = await request.json()
-          const event = await appendEventByBindingKey(key, subpath, {
-            ...(typeof payload === 'object' ? payload : {}),
-            workspace,
-          })
+          const event = await appendEventByBindingKey(key, subpath, typeof payload === 'object' ? payload : {})
 
           try {
             await notifyPushSubscribersForEvent(event)
