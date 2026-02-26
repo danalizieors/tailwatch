@@ -14,6 +14,8 @@ export const Route = createRootRoute({
       { charSet: 'utf-8' },
       { name: 'viewport', content: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0' },
       { title: 'Tailwatch | Event Monitor' },
+      { name: 'robots', content: 'noindex, nofollow, noarchive, nosnippet, noimageindex' },
+      { name: 'googlebot', content: 'noindex, nofollow, noarchive, nosnippet, noimageindex' },
       {
         name: 'description',
         content: 'Hierarchical event, task, and message dashboard with log and status views.',
