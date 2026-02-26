@@ -215,8 +215,8 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
 
           <nav className="flex items-center p-1 bg-primary/5 rounded-lg border border-primary/10 shadow-sm backdrop-blur-sm">
             <Link
-              to={workspace && workspace !== 'default' ? '/$workspaceId' : '/'}
-              params={workspace && workspace !== 'default' ? { workspaceId: workspace } : {}}
+              to="/$workspaceId"
+              params={{ workspaceId: workspace ?? 'default' }}
               activeProps={{ className: 'bg-background text-primary border-border/60 shadow-sm' }}
               className="flex items-center gap-2 px-2.5 md:px-3.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 hover:text-foreground border border-transparent"
             >

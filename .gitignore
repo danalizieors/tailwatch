@@ -4,6 +4,7 @@ node_modules
 .wrangler
 .env.local
 .DS_Store
+.codex/
 dist
 dev-dist
 .vinxi
