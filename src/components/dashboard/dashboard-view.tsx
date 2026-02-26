@@ -210,7 +210,6 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
             >
               {hasPushPermission ? <Bell className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
             </Button>
-            <UserMenu />
           </div>
 
           <nav className="flex items-center p-1 bg-primary/5 rounded-lg border border-primary/10 shadow-sm backdrop-blur-sm">
@@ -233,6 +232,8 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
               <span className="hidden xs:inline">Registry</span>
             </Link>
           </nav>
+
+          <UserMenu />
         </div>
       </header>
 
