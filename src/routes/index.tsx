@@ -3,7 +3,6 @@ import {
   Activity,
   ArrowRight,
   Bell,
-  Check,
   ChevronRight,
   CircleAlert,
   Clock3,
@@ -125,11 +124,6 @@ const featureCards = [
     icon: Database,
   },
   {
-    title: 'Push notifications',
-    description: 'Get browser notifications for important events when you step away from the live wallboard.',
-    icon: Bell,
-  },
-  {
     title: 'Workspace scoping',
     description: 'Separate streams with workspace headers for multi-team or environment-specific monitoring.',
     icon: Lock,
@@ -190,7 +184,7 @@ const curlExample = `curl -X POST http://localhost:3000/api/publish/team-a/proje
 
 function TailwatchLandingPage() {
   return (
-    <div className="scroll-thin relative flex h-screen w-full flex-1 overflow-x-hidden overflow-y-auto">
+    <div className="scroll-thin relative flex h-dvh min-h-dvh w-full flex-1 overflow-x-hidden overflow-y-auto">
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute left-[-12rem] top-[-10rem] h-72 w-72 rounded-full bg-primary/8 blur-[120px]" />
         <div className="absolute right-[-8rem] top-32 h-64 w-64 rounded-full bg-info/6 blur-[120px]" />
@@ -201,7 +195,7 @@ function TailwatchLandingPage() {
         <header className="sticky top-0 z-50 border-b border-border/50 bg-background/90 backdrop-blur-md">
           <nav
             aria-label="Primary"
-            className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-4 md:px-6"
+            className="mx-auto flex min-h-16 w-full max-w-7xl items-center justify-between gap-3 px-4 py-2 md:h-16 md:gap-4 md:px-6 md:py-0"
           >
             <a href="#top" className="group flex cursor-pointer items-center gap-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-primary/25 bg-primary/10 text-primary">
@@ -256,7 +250,8 @@ function TailwatchLandingPage() {
                 params={{ workspaceId: 'default' }}
                 className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-primary/35 bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition-opacity duration-200 hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                Open Dashboard
+                <span className="hidden sm:inline">Open Dashboard</span>
+                <span className="sm:hidden">Open</span>
                 <ArrowRight className="h-3.5 w-3.5" />
               </Link>
             </div>
@@ -339,17 +334,17 @@ function TailwatchLandingPage() {
               <div className="pointer-events-none absolute inset-0 rounded-2xl border border-border/40" />
 
               <div className="relative space-y-4 rounded-2xl border border-border/60 bg-card/85 p-4 shadow-sm md:p-5">
-                <div className="flex items-center justify-between rounded-2xl border border-border/60 bg-background/70 px-4 py-3">
-                  <div className="flex items-center gap-3">
+                <div className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-background/70 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-3 min-w-0">
                     <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
                       <Activity className="h-4 w-4" />
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <p className="text-xs font-medium tracking-[0.04em] text-muted-foreground">Live feed</p>
-                      <p className="text-sm font-semibold text-foreground">Workspace `default`</p>
+                      <p className="truncate text-sm font-semibold text-foreground">Workspace `default`</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 rounded-full border border-success/20 bg-success/10 px-3 py-1 text-xs font-medium text-success">
+                  <div className="inline-flex w-fit items-center gap-2 rounded-full border border-success/20 bg-success/10 px-3 py-1 text-xs font-medium text-success">
                     <span className="h-2 w-2 rounded-full bg-success" />
                     Live
                   </div>
@@ -406,13 +401,13 @@ function TailwatchLandingPage() {
                 </div>
 
                 <div className="rounded-2xl border border-border/60 bg-background/70 p-4">
-                  <div className="mb-2 flex items-center justify-between">
+                  <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                     <p className="text-xs font-medium tracking-[0.04em] text-muted-foreground">Publish with HTTP</p>
                     <span className="rounded-full border border-border/60 bg-card/70 px-2 py-1 text-[10px] font-medium tracking-[0.04em] text-muted-foreground">
                       No SDK
                     </span>
                   </div>
-                  <pre className="overflow-x-auto rounded-xl border border-border/60 bg-card/60 p-3 text-[11px] leading-5 text-foreground">
+                  <pre className="overflow-x-auto rounded-xl border border-border/60 bg-card/60 p-3 text-[10px] leading-5 text-foreground sm:text-[11px]">
                     <code>{curlExample}</code>
                   </pre>
                 </div>
@@ -579,32 +574,6 @@ function TailwatchLandingPage() {
               })}
             </div>
 
-            <Card className="border-border/70 bg-card/70 shadow-none">
-              <CardHeader>
-                <CardTitle className="text-base font-bold">Operational defaults that reduce surprises</CardTitle>
-                <CardDescription>Lightweight surface area, strong monitoring primitives.</CardDescription>
-              </CardHeader>
-              <CardContent className="grid gap-3 pb-4 md:grid-cols-2">
-                {[
-                  'Path-based hierarchy for instant namespace filters',
-                  'Realtime event stream with append-only model',
-                  'Derived entity snapshots for current status visibility',
-                  'Optional browser push notifications for failure events',
-                  'Workspace scoping for team/environment separation',
-                  'Log and status pages available out of the box',
-                ].map((line) => (
-                  <div
-                    key={line}
-                    className="flex items-start gap-3 rounded-xl border border-border/60 bg-background/50 px-3 py-2.5"
-                  >
-                    <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-success/15 text-success">
-                      <Check className="h-3.5 w-3.5" />
-                    </div>
-                    <p className="text-sm leading-6 text-foreground/95">{line}</p>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
           </section>
 
           <section id="faq" className="space-y-6">
@@ -683,7 +652,7 @@ function TailwatchLandingPage() {
 
         <footer className="border-t border-border/40 bg-background/50">
           <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 py-6 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between md:px-6">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Terminal className="h-4 w-4 text-primary" />
               <span>Tailwatch</span>
               <span className="text-muted-foreground/60">Realtime event monitor</span>

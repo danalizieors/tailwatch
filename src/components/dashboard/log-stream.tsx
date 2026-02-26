@@ -21,8 +21,8 @@ const EVENT_STATUSES: Array<EventStatus | 'all'> = ['all', 'busy', 'idle']
 export function LogStream({ events, searchValue, onSearchChange, statusFilter, onStatusFilterChange, lastSeenAt, onAcknowledge, headerActions }: LogStreamProps) {
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="py-3 mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/20 shrink-0">
-        <div className="flex items-center gap-2">
+      <div className="py-3 mb-4 flex flex-col gap-3 border-b border-border/20 shrink-0 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap items-center gap-2">
           <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/20">
             <Hash className="h-4 w-4" />
           </div>
@@ -32,7 +32,7 @@ export function LogStream({ events, searchValue, onSearchChange, statusFilter, o
           </span>
         </div>
         
-        <div className="flex flex-wrap items-center justify-end gap-2.5">
+        <div className="flex flex-wrap items-center justify-start gap-2.5 sm:justify-end">
           {onAcknowledge && (
             <Button 
               size="sm" 
@@ -45,16 +45,16 @@ export function LogStream({ events, searchValue, onSearchChange, statusFilter, o
             </Button>
           )}
           {headerActions}
-          <div className="relative group">
+          <div className="relative group flex-1 min-w-[11rem] sm:flex-none">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/60 group-focus-within:text-primary transition-colors" />
             <input
-              className="h-8 w-40 lg:w-56 rounded-lg border border-border/40 bg-background/30 pl-8 pr-4 text-[11px] focus:ring-1 focus:ring-primary/40 focus:border-primary/40 outline-none transition-all placeholder:text-muted-foreground/50 font-bold uppercase tracking-tight"
+              className="h-8 w-full sm:w-40 lg:w-56 rounded-lg border border-border/40 bg-background/30 pl-8 pr-4 text-[11px] focus:ring-1 focus:ring-primary/40 focus:border-primary/40 outline-none transition-all placeholder:text-muted-foreground/50 font-bold uppercase tracking-tight"
               placeholder="Filter entries..."
               value={searchValue}
               onChange={(event) => onSearchChange(event.target.value)}
             />
           </div>
-          <div className="flex items-center gap-2 bg-background/30 border border-border/40 rounded-lg px-2.5 shadow-xs h-8">
+          <div className="flex h-8 shrink-0 items-center gap-2 rounded-lg border border-border/40 bg-background/30 px-2.5 shadow-xs">
             <Filter className="h-3.5 w-3.5 text-muted-foreground/60" />
             <select
               className="bg-transparent text-[10px] font-bold uppercase tracking-tight outline-none cursor-pointer text-foreground/70"
@@ -84,7 +84,7 @@ export function LogStream({ events, searchValue, onSearchChange, statusFilter, o
           {events.length === 0 ? (
             <div className="flex h-full min-h-[300px] items-center justify-center flex-col gap-2 text-muted-foreground">
               <AlertCircle className="h-5 w-5 opacity-40" />
-              <span className="text-xs font-medium opacity-60 uppercase tracking-widest font-bold">Registry empty</span>
+              <span className="text-xs font-medium opacity-60 uppercase tracking-widest font-bold">Event log empty</span>
             </div>
           ) : (
             <div className="divide-y divide-white/5 font-mono text-xs">
@@ -92,12 +92,13 @@ export function LogStream({ events, searchValue, onSearchChange, statusFilter, o
                 const pathColor = getPathColor(event.path)
                 const isBusy = event.status === 'busy'
                 const isUnread = new Date(event.timestamp).getTime() > lastSeenAt
+                const eventDate = new Date(event.timestamp)
                 
                 return (
                   <div 
                     key={event.id} 
                     className={cn(
-                      "group flex flex-col md:grid md:grid-cols-[100px_80px_minmax(0,1fr)_100px] gap-1 md:gap-4 px-4 md:px-6 py-3 md:py-2 border-l-[4px] relative",
+                      "group relative flex flex-col gap-2 border-l-[4px] px-4 py-3 pr-8 md:grid md:grid-cols-[100px_80px_minmax(0,1fr)_100px] md:gap-4 md:px-6 md:py-2 md:pr-6",
                       isBusy ? "opacity-100" : "opacity-90",
                       isUnread && "bg-amber-500/[0.08]"
                     )}
@@ -106,7 +107,7 @@ export function LogStream({ events, searchValue, onSearchChange, statusFilter, o
                     }}
                   >
                     {isUnread && (
-                      <div className="absolute top-1/2 -translate-y-1/2 right-4 z-10">
+                      <div className="absolute right-3 top-3 z-10 md:right-4 md:top-1/2 md:-translate-y-1/2">
                         <span className="relative flex h-2 w-2">
                           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
                           <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500 shadow-[0_0_12px_rgba(245,158,11,1)]"></span>
@@ -114,9 +115,14 @@ export function LogStream({ events, searchValue, onSearchChange, statusFilter, o
                       </div>
                     )}
                     {/* Meta Row (Timestamp & Level) */}
-                    <div className="flex items-center justify-between md:contents">
+                    <div className="flex items-center justify-between gap-3 md:contents">
                       <div className="text-muted-foreground/50 text-[10px] tabular-nums whitespace-nowrap self-center font-medium">
-                        {new Date(event.timestamp).toLocaleTimeString(undefined, { hour12: false, fractionalSecondDigits: 3 })}
+                        <span className="md:hidden">
+                          {eventDate.toLocaleTimeString(undefined, { hour12: false })}
+                        </span>
+                        <span className="hidden md:inline">
+                          {eventDate.toLocaleTimeString(undefined, { hour12: false, fractionalSecondDigits: 3 })}
+                        </span>
                       </div>
 
                       <div className="flex items-center">
@@ -127,22 +133,22 @@ export function LogStream({ events, searchValue, onSearchChange, statusFilter, o
                     </div>
 
                     {/* Content Row */}
-                    <div className="min-w-0 self-center w-full md:w-auto mt-0.5 md:mt-0">
-                      <div className="flex items-center gap-2 mb-0.5 overflow-hidden">
+                    <div className="mt-0.5 w-full min-w-0 self-center md:mt-0 md:w-auto">
+                      <div className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-1 md:mb-0.5 md:overflow-hidden">
                         <span 
-                          className="text-[9px] truncate font-black tracking-widest uppercase opacity-60"
+                          className="min-w-0 max-w-full truncate text-[9px] font-black tracking-widest uppercase opacity-60"
                           style={{ color: pathColor }}
                         >
                           {event.path}
                         </span>
                         {event.entityId && (
-                          <span className="text-[9px] font-bold opacity-30 shrink-0" style={{ color: pathColor }}>
+                          <span className="shrink-0 text-[9px] font-bold opacity-30" style={{ color: pathColor }}>
                             @{event.entityId}
                           </span>
                         )}
                       </div>
                       <Markdown 
-                        className={cn('break-words leading-tight text-foreground/90 font-medium text-[11px] tracking-tight', event.status === 'busy' && 'text-amber-200 font-bold')}
+                        className={cn('break-words leading-5 text-[11px] tracking-tight text-foreground/90 font-medium', event.status === 'busy' && 'text-amber-200 font-bold')}
                         content={event.content ?? 'empty_payload'}
                       />
                     </div>

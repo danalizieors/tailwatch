@@ -103,11 +103,11 @@ export function UserMenu() {
   const avatarSrc = !isDebugMode ? user?.image ?? undefined : undefined;
 
   return (
-    <div ref={menuRef} className="relative flex items-center ml-2 pl-2 border-l border-border/40">
+    <div ref={menuRef} className="relative ml-1 flex items-center border-l border-border/40 pl-1 sm:ml-2 sm:pl-2">
       <Button
         type="button"
         variant="ghost"
-        className="h-9 rounded-full px-1 pr-2 gap-1 hover:bg-primary/10"
+        className="h-9 gap-1 rounded-full px-1 pr-1 hover:bg-primary/10 sm:pr-2"
         onClick={() => setIsOpen((open) => !open)}
         aria-haspopup="menu"
         aria-expanded={isOpen}
@@ -124,7 +124,7 @@ export function UserMenu() {
             )
           )}
         </span>
-        <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+        <ChevronDown className="hidden h-3.5 w-3.5 text-muted-foreground sm:block" />
       </Button>
 
       {isOpen && (

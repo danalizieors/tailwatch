@@ -129,7 +129,7 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic, placeholder 
   }
 
   return (
-    <div className={cn("relative flex-1", className)} ref={dropdownRef}>
+    <div className={cn("relative flex-1 min-w-0", className)} ref={dropdownRef}>
       <div 
         className={cn(
           "flex items-center min-h-[38px] md:min-h-[34px] px-2 md:px-3 bg-secondary/30 border rounded-lg transition-all gap-0.5",
@@ -141,7 +141,7 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic, placeholder 
         <Search className="h-3.5 w-3.5 text-muted-foreground/60 mr-1 md:mr-1.5 shrink-0" />
         
         {/* DRILLDOWN / BREADCRUMBS */}
-        <div className="flex items-center no-scrollbar shrink-0 max-w-[80%]">
+        <div className="flex items-center no-scrollbar shrink-0 max-w-[65%] sm:max-w-[72%] md:max-w-[80%]">
            <PathDisplay 
              path={selectedTopic || ''} 
              onClickSegment={onSelectTopic} 
@@ -150,7 +150,7 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic, placeholder 
         </div>
 
         {/* INPUT */}
-        <div className="relative flex-1 min-w-[30px] flex items-center h-full">
+        <div className="relative flex h-full min-w-[3.5rem] flex-1 items-center">
           <input
             ref={inputRef}
             type="text"
@@ -183,8 +183,8 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic, placeholder 
 
       {/* DROPDOWN */}
       {isOpen && filteredTopics.length > 0 && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-popover border border-border shadow-2xl rounded-xl overflow-hidden z-[100] animate-in fade-in slide-in-from-top-1 duration-200">
-          <div role="listbox" className="max-h-60 overflow-y-auto scroll-thin py-1" ref={listRef}>
+        <div className="absolute top-full left-0 right-0 z-[100] mt-2 overflow-hidden rounded-xl border border-border bg-popover shadow-2xl animate-in fade-in slide-in-from-top-1 duration-200">
+          <div role="listbox" className="max-h-[min(60dvh,20rem)] overflow-y-auto scroll-thin py-1" ref={listRef}>
             {filteredTopics.map((topic, index) => {
               const color = getPathColor(topic.path)
               const isSelected = selectedTopic === topic.path
@@ -212,7 +212,7 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic, placeholder 
                   onMouseEnter={() => setActiveIndex(index)}
                 >
                   <div className="flex flex-col min-w-0">
-                    <span className="text-xs font-mono font-bold text-foreground/90" style={{ color: isSelected || isActive ? color : undefined }}>
+                    <span className="truncate text-xs font-mono font-bold text-foreground/90" style={{ color: isSelected || isActive ? color : undefined }}>
                       {topic.path}
                     </span>
                     <span className="text-[10px] text-muted-foreground/50 font-bold uppercase tracking-tighter">

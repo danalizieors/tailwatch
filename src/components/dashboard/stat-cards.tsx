@@ -14,9 +14,9 @@ export function StatCards({ stats }: StatCardsProps) {
   ]
 
   return (
-    <div className="flex items-center gap-6 px-4 h-full">
+    <div className="flex h-full items-center gap-3 px-3 sm:gap-6 sm:px-4">
       {items.map((item) => (
-        <div key={item.label} className="flex items-center gap-2">
+        <div key={item.label} className="flex items-center gap-1.5 sm:gap-2">
           <div className="flex flex-col">
             <span className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest leading-none">{item.label}</span>
             <span className={`text-sm font-semibold font-mono tabular-nums mt-1 ${item.color}`}>{item.value.toLocaleString()}</span>

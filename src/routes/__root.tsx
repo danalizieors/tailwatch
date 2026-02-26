@@ -12,7 +12,7 @@ export const Route = createRootRoute({
   head: () => ({
     meta: [
       { charSet: 'utf-8' },
-      { name: 'viewport', content: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0' },
+      { name: 'viewport', content: 'width=device-width, initial-scale=1, viewport-fit=cover' },
       { title: 'Tailwatch | Event Monitor' },
       { name: 'robots', content: 'noindex, nofollow, noarchive, nosnippet, noimageindex' },
       { name: 'googlebot', content: 'noindex, nofollow, noarchive, nosnippet, noimageindex' },
@@ -52,7 +52,7 @@ function RootDocument() {
       <head>
         <HeadContent />
       </head>
-      <body className="antialiased selection:bg-primary/30 h-screen w-screen overflow-hidden bg-background text-foreground flex">
+      <body className="antialiased selection:bg-primary/30 min-h-dvh w-full min-w-0 overflow-hidden bg-background text-foreground flex">
         <ConvexAuthProvider client={convex}>
           <Outlet />
         </ConvexAuthProvider>

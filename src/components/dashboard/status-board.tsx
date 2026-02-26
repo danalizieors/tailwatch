@@ -1,7 +1,5 @@
 import type { ReactNode } from 'react'
-import { AlertCircle, LayoutGrid, Timer, Clock, Info, CheckCircle2 } from 'lucide-react'
-import { Badge } from '~/components/ui/badge'
-import { Card, CardHeader, CardTitle, CardContent } from '~/components/ui/card'
+import { AlertCircle, LayoutGrid, CheckCircle2 } from 'lucide-react'
 import type { EntitySnapshot } from '~/lib/types'
 import { formatDuration, formatRelative } from '~/lib/format'
 import { cn, getPathColor } from '~/lib/utils'
@@ -17,8 +15,8 @@ interface StatusBoardProps {
 export function StatusBoard({ rows, lastSeenAt, onAcknowledge, headerActions }: StatusBoardProps) {
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="py-3 mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-border/20 shrink-0">
-        <div className="flex items-center gap-2">
+      <div className="py-3 mb-4 flex flex-col gap-3 border-b border-border/20 shrink-0 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap items-center gap-2">
           <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/20">
             <LayoutGrid className="h-4 w-4" />
           </div>
@@ -51,7 +49,7 @@ export function StatusBoard({ rows, lastSeenAt, onAcknowledge, headerActions }: 
             <span className="text-xs font-medium opacity-60">Registry empty</span>
           </div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 pb-6 px-1">
+          <div className="grid gap-3 px-1 pb-6 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 2xl:grid-cols-4">
             {rows.map((row) => {
               const pathColor = getPathColor(row.path)
               const jewelBg = `oklch(from ${pathColor} 0.16 0.12 h / 0.9)`
@@ -63,7 +61,7 @@ export function StatusBoard({ rows, lastSeenAt, onAcknowledge, headerActions }: 
                 <div 
                   key={row.key} 
                   className={cn(
-                    "group relative rounded-2xl border-2 p-6 card-hover-effect backdrop-blur-3xl overflow-hidden",
+                    "group relative overflow-hidden rounded-2xl border-2 p-4 backdrop-blur-3xl card-hover-effect sm:p-6",
                     isUnread ? "border-amber-500/50 shadow-[0_0_20px_rgba(245,158,11,0.15)]" : ""
                   )}
                   style={{ 
@@ -72,14 +70,14 @@ export function StatusBoard({ rows, lastSeenAt, onAcknowledge, headerActions }: 
                   }}
                 >
                   {isUnread && (
-                    <div className="absolute top-4 right-4 z-10">
+                    <div className="absolute right-3 top-3 z-10 sm:right-4 sm:top-4">
                       <span className="relative flex h-2 w-2">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
                         <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500 shadow-[0_0_12px_rgba(245,158,11,1)]"></span>
                       </span>
                     </div>
                   )}
-                  <div className="flex items-start justify-between gap-4 mb-6">
+                  <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-start sm:justify-between">
                     <div className="flex flex-col min-w-0">
                       <span className="text-lg font-black truncate tracking-tight" style={{ color: jewelText }}>
                         {row.entityId}
@@ -89,7 +87,7 @@ export function StatusBoard({ rows, lastSeenAt, onAcknowledge, headerActions }: 
                       </span>
                     </div>
                     <div className={cn(
-                      "flex items-center gap-2 rounded-lg px-3 py-1.5 text-[10px] font-black uppercase tracking-widest border-2",
+                      "inline-flex w-fit items-center gap-2 rounded-lg border-2 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest",
                       statusBadgeColors(row.currentStatus)
                     )}>
                       <span className={cn("h-2 w-2 rounded-full", statusDotColors(row.currentStatus))} />
@@ -98,16 +96,16 @@ export function StatusBoard({ rows, lastSeenAt, onAcknowledge, headerActions }: 
                   </div>
                   
                   <div className="space-y-3.5 text-[11px] font-semibold">
-                    <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                    <div className="flex flex-col items-start gap-1 border-b border-white/5 pb-2 sm:flex-row sm:items-center sm:justify-between">
                       <span className="opacity-50 uppercase text-[9px] font-black tracking-widest" style={{ color: jewelText }}>Path</span>
-                      <span className="font-mono truncate max-w-[160px] opacity-90" style={{ color: jewelText }}>{row.path}</span>
+                      <span className="max-w-full break-all font-mono opacity-90 sm:max-w-[160px] sm:truncate" style={{ color: jewelText }}>{row.path}</span>
                     </div>
-                    <div className="flex justify-between items-center opacity-70">
+                    <div className="flex flex-col items-start gap-1 opacity-70 sm:flex-row sm:items-center sm:justify-between">
                       <span className="opacity-50 uppercase text-[9px] font-black tracking-widest" style={{ color: jewelText }}>Last Seen</span>
                       <span style={{ color: jewelText }}>{formatRelative(row.lastSeenAt)}</span>
                     </div>
                     {row.activeForMs !== undefined && (
-                      <div className="flex justify-between items-center opacity-70">
+                      <div className="flex flex-col items-start gap-1 opacity-70 sm:flex-row sm:items-center sm:justify-between">
                         <span className="opacity-50 uppercase text-[9px] font-black tracking-widest" style={{ color: jewelText }}>Duration</span>
                         <span style={{ color: jewelText }}>{formatDuration(row.activeForMs)}</span>
                       </div>
@@ -115,7 +113,7 @@ export function StatusBoard({ rows, lastSeenAt, onAcknowledge, headerActions }: 
                     
                     <div className="mt-4 pt-4 border-t border-white/5">
                       <div 
-                        className="rounded-xl p-3.5 text-[11px] leading-relaxed line-clamp-2 font-bold shadow-inner"
+                        className="line-clamp-3 rounded-xl p-3 text-[11px] font-bold leading-relaxed shadow-inner sm:line-clamp-2 sm:p-3.5"
                         style={{ 
                           backgroundColor: `oklch(from ${pathColor} 0.12 0.04 h / 0.4)`,
                           color: row.currentStatus === 'busy' ? 'oklch(0.83 0.12 84)' : `oklch(from ${pathColor} 0.85 0.05 h)`,
@@ -134,15 +132,6 @@ export function StatusBoard({ rows, lastSeenAt, onAcknowledge, headerActions }: 
       </div>
     </div>
   )
-}
-
-function statusBorderColor(status: EntitySnapshot['currentStatus']) {
-  switch (status) {
-    case 'error': return 'border-destructive/20 hover:border-destructive/40'
-    case 'idle': return 'border-info/20 hover:border-info/40'
-    case 'stopped': return 'border-success/20 hover:border-success/40'
-    default: return 'border-border/60'
-  }
 }
 
 function statusBadgeColors(status: EntitySnapshot['currentStatus']) {
