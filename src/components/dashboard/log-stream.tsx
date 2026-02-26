@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { AlertCircle, Search, Filter, Hash, CheckCircle2 } from 'lucide-react'
-import type { EventType, StoredEvent } from '~/lib/types'
+import type { EventStatus, StoredEvent } from '~/lib/types'
 import { cn, getPathColor } from '~/lib/utils'
 import { Button } from '~/components/ui/button'
 import { Markdown } from '~/components/ui/markdown'
@@ -9,16 +9,16 @@ interface LogStreamProps {
   events: StoredEvent[]
   searchValue: string
   onSearchChange: (value: string) => void
-  typeFilter: EventType | 'all'
-  onTypeFilterChange: (value: EventType | 'all') => void
+  statusFilter: EventStatus | 'all'
+  onStatusFilterChange: (value: EventStatus | 'all') => void
   lastSeenAt: number
   onAcknowledge?: () => void
   headerActions?: ReactNode
 }
 
-const EVENT_TYPES: Array<EventType | 'all'> = ['all', 'start', 'log', 'stop', 'error', 'heartbeat', 'status']
+const EVENT_STATUSES: Array<EventStatus | 'all'> = ['all', 'busy', 'idle']
 
-export function LogStream({ events, searchValue, onSearchChange, typeFilter, onTypeFilterChange, lastSeenAt, onAcknowledge, headerActions }: LogStreamProps) {
+export function LogStream({ events, searchValue, onSearchChange, statusFilter, onStatusFilterChange, lastSeenAt, onAcknowledge, headerActions }: LogStreamProps) {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <div className="py-3 mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/20 shrink-0">
@@ -58,12 +58,12 @@ export function LogStream({ events, searchValue, onSearchChange, typeFilter, onT
             <Filter className="h-3.5 w-3.5 text-muted-foreground/60" />
             <select
               className="bg-transparent text-[10px] font-bold uppercase tracking-tight outline-none cursor-pointer text-foreground/70"
-              value={typeFilter}
-              onChange={(event) => onTypeFilterChange(event.target.value as EventType | 'all')}
+              value={statusFilter}
+              onChange={(event) => onStatusFilterChange(event.target.value as EventStatus | 'all')}
             >
-              {EVENT_TYPES.map((value) => (
+              {EVENT_STATUSES.map((value) => (
                 <option key={value} value={value} className="bg-background text-foreground uppercase">
-                  {value === 'all' ? 'All Types' : value}
+                  {value === 'all' ? 'All Statuses' : value}
                 </option>
               ))}
             </select>
@@ -75,9 +75,9 @@ export function LogStream({ events, searchValue, onSearchChange, typeFilter, onT
         {/* Table Header - Desktop Only */}
         <div className="hidden md:grid grid-cols-[100px_80px_minmax(0,1fr)_100px] gap-4 px-6 py-2.5 bg-primary/5 text-[9px] uppercase font-black tracking-[0.2em] text-muted-foreground/60 border-b border-white/5">
           <div>Timestamp</div>
-          <div>Level</div>
+          <div>Status</div>
           <div>Message</div>
-          <div className="text-right">Run ID</div>
+          <div className="text-right">Path</div>
         </div>
 
         <div className="scroll-thin flex-1 overflow-y-auto">
@@ -90,7 +90,7 @@ export function LogStream({ events, searchValue, onSearchChange, typeFilter, onT
             <div className="divide-y divide-white/5 font-mono text-xs">
               {events.map((event) => {
                 const pathColor = getPathColor(event.path)
-                const isInProgress = event.type === 'start' || event.type === 'heartbeat'
+                const isBusy = event.status === 'busy'
                 const isUnread = new Date(event.timestamp).getTime() > lastSeenAt
                 
                 return (
@@ -98,7 +98,7 @@ export function LogStream({ events, searchValue, onSearchChange, typeFilter, onT
                     key={event.id} 
                     className={cn(
                       "group flex flex-col md:grid md:grid-cols-[100px_80px_minmax(0,1fr)_100px] gap-1 md:gap-4 px-4 md:px-6 py-3 md:py-2 border-l-[4px] relative",
-                      isInProgress ? "opacity-60" : "opacity-100",
+                      isBusy ? "opacity-100" : "opacity-90",
                       isUnread && "bg-amber-500/[0.08]"
                     )}
                     style={{ 
@@ -120,8 +120,8 @@ export function LogStream({ events, searchValue, onSearchChange, typeFilter, onT
                       </div>
 
                       <div className="flex items-center">
-                        <span className={cn('font-black text-[8px] px-1.5 py-0.5 rounded border leading-none uppercase tracking-tighter', eventTypeColors(event.type))}>
-                          {event.type}
+                        <span className={cn('font-black text-[8px] px-1.5 py-0.5 rounded border leading-none uppercase tracking-tighter', eventStatusColors(event.status))}>
+                          {event.status}
                         </span>
                       </div>
                     </div>
@@ -142,18 +142,14 @@ export function LogStream({ events, searchValue, onSearchChange, typeFilter, onT
                         )}
                       </div>
                       <Markdown 
-                        className={cn('break-words leading-tight text-foreground/90 font-medium text-[11px] tracking-tight', event.type === 'error' && 'text-destructive font-bold')}
+                        className={cn('break-words leading-tight text-foreground/90 font-medium text-[11px] tracking-tight', event.status === 'busy' && 'text-amber-200 font-bold')}
                         content={event.content ?? 'empty_payload'}
                       />
                     </div>
 
-                    {/* Run ID (Desktop Only) */}
+                    {/* Path (Desktop Only) */}
                     <div className="hidden md:flex flex-col items-end justify-center opacity-20 group-hover:opacity-100 overflow-hidden">
-                      {event.runId && (
-                        <span className="text-[9px] truncate font-medium">
-                          {event.runId.slice(0, 8)}
-                        </span>
-                      )}
+                      <span className="text-[9px] truncate font-medium max-w-[90px]">{event.path.split('/').slice(-1)[0]}</span>
                     </div>
                   </div>
                 )
@@ -166,13 +162,10 @@ export function LogStream({ events, searchValue, onSearchChange, typeFilter, onT
   )
 }
 
-function eventTypeColors(type: EventType) {
-  switch (type) {
-    case 'start': return 'text-muted-foreground/60 border-white/10 bg-white/5'
-    case 'stop': return 'text-success border-success/30 bg-success/10'
-    case 'error': return 'text-destructive border-destructive/30 bg-destructive/10'
-    case 'heartbeat': return 'text-muted-foreground/60 border-white/10 bg-white/5'
-    case 'status': return 'text-info border-info/30 bg-info/10'
+function eventStatusColors(status: EventStatus) {
+  switch (status) {
+    case 'busy': return 'text-amber-300 border-amber-400/40 bg-amber-400/10'
+    case 'idle': return 'text-info border-info/30 bg-info/10'
     default: return 'text-foreground/60 border-white/10 bg-white/5'
   }
 }

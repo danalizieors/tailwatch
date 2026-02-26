@@ -1,8 +1,9 @@
-import type { DashboardSnapshot, EventType, PublishEventPayload, StoredEvent } from '~/lib/types'
+import type { DashboardSnapshot, EventStatus, EventType, PublishEventPayload, StoredEvent } from '~/lib/types'
 
 export interface DashboardQuery {
   workspace?: string
   topicPrefix?: string
+  status?: EventStatus | 'all'
   type?: EventType | 'all'
   q?: string
   limit?: number
@@ -11,6 +12,7 @@ export interface DashboardQuery {
 function toQueryString(query: DashboardQuery) {
   const params = new URLSearchParams()
   if (query.topicPrefix) params.set('topicPrefix', query.topicPrefix)
+  if (query.status && query.status !== 'all') params.set('status', query.status)
   if (query.type && query.type !== 'all') params.set('type', query.type)
   if (query.q) params.set('q', query.q)
   if (query.limit) params.set('limit', String(query.limit))

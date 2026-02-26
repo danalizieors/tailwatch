@@ -113,7 +113,9 @@ async function fetchLatestEventNotification() {
   }
 
   const path = typeof event.path === 'string' ? event.path : 'event'
-  const content = typeof event.content === 'string' && event.content.trim() ? event.content.trim() : `New ${event.type || 'telemetry'} event`
+  const content = typeof event.content === 'string' && event.content.trim()
+    ? event.content.trim()
+    : `New ${(event.status || event.type || 'telemetry')} event`
   return {
     title: 'Tailwatch',
     body: `${path}: ${content}`.slice(0, 180),

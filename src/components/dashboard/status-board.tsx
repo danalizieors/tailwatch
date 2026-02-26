@@ -22,7 +22,7 @@ export function StatusBoard({ rows, lastSeenAt, onAcknowledge, headerActions }: 
           <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/20">
             <LayoutGrid className="h-4 w-4" />
           </div>
-          <h2 className="text-sm font-bold text-foreground/90 uppercase tracking-tight">System Registry</h2>
+          <h2 className="text-sm font-bold text-foreground/90 uppercase tracking-tight">Path Registry</h2>
           <span className="text-[10px] font-bold text-muted-foreground/60 bg-muted/20 px-1.5 py-0.5 rounded-md ml-1 border border-border/10">
             {rows.length} TRACKED
           </span>
@@ -118,7 +118,7 @@ export function StatusBoard({ rows, lastSeenAt, onAcknowledge, headerActions }: 
                         className="rounded-xl p-3.5 text-[11px] leading-relaxed line-clamp-2 font-bold shadow-inner"
                         style={{ 
                           backgroundColor: `oklch(from ${pathColor} 0.12 0.04 h / 0.4)`,
-                          color: row.currentStatus === 'error' ? 'var(--destructive)' : `oklch(from ${pathColor} 0.85 0.05 h)`,
+                          color: row.currentStatus === 'busy' ? 'oklch(0.83 0.12 84)' : `oklch(from ${pathColor} 0.85 0.05 h)`,
                           border: `1px solid oklch(from ${pathColor} 0.25 0.08 h / 0.3)`
                         }}
                       >
@@ -147,9 +147,10 @@ function statusBorderColor(status: EntitySnapshot['currentStatus']) {
 
 function statusBadgeColors(status: EntitySnapshot['currentStatus']) {
   switch (status) {
+    case 'busy': return 'bg-amber-400/10 text-amber-300 border-amber-400/20 shadow-inner'
+    case 'idle': return 'bg-info/10 text-info border-info/20'
     case 'working': return 'bg-muted/50 text-muted-foreground border-border'
     case 'error': return 'bg-destructive/10 text-destructive border-destructive/20 shadow-inner'
-    case 'idle': return 'bg-info/10 text-info border-info/20'
     case 'stopped': return 'bg-success/10 text-success border-success/20'
     default: return 'bg-muted/50 text-muted-foreground border-border'
   }
@@ -157,9 +158,10 @@ function statusBadgeColors(status: EntitySnapshot['currentStatus']) {
 
 function statusDotColors(status: EntitySnapshot['currentStatus']) {
   switch (status) {
+    case 'busy': return 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.5)]'
+    case 'idle': return 'bg-info shadow-[0_0_8px_oklch(from_var(--info)_l_c_h_/_0.5)]'
     case 'working': return 'bg-muted-foreground opacity-40'
     case 'error': return 'bg-destructive shadow-[0_0_8px_oklch(from_var(--destructive)_l_c_h_/_0.5)]'
-    case 'idle': return 'bg-info shadow-[0_0_8px_oklch(from_var(--info)_l_c_h_/_0.5)]'
     case 'stopped': return 'bg-success shadow-[0_0_8px_oklch(from_var(--success)_l_c_h_/_0.5)]'
     default: return 'bg-muted-foreground'
   }

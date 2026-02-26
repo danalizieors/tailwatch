@@ -52,7 +52,9 @@ export const upsertSubscription = mutation({
     }
 
     const createdId = await ctx.db.insert('push_subscriptions', {
-      ...patch,
+      ...(patch as any),
+      endpoint: args.endpoint,
+      updatedAt: now,
       createdAt: now,
     })
 

@@ -45,28 +45,39 @@ function parseConvexStoredEvent(value: any): StoredEvent {
     throw new Error('Convex publish returned an invalid event payload')
   }
 
+  const time = String(value.time ?? value.timestamp ?? new Date().toISOString())
   return {
     id: String(value.id ?? value._id ?? ''),
     workspace: String(value.workspace ?? 'default'),
     path: String(value.path ?? value.topicPath ?? ''),
     segments: Array.isArray(value.segments) ? value.segments.map((segment: unknown) => String(segment)) : [],
-    type: value.type,
-    timestamp: String(value.timestamp ?? new Date().toISOString()),
+    time,
+    timestamp: time,
     ingestedAt: String(value.ingestedAt ?? new Date().toISOString()),
-    runId: value.runId ? String(value.runId) : undefined,
-    entityId: value.entityId ? String(value.entityId) : undefined,
-    entityType: value.entityType ? String(value.entityType) : undefined,
-    level: value.level,
-    status: value.status ? String(value.status) : undefined,
+    status: value.status === 'busy' ? 'busy' : 'idle',
     content: value.content ? String(value.content) : value.message ? String(value.message) : undefined,
-    meta: value.meta,
-    metrics: value.metrics,
+    pathId: value.pathId ? String(value.pathId) : undefined,
+    submittedPath: value.submittedPath ? String(value.submittedPath) : undefined,
+    type: (typeof value.type === 'string' ? value.type : 'status') as any,
+    entityId:
+      typeof value.entityId === 'string'
+        ? value.entityId
+        : Array.isArray(value.segments) && value.segments.length > 0
+          ? String(value.segments[value.segments.length - 1])
+          : String(value.path ?? ''),
+    entityType: typeof value.entityType === 'string' ? value.entityType : 'path',
   }
 }
 
 function parseConvexDashboardSnapshot(value: any): DashboardSnapshot {
-  if (!value || typeof value !== 'object' || !Array.isArray(value.events) || !Array.isArray(value.entities)) {
+  if (!value || typeof value !== 'object' || !Array.isArray(value.events) || (!Array.isArray(value.paths) && !Array.isArray(value.entities))) {
     throw new Error('Convex dashboard query returned an invalid payload')
+  }
+  if (!Array.isArray(value.paths) && Array.isArray(value.entities)) {
+    value.paths = value.entities
+  }
+  if (!Array.isArray(value.entities) && Array.isArray(value.paths)) {
+    value.entities = value.paths
   }
   return value as DashboardSnapshot
 }
@@ -89,16 +100,12 @@ export async function appendEvent(topicPath: string, payload: unknown): Promise<
   const convexArgs: Record<string, any> = {
     path: topicPath,
     workspace,
-    type: payloadRecord.type,
+    time: payloadRecord.time,
     timestamp: payloadRecord.timestamp,
-    runId: payloadRecord.runId,
-    entityId: payloadRecord.entityId,
-    entityType: payloadRecord.entityType,
-    level: payloadRecord.level,
+    type: payloadRecord.type,
     status: payloadRecord.status,
     content: payloadRecord.content,
-    meta: payloadRecord.meta,
-    metrics: payloadRecord.metrics,
+    message: payloadRecord.message,
   }
 
   // Remove undefined to avoid sending them as nulls/undefineds if mutation args don't like it
@@ -113,6 +120,41 @@ export async function appendEvent(topicPath: string, payload: unknown): Promise<
   }
 }
 
+export async function appendEventByBindingKey(key: string, subpath: string, payload: unknown): Promise<StoredEvent> {
+  if (getBackendMode() === 'local') {
+    throw new Error('publish/key is not supported in local backend mode yet')
+  }
+
+  const payloadRecord =
+    payload && typeof payload === 'object' ? ({ ...(payload as Record<string, unknown>) } as Record<string, unknown>) : {}
+  if (typeof payloadRecord.message === 'string' && typeof payloadRecord.content !== 'string') {
+    payloadRecord.content = payloadRecord.message
+  }
+
+  const client = createConvexClient()
+  const workspace = payloadRecord.workspace as string | undefined
+  const convexArgs: Record<string, any> = {
+    key,
+    subpath,
+    workspace,
+    time: payloadRecord.time,
+    timestamp: payloadRecord.timestamp,
+    type: payloadRecord.type,
+    status: payloadRecord.status,
+    content: payloadRecord.content,
+    message: payloadRecord.message,
+  }
+  Object.keys(convexArgs).forEach((argKey) => convexArgs[argKey] === undefined && delete convexArgs[argKey])
+
+  try {
+    const result = await client.mutation(convexApi.events.publishByKey, convexArgs)
+    return parseConvexStoredEvent(result)
+  } catch (err) {
+    console.error('[EventRepository] Convex publishByKey failed:', err)
+    throw err
+  }
+}
+
 export async function getDashboardSnapshot(filters: DashboardFilters = {}): Promise<DashboardSnapshot> {
   if (getBackendMode() === 'local') {
     return getLocalDashboardSnapshot(filters)
@@ -122,6 +164,7 @@ export async function getDashboardSnapshot(filters: DashboardFilters = {}): Prom
   const args: Record<string, any> = {
     workspace: typeof filters.workspace === 'string' ? filters.workspace : undefined,
     topicPrefix: filters.topicPrefix,
+    status: (filters as any).status,
     type: filters.type,
     q: filters.q,
     limit: filters.limit,

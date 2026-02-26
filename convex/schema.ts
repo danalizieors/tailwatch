@@ -12,58 +12,64 @@ export default defineSchema({
   users: defineTable({
     ...authTables.users.validator.fields,
     apiKey: v.optional(v.string()),
+    defaultVolume: v.optional(v.string()),
+    advancedMode: v.optional(v.boolean()),
   })
     .index("email", ["email"])
     .index("phone", ["phone"]),
-  events: defineTable({
+  volumes: defineTable({
+    slug: v.string(),
+    name: v.string(),
+    ownerUserId: v.optional(v.string()),
+    createdAt: v.string(),
+    updatedAt: v.string(),
+  })
+    .index('by_slug', ['slug'])
+    .index('by_owner', ['ownerUserId']),
+  bindings: defineTable({
     workspace: v.optional(v.string()),
+    route: v.string(),
+    targetPath: v.string(),
+    keyHash: v.string(),
+    enabled: v.boolean(),
+    createdAt: v.string(),
+    updatedAt: v.string(),
+    createdByUserId: v.optional(v.string()),
+  })
+    .index('by_workspace_route', ['workspace', 'route'])
+    .index('by_key_hash', ['keyHash'])
+    .index('by_workspace', ['workspace']),
+  paths: defineTable({
+    workspace: v.optional(v.string()),
+    key: v.string(),
     path: v.string(),
     segments: v.array(v.string()),
-    type: v.optional(v.union(
-      v.literal('start'),
-      v.literal('log'),
-      v.literal('stop'),
-      v.literal('error'),
-      v.literal('heartbeat'),
-      v.literal('status'),
-    )),
-    timestamp: v.optional(v.any()),
-    ingestedAt: v.any(),
-    time: v.optional(v.any()),
-    userId: v.optional(v.string()),
-    runId: v.optional(v.string()),
-    entityId: v.optional(v.string()),
-    entityType: v.optional(v.string()),
-    level: v.optional(v.string()),
-    status: v.optional(v.string()),
-    content: v.optional(v.string()),
-    meta: v.optional(v.any()),
-    metrics: v.optional(v.any()),
-    _tempSync: v.optional(v.string()),
-  })
-    .index('by_workspace_timestamp', ['workspace', 'timestamp'])
-    .index('by_path', ['path'])
-    .index('by_timestamp', ['timestamp'])
-    .index('by_entity', ['entityId']),
-  entity_state: defineTable({
-    workspace: v.optional(v.string()),
-    key: v.optional(v.string()),
-    path: v.string(),
-    entityId: v.optional(v.string()),
-    entityType: v.optional(v.string()),
-    currentStatus: v.string(),
-    currentRunId: v.optional(v.string()),
-    startedAt: v.optional(v.string()),
-    lastSeenAt: v.any(),
-    lastEventType: v.optional(v.string()),
+    status: v.union(v.literal('busy'), v.literal('idle')),
+    lastTime: v.string(),
+    lastIngestedAt: v.string(),
     lastContent: v.optional(v.string()),
-    lastError: v.optional(v.string()),
     userId: v.optional(v.string()),
   })
     .index('by_workspace', ['workspace'])
-    .index('by_key', ['key'])
-    .index('by_path', ['path'])
-    .index('by_status', ['currentStatus']),
+    .index('by_workspace_path', ['workspace', 'path'])
+    .index('by_workspace_status', ['workspace', 'status'])
+    .index('by_workspace_last_ingested', ['workspace', 'lastIngestedAt']),
+  events: defineTable({
+    workspace: v.optional(v.string()),
+    pathId: v.optional(v.string()),
+    path: v.string(),
+    segments: v.array(v.string()),
+    time: v.string(),
+    ingestedAt: v.string(),
+    status: v.union(v.literal('busy'), v.literal('idle')),
+    userId: v.optional(v.string()),
+    content: v.optional(v.string()),
+    submittedPath: v.optional(v.string()),
+  })
+    .index('by_workspace_time', ['workspace', 'time'])
+    .index('by_workspace_ingestedAt', ['workspace', 'ingestedAt'])
+    .index('by_workspace_path', ['workspace', 'path'])
+    .index('by_time', ['time']),
   push_subscriptions: defineTable({
     endpoint: v.string(),
     workspace: v.optional(v.string()),

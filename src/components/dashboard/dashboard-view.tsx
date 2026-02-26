@@ -3,7 +3,7 @@ import { Link } from '@tanstack/react-router'
 import { Activity, Terminal, LayoutGrid, ListTree, Info, Bell, BellOff, Volume2, VolumeX, CheckCircle2, ShieldCheck, Shuffle } from 'lucide-react'
 import { Card, CardContent } from '~/components/ui/card'
 import { Button } from '~/components/ui/button'
-import type { EventType } from '~/lib/types'
+import type { EventStatus, EventType } from '~/lib/types'
 import { publishEvent } from '~/lib/client-api'
 import { LogStream } from './log-stream'
 import { StatCards } from './stat-cards'
@@ -23,7 +23,7 @@ interface DashboardViewProps {
 export function DashboardView({ mode, workspace }: DashboardViewProps) {
   const [selectedTopic, setSelectedTopic] = useState<string | undefined>(undefined)
   const [search, setSearch] = useState('')
-  const [typeFilter, setTypeFilter] = useState<EventType | 'all'>('all')
+  const [statusFilter, setStatusFilter] = useState<EventStatus | 'all'>('all')
   const [isSoundEnabled, setIsSoundEnabled] = useState(NotificationManager.isEnabled())
   const [hasPushPermission, setHasPushPermission] = useState(false)
   const [isDebugMode, setIsDebugMode] = useState(false)
@@ -123,7 +123,7 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
   }
 
   const filteredEvents = (data?.events ?? []).filter((event) => {
-    if (typeFilter !== 'all' && event.type !== typeFilter) return false
+    if (statusFilter !== 'all' && event.status !== statusFilter) return false
     if (!deferredSearch.trim()) return true
     const q = deferredSearch.toLowerCase()
     const haystack = `${event.path} ${event.content ?? ''} ${event.entityId ?? ''} ${event.runId ?? ''}`.toLowerCase()
@@ -264,8 +264,8 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
                       events={filteredEvents}
                       searchValue={search}
                       onSearchChange={setSearch}
-                      typeFilter={typeFilter}
-                      onTypeFilterChange={setTypeFilter}
+                      statusFilter={statusFilter}
+                      onStatusFilterChange={setStatusFilter}
                       lastSeenAt={lastSeenAt}
                       onAcknowledge={markAllSeen}
                       headerActions={randomBurstControl}

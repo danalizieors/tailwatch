@@ -9,12 +9,14 @@ export const Route = createFileRoute('/api/dashboard')({
           const url = new URL(request.url)
           const workspace = request.headers.get('x-tailwatch-workspace') ?? undefined
           const topicPrefix = url.searchParams.get('topicPrefix') ?? undefined
+          const status = url.searchParams.get('status') ?? undefined
           const type = url.searchParams.get('type') ?? undefined
           const q = url.searchParams.get('q') ?? undefined
           const limit = url.searchParams.get('limit')
           const snapshot = await getDashboardSnapshot({
             workspace,
             topicPrefix,
+            status,
             type,
             q,
             limit: limit ? Number(limit) : undefined,
