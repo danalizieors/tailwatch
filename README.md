@@ -1,289 +1,112 @@
 # Tailwatch
 
-Tailwatch is a lightweight realtime dashboard for tracking hierarchical events, tasks, and simple messages.
+Tailwatch is a realtime event monitor for teams that need fast visibility across agents, jobs, services, pipelines, and message streams.
 
-Think of it like `ntfy`, but optimized for live streams plus optional status tracking (agents are just one example):
+It is designed for the gap between raw logs and heavyweight observability platforms: simple enough to adopt quickly, but structured enough to answer what is happening right now.
 
-- clients post events to a URL path (which defines a hierarchy)
-- the app stores and streams those events in realtime
-- users can monitor activity in two modes:
-  - log stream mode (like traditional logs)
-  - status board mode (what is working, stopped, failed, idle)
+## Why Tailwatch
 
-## What This Solves
+When multiple systems emit events, teams usually lose context before they lose data.
 
-When many things are emitting events (LLM tasks, jobs, services, pipelines, or simple app messages), it is hard to answer:
+Common questions become harder than they should be:
 
 - What is active right now?
-- When did a run start and stop?
-- Which hierarchy/group/project does an event belong to?
-- Where did something fail?
+- What failed, and where did it fail?
+- Which project, workflow, or team does this event belong to?
+- Did a run finish, stall, or go idle?
 
-Tailwatch provides a single dashboard with a simple HTTP posting pattern.
+Tailwatch gives you a single live surface for event streams and current state.
 
-## Planned Stack (v1)
+## What It Does
 
-- Frontend: `TanStack Start`
-- UI: `Tailwind CSS` + `shadcn/ui`
-- Backend: `Convex` (default)
+Tailwatch lets clients publish events to a path-based namespace, then turns those events into two complementary views:
 
-Why Convex fits well:
+- Log Stream: a live timeline of events (good for debugging and tracing activity)
+- Status Board: a derived snapshot of current entity state (good for triage and operations)
 
-- realtime subscriptions for live dashboards
-- simple data model + mutations/queries
-- good fit for append-only event streams and derived status snapshots
+This makes it useful both as a lightweight monitoring layer and as an operational wallboard.
 
-Possible fallback if needed:
+## Core Concepts
 
-- Postgres + WebSocket/SSE (if write/query patterns outgrow Convex constraints)
+### Hierarchical Topics
 
-## Core Concept
+Events are published into a hierarchy defined by the topic path.
 
-Events are posted to a path that defines the hierarchy being monitored.
-
-Example hierarchy:
+Examples:
 
 - `/team-a/project-x/task/planner`
-- `/team-a/project-x/task/coder`
 - `/team-a/project-y/pipeline/ingest`
 - `/ops/cron/nightly-backup`
 - `/app/frontend/messages`
 
-This path becomes a filterable namespace in the dashboard.
+These paths become filterable namespaces in the dashboard.
 
-## Event Ingestion API (Draft)
+### Event Stream + Derived State
 
-### URL Pattern
+Tailwatch stores and streams raw events in realtime, while also deriving current status per entity.
 
-`POST /api/publish/*path`
+That means you can move between:
 
-Examples:
+- the timeline (what happened)
+- the snapshot (what is happening now)
 
-- `POST /api/publish/team-a/project-x/task/planner`
-- `POST /api/publish/team-a/project-x/run/abc123`
+### Workspace Separation
 
-### Event Types (MVP)
+Tailwatch supports workspace scoping so teams can keep environments or organizations separated while using the same event model.
 
-- `start` — a task/job/process started work
-- `log` — normal log line or structured message
-- `stop` — a task/job/process finished successfully
-- `error` — something failed
-- `heartbeat` — optional keepalive for long-running work
-- `status` — explicit state update (`working`, `idle`, `stopped`, etc.)
+## Event Types
 
-For simple message-only use cases, `log` events can be posted without `runId` or `entityId`.
+Tailwatch supports a small, practical event model for operational streams:
 
-Simplified event schema (required core fields):
+- `start` — work begins
+- `log` — message or progress output
+- `stop` — work finishes successfully
+- `error` — work fails
+- `heartbeat` — keepalive for long-running work
+- `status` — explicit state update
 
-- `path` (derived from the publish URL path)
-- `type`
-- `content`
+This model works well for agents, background jobs, services, and general application events.
 
-### Example Payloads
+## Current Capabilities
 
-#### Start
+- Realtime event streaming dashboard
+- Status board with derived entity state
+- Hierarchical topic filtering
+- Search and event-type filtering
+- Workspace-aware monitoring views
+- Browser sound alerts and push notifications (optional)
+- Lightweight HTTP publish pattern for event ingestion
 
-```json
-{
-  "type": "start",
-  "runId": "run_123",
-  "entityId": "planner",
-  "entityType": "task",
-  "content": "Planning task",
-  "timestamp": "2026-02-24T12:00:00Z",
-  "meta": {
-    "model": "gpt-5",
-    "taskId": "task_42"
-  }
-}
-```
+## Typical Use Cases
 
-#### Log
+- AI/agent orchestration workflows
+- CI/CD and deployment pipelines
+- Background workers and scheduled jobs
+- Ops/infra checks and cron tasks
+- Internal app message streams and activity feeds
 
-```json
-{
-  "type": "log",
-  "runId": "run_123",
-  "entityId": "planner",
-  "entityType": "task",
-  "level": "info",
-  "content": "Fetched repository files",
-  "timestamp": "2026-02-24T12:00:05Z"
-}
-```
+## Product Principles
 
-#### Stop
+- Fast to adopt: simple publish model, minimal ceremony
+- Operator-friendly: timeline + current-state views
+- Structured but flexible: hierarchy without heavy schema requirements
+- Useful early: provides value before a full observability rollout
 
-```json
-{
-  "type": "stop",
-  "runId": "run_123",
-  "entityId": "planner",
-  "entityType": "task",
-  "status": "success",
-  "content": "Plan completed",
-  "timestamp": "2026-02-24T12:00:30Z",
-  "metrics": {
-    "durationMs": 30000
-  }
-}
-```
+## Roadmap Direction
 
-## Dashboard Modes
+Tailwatch is focused on becoming a stronger operational signal layer for realtime workstreams.
 
-### 1) Log Stream Mode
+Planned and likely next areas include:
 
-Purpose: behave like a logging UI.
+- richer run and timeline detail views
+- topic-focused shared views
+- access control and publish/read permissions
+- webhooks for key events (for example failures)
+- retention controls and policies
+- summary metrics and trend visualizations
 
-Features:
+## Project Status
 
-- live event stream
-- filters by topic path / entity / run / level / type
-- time ordering
-- search in content
-- collapse/expand structured metadata
+Tailwatch is currently a private project.
 
-### 2) Status Board Mode
-
-Purpose: quickly see current state of each tracked entity (task, agent, job, service, etc.).
-
-Features:
-
-- one row/card per entity (or per `path + entityId`)
-- current status: `working`, `stopped`, `error`, `idle`, `unknown`
-- last seen timestamp
-- current run id
-- duration since started (if active)
-- last content / last error
-
-Derived state is computed from the latest relevant events (`start`, `heartbeat`, `stop`, `error`, `status`).
-
-## Data Model (Conceptual)
-
-### `events` (append-only)
-
-- `id`
-- `path` (e.g. `team-a/project-x/task/planner`)
-- `segments` (array for hierarchical filtering)
-- `type`
-- `timestamp`
-- `runId`
-- `entityId` (optional)
-- `entityType` (optional)
-- `level`
-- `content`
-- `meta` (JSON)
-
-### `entity_state` (derived / materialized)
-
-- `key` (e.g. `path + entityId`)
-- `entityId`
-- `entityType`
-- `path`
-- `currentStatus`
-- `currentRunId`
-- `startedAt`
-- `lastSeenAt`
-- `lastEventType`
-- `lastContent`
-- `lastError`
-
-## UI Outline (TanStack Start + shadcn)
-
-### Pages
-
-- `/` — dashboard (default to log stream)
-- `/status` — status board mode
-- `/topics/*path` — filtered view by hierarchy path
-- `/runs/:runId` — run detail timeline (optional in MVP)
-
-### Main Components
-
-- `AppShell`
-- `TopicTree` (hierarchy navigation)
-- `LogStreamTable` / `LogStreamList`
-- `StatusBoardGrid`
-- `FiltersBar`
-- `EventDetailDrawer`
-
-## Security / Access (Later)
-
-- anonymous publish token per topic namespace
-- read-only dashboard auth
-- rate limiting for public endpoints
-
-## MVP Scope
-
-1. Ingest events via `POST /api/publish/*path`
-2. Store events in Convex
-3. Realtime log stream dashboard
-4. Derived status board dashboard
-5. Basic filtering by topic path and entity id
-
-## Nice-to-Have (After MVP)
-
-- SSE/WebSocket ingestion option
-- CLI tool (`tailwatch publish ...`)
-- webhooks on failure/stop
-- retention policies
-- metrics charts (counts, durations, failures)
-- multi-tenant auth model
-
-## Example Usage (cURL)
-
-```bash
-curl -X POST http://localhost:3000/api/publish/team-a/project-x/task/planner \
-  -H "Content-Type: application/json" \
-  -d '{
-    "type":"start",
-    "runId":"run_123",
-    "entityId":"planner",
-    "entityType":"task",
-    "content":"Starting plan",
-    "timestamp":"2026-02-24T12:00:00Z"
-  }'
-```
-
-```bash
-curl -X POST http://localhost:3000/api/publish/team-a/project-x/task/planner \
-  -H "Content-Type: application/json" \
-  -d '{
-    "type":"stop",
-    "runId":"run_123",
-    "entityId":"planner",
-    "entityType":"task",
-    "status":"success",
-    "content":"Finished",
-    "timestamp":"2026-02-24T12:00:30Z"
-  }'
-```
-
-## Implementation Notes (Next Step)
-
-Recommended next step: scaffold TanStack Start + Tailwind + shadcn, then wire Convex with:
-
-- an HTTP endpoint for publish
-- a query for log streaming
-- a query for status board data
-- a mutation/action to upsert derived state on event ingestion
-
----
-
-This README is the initial product + technical blueprint for the first build.
-
-## Running With Convex (Real Backend)
-
-The app can run in two modes:
-
-- local demo mode (JSON file storage) when no Convex URL is configured
-- Convex mode (real backend) when `CONVEX_URL` or `VITE_CONVEX_URL` is set
-
-### Setup
-
-1. Start Convex dev in a separate terminal:
-   - `pnpm convex:dev`
-2. Add the Convex URL to `.env.local` (see `.env.example`)
-3. Start the app:
-   - `pnpm dev`
-
-When Convex is configured, the existing endpoints (`/api/publish/*path`, `/api/dashboard`, `/api/status`) use Convex automatically.
+This README describes the product intent, current capabilities, and direction. Details may evolve as the product matures.
