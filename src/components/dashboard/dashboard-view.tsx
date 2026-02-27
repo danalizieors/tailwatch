@@ -1,10 +1,10 @@
 import { useDeferredValue, useState, useEffect } from 'react'
 import { Link } from '@tanstack/react-router'
-import { Activity, Terminal, LayoutGrid, ListTree, Info, Bell, BellOff, Volume2, VolumeX, CheckCircle2, ShieldCheck, Shuffle } from 'lucide-react'
+import { Activity, Terminal, LayoutGrid, ListTree, Info, Bell, BellOff, Volume2, VolumeX, ShieldCheck, Shuffle } from 'lucide-react'
 import { Card, CardContent } from '~/components/ui/card'
 import { Button } from '~/components/ui/button'
 import type { EventStatus } from '~/lib/types'
-import { publishEvent, triggerPushTest } from '~/lib/client-api'
+import { publishEvent } from '~/lib/client-api'
 import { LogStream } from './log-stream'
 import { StatCards } from './stat-cards'
 import { StatusBoard } from './status-board'
@@ -28,9 +28,7 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
   const [hasPushPermission, setHasPushPermission] = useState(false)
   const [isDebugMode, setIsDebugMode] = useState(false)
   const [isGeneratingRandomEvents, setIsGeneratingRandomEvents] = useState(false)
-  const [isSendingPushTest, setIsSendingPushTest] = useState(false)
   const [generatorMessage, setGeneratorMessage] = useState<string | null>(null)
-  const [pushTestMessage, setPushTestMessage] = useState<string | null>(null)
   
   const deferredSearch = useDeferredValue(search)
 
@@ -132,28 +130,6 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
     setIsGeneratingRandomEvents(false)
   }
 
-  const sendPushTestToAllDevices = async () => {
-    if (isSendingPushTest) return
-
-    setIsSendingPushTest(true)
-    setPushTestMessage(null)
-
-    try {
-      const result = await triggerPushTest(workspace)
-      if (result.skipped) {
-        setPushTestMessage('Push test skipped: server push is not configured')
-      } else if (result.attempted === 0) {
-        setPushTestMessage('Push test sent: no subscribed devices')
-      } else {
-        setPushTestMessage(`Push test sent: delivered ${result.delivered}/${result.attempted}`)
-      }
-    } catch {
-      setPushTestMessage('Push test failed')
-    }
-
-    setIsSendingPushTest(false)
-  }
-
   const filteredEvents = (data?.events ?? []).filter((event) => {
     if (statusFilter !== 'all' && event.status !== statusFilter) return false
     if (!deferredSearch.trim()) return true
@@ -169,11 +145,6 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
           {generatorMessage}
         </span>
       )}
-      {pushTestMessage && (
-        <span className="hidden md:inline text-[10px] font-semibold text-muted-foreground/80">
-          {pushTestMessage}
-        </span>
-      )}
       <Button
         size="sm"
         variant="outline"
@@ -185,18 +156,6 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
         <Shuffle className="h-3.5 w-3.5" />
         <span className="hidden sm:inline">{isGeneratingRandomEvents ? 'Sending…' : 'Send Test'}</span>
         <span className="sm:hidden">{isGeneratingRandomEvents ? 'Sending…' : 'Test'}</span>
-      </Button>
-      <Button
-        size="sm"
-        variant="outline"
-        className="h-8 rounded-lg border-primary/20 bg-primary/5 px-3 text-[9px] font-black uppercase tracking-widest text-primary gap-1.5"
-        onClick={sendPushTestToAllDevices}
-        disabled={isSendingPushTest}
-        title="Immediately send a push notification to all connected devices"
-      >
-        <Bell className="h-3.5 w-3.5" />
-        <span className="hidden sm:inline">{isSendingPushTest ? 'Pushing…' : 'Push All'}</span>
-        <span className="sm:hidden">{isSendingPushTest ? 'Push…' : 'Push'}</span>
       </Button>
     </>
   )
