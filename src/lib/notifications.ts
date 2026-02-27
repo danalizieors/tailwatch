@@ -287,37 +287,6 @@ export class NotificationManager {
     }
   }
 
-  static async showLocalNotification(title: string, body: string) {
-    if (typeof window !== 'undefined' && 'Notification' in window && window.Notification.permission === 'granted') {
-      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
-        return
-      }
-
-      try {
-        // Try Service Worker first (preferred for background support)
-        if ('serviceWorker' in navigator) {
-          const reg = await navigator.serviceWorker.getRegistration()
-          if (reg) {
-            void reg.showNotification(title, {
-              body,
-              icon: '/pwa-192x192.png',
-              badge: '/pwa-192x192.png',
-              tag: 'tailwatch-event',
-              renotify: true,
-            } as any)
-            return
-          }
-        }
-        
-        // Fallback to standard Notification (works when page is open)
-        new window.Notification(title, { body, icon: '/pwa-192x192.png' })
-      } catch (e) {
-        console.error('Notification failed', e)
-        // Final attempt fallback
-        new window.Notification(title, { body })
-      }
-    }
-  }
 }
 
 function base64UrlToUint8Array(input: string) {

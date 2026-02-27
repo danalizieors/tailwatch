@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { appendEvent, getBackendMode, sendPushNotificationsForEvent } from '~/lib/server/event-repository'
+import { appendEvent, getBackendMode } from '~/lib/server/event-repository'
 
 export const Route = createFileRoute('/api/publish/$')({
   server: {
@@ -13,17 +13,6 @@ export const Route = createFileRoute('/api/publish/$')({
             ...(typeof payload === 'object' ? payload : {}),
             workspace,
           })
-
-          try {
-            await sendPushNotificationsForEvent({
-              workspace: event.workspace,
-              path: event.path,
-              status: event.status,
-              content: event.content,
-            })
-          } catch (pushError) {
-            console.warn('[API/Publish] Push fanout failed:', pushError)
-          }
 
           return Response.json(event, {
             status: 201,
