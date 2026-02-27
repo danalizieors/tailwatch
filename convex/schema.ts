@@ -83,4 +83,34 @@ export default defineSchema({
   })
     .index('by_endpoint', ['endpoint'])
     .index('by_workspace', ['workspace']),
+  watchers: defineTable({
+    workspace: v.optional(v.string()),
+    watcherKey: v.string(),
+    name: v.string(),
+    enabled: v.boolean(),
+    includePaths: v.array(v.string()),
+    ignorePaths: v.array(v.string()),
+    endpoint: v.optional(v.string()),
+    expirationTime: v.optional(v.number()),
+    p256dh: v.optional(v.string()),
+    auth: v.optional(v.string()),
+    userAgent: v.optional(v.string()),
+    userId: v.optional(v.string()),
+    createdAt: v.string(),
+    updatedAt: v.string(),
+  })
+    .index('by_workspace', ['workspace'])
+    .index('by_workspace_watcher_key', ['workspace', 'watcherKey'])
+    .index('by_workspace_endpoint', ['workspace', 'endpoint'])
+    .index('by_user', ['userId']),
+  path_aliases: defineTable({
+    workspace: v.optional(v.string()),
+    path: v.string(),
+    aliasId: v.string(),
+    createdAt: v.string(),
+    updatedAt: v.string(),
+    userId: v.optional(v.string()),
+  })
+    .index('by_workspace_path', ['workspace', 'path'])
+    .index('by_workspace_alias', ['workspace', 'aliasId']),
 });

@@ -3,10 +3,19 @@ import { internalMutation, internalQuery, mutation, query } from './_generated/s
 import { getAuthenticatedContext } from './functions'
 
 const DEFAULT_WORKSPACE = 'default'
+const DEFAULT_INCLUDE_PATHS = ['/']
 
 function normalizeWorkspace(value?: string) {
   const next = value?.trim()
   return next || DEFAULT_WORKSPACE
+}
+
+function normalizeWatcherKey(value?: string) {
+  const next = value?.trim()
+  if (!next) {
+    return `watcher_${Math.random().toString(36).slice(2, 10)}`
+  }
+  return next.slice(0, 128)
 }
 
 function omitUndefined<T extends Record<string, unknown>>(value: T) {
@@ -110,6 +119,12 @@ type PushSubscriptionRecord = {
   workspace?: string
   userAgent?: string
   updatedAt?: string
+  watcherId?: string
+  watcherKey?: string
+  watcherName?: string
+  enabled?: boolean
+  includePaths?: string[]
+  ignorePaths?: string[]
 }
 
 function mapPushSubscription(row: any): PushSubscriptionRecord {
@@ -121,18 +136,38 @@ function mapPushSubscription(row: any): PushSubscriptionRecord {
     workspace: row.workspace,
     userAgent: row.userAgent,
     updatedAt: row.updatedAt,
+    watcherId: String(row._id),
+    watcherKey: row.watcherKey,
+    watcherName: row.name,
+    enabled: row.enabled,
+    includePaths: Array.isArray(row.includePaths) ? row.includePaths : [...DEFAULT_INCLUDE_PATHS],
+    ignorePaths: Array.isArray(row.ignorePaths) ? row.ignorePaths : [],
   }
 }
 
-async function listAllSubscriptions(ctx: any) {
-  const rows = await ctx.db.query('push_subscriptions').collect()
+function isOwnerAuthorized(row: any, ownerUserId?: string, scopedWatcherKey?: string) {
+  if (ownerUserId) {
+    return row.userId === ownerUserId
+  }
+
+  if (row.userId) return false
+
+  if (!scopedWatcherKey) return false
+
+  return row.watcherKey === scopedWatcherKey
+}
+
+async function dedupSubscriptions(rows: any[]) {
   const deduped = new Map<string, any>()
   for (const row of rows) {
+    if (!row.endpoint) continue
+
     const existing = deduped.get(row.endpoint)
     if (!existing) {
       deduped.set(row.endpoint, row)
       continue
     }
+
     const currentTs = Date.parse(String(existing.updatedAt ?? existing.createdAt ?? 0)) || 0
     const nextTs = Date.parse(String(row.updatedAt ?? row.createdAt ?? 0)) || 0
     if (nextTs >= currentTs) {
@@ -143,12 +178,22 @@ async function listAllSubscriptions(ctx: any) {
   return Array.from(deduped.values()).map(mapPushSubscription)
 }
 
-async function listSubscriptionsByWorkspace(ctx: any, _workspace: string) {
-  // Intentionally ignore workspace for push delivery fanout.
-  return listAllSubscriptions(ctx)
+async function listSubscriptionsByWorkspace(ctx: any, workspace: string, owner?: { userId?: string; watcherKey?: string }) {
+  const rows = await ctx.db
+    .query('watchers')
+    .withIndex('by_workspace', (q: any) => q.eq('workspace', workspace))
+    .collect()
+
+  const scoped = rows.filter((row: any) => {
+    if (!row.endpoint) return false
+    if (!owner) return true
+    return isOwnerAuthorized(row, owner.userId, owner.watcherKey)
+  })
+
+  return dedupSubscriptions(scoped)
 }
 
-async function deleteSubscriptionsByEndpoint(ctx: any, endpoint: string) {
+async function clearLegacySubscriptionsByEndpoint(ctx: any, endpoint: string) {
   const rows = await ctx.db
     .query('push_subscriptions')
     .withIndex('by_endpoint', (q: any) => q.eq('endpoint', endpoint))
@@ -158,7 +203,60 @@ async function deleteSubscriptionsByEndpoint(ctx: any, endpoint: string) {
     await ctx.db.delete(row._id)
   }
 
-  return { ok: true, deleted: rows.length }
+  return rows.length
+}
+
+async function clearWatcherSubscriptionByEndpoint(ctx: any, endpoint: string, workspace?: string) {
+  const rows = workspace
+    ? await ctx.db
+        .query('watchers')
+        .withIndex('by_workspace', (q: any) => q.eq('workspace', workspace))
+        .collect()
+    : await ctx.db.query('watchers').collect()
+
+  const matched = rows.filter((row: any) => row.endpoint === endpoint)
+
+  for (const row of matched) {
+    await ctx.db.patch(row._id, {
+      endpoint: undefined,
+      expirationTime: undefined,
+      p256dh: undefined,
+      auth: undefined,
+      enabled: false,
+      updatedAt: new Date().toISOString(),
+    })
+  }
+
+  return matched.length
+}
+
+async function clearWatcherSubscriptionByKey(
+  ctx: any,
+  input: { workspace: string; watcherKey: string; ownerUserId?: string; requiresOwnerCheck: boolean },
+) {
+  const watcher = await ctx.db
+    .query('watchers')
+    .withIndex('by_workspace_watcher_key', (q: any) => q.eq('workspace', input.workspace).eq('watcherKey', input.watcherKey))
+    .first()
+
+  if (!watcher) {
+    return 0
+  }
+
+  if (input.requiresOwnerCheck && !isOwnerAuthorized(watcher, input.ownerUserId, input.watcherKey)) {
+    return 0
+  }
+
+  await ctx.db.patch(watcher._id, {
+    endpoint: undefined,
+    expirationTime: undefined,
+    p256dh: undefined,
+    auth: undefined,
+    enabled: false,
+    updatedAt: new Date().toISOString(),
+  })
+
+  return 1
 }
 
 export const upsertSubscription = mutation({
@@ -170,6 +268,9 @@ export const upsertSubscription = mutation({
     auth: v.optional(v.string()),
     userAgent: v.optional(v.string()),
     clientVapidPublicKey: v.optional(v.string()),
+    watcherKey: v.optional(v.string()),
+    watcherName: v.optional(v.string()),
+    enabled: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const authCtx = await getAuthenticatedContext(ctx)
@@ -177,22 +278,30 @@ export const upsertSubscription = mutation({
     const now = new Date().toISOString()
     const workspace = normalizeWorkspace(args.workspace)
     const userId = authCtx.userId ? String(authCtx.userId) : undefined
+    const watcherKey = normalizeWatcherKey(args.watcherKey ?? args.endpoint)
+
+    const existing = await ctx.db
+      .query('watchers')
+      .withIndex('by_workspace_watcher_key', (q: any) => q.eq('workspace', workspace).eq('watcherKey', watcherKey))
+      .first()
+
+    if (existing?.userId && userId && existing.userId !== userId) {
+      throw new Error('Watcher key is already bound to another user')
+    }
 
     const patch = omitUndefined({
-      endpoint: args.endpoint,
       workspace,
+      watcherKey,
+      name: args.watcherName?.trim() ? args.watcherName.trim().slice(0, 120) : undefined,
+      endpoint: args.endpoint,
       expirationTime: args.expirationTime,
       p256dh: args.p256dh,
       auth: args.auth,
       userAgent: args.userAgent,
       userId,
+      enabled: typeof args.enabled === 'boolean' ? args.enabled : true,
       updatedAt: now,
     })
-
-    const existing = await ctx.db
-      .query('push_subscriptions')
-      .withIndex('by_endpoint', (q) => q.eq('endpoint', args.endpoint))
-      .first()
 
     if (existing) {
       await ctx.db.patch(existing._id, patch)
@@ -206,9 +315,20 @@ export const upsertSubscription = mutation({
       }
     }
 
-    const createdId = await ctx.db.insert('push_subscriptions', {
+    const createdId = await ctx.db.insert('watchers', {
       ...(patch as any),
+      workspace,
+      watcherKey,
+      name: args.watcherName?.trim() ? args.watcherName.trim().slice(0, 120) : `Watcher ${watcherKey.slice(-6)}`,
+      enabled: typeof args.enabled === 'boolean' ? args.enabled : true,
+      includePaths: [...DEFAULT_INCLUDE_PATHS],
+      ignorePaths: [],
       endpoint: args.endpoint,
+      expirationTime: args.expirationTime,
+      p256dh: args.p256dh,
+      auth: args.auth,
+      userAgent: args.userAgent,
+      userId,
       updatedAt: now,
       createdAt: now,
     })
@@ -226,20 +346,65 @@ export const upsertSubscription = mutation({
 
 export const removeSubscription = mutation({
   args: {
-    endpoint: v.string(),
+    endpoint: v.optional(v.string()),
+    workspace: v.optional(v.string()),
+    watcherKey: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    await getAuthenticatedContext(ctx)
-    return deleteSubscriptionsByEndpoint(ctx, args.endpoint)
+    const authCtx = await getAuthenticatedContext(ctx)
+    const ownerUserId = authCtx.userId ? String(authCtx.userId) : undefined
+
+    const workspace = normalizeWorkspace(args.workspace)
+    const watcherKey = args.watcherKey ? normalizeWatcherKey(args.watcherKey) : undefined
+
+    let deleted = 0
+
+    if (watcherKey) {
+      deleted += await clearWatcherSubscriptionByKey(ctx, {
+        workspace,
+        watcherKey,
+        ownerUserId,
+        requiresOwnerCheck: true,
+      })
+    }
+
+    if (args.endpoint) {
+      const scopedRows = await ctx.db
+        .query('watchers')
+        .withIndex('by_workspace', (q: any) => q.eq('workspace', workspace))
+        .collect()
+
+      for (const row of scopedRows) {
+        if (row.endpoint !== args.endpoint) continue
+        if (!isOwnerAuthorized(row, ownerUserId, watcherKey)) continue
+        await ctx.db.patch(row._id, {
+          endpoint: undefined,
+          expirationTime: undefined,
+          p256dh: undefined,
+          auth: undefined,
+          enabled: false,
+          updatedAt: new Date().toISOString(),
+        })
+        deleted += 1
+      }
+
+      deleted += await clearLegacySubscriptionsByEndpoint(ctx, args.endpoint)
+    }
+
+    return { ok: true, deleted }
   },
 })
 
 export const removeSubscriptionInternal = internalMutation({
   args: {
     endpoint: v.string(),
+    workspace: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    return deleteSubscriptionsByEndpoint(ctx, args.endpoint)
+    const workspace = args.workspace ? normalizeWorkspace(args.workspace) : undefined
+    const deletedWatchers = await clearWatcherSubscriptionByEndpoint(ctx, args.endpoint, workspace)
+    const deletedLegacy = await clearLegacySubscriptionsByEndpoint(ctx, args.endpoint)
+    return { ok: true, deleted: deletedWatchers + deletedLegacy }
   },
 })
 
@@ -256,11 +421,18 @@ export const listSubscriptionsForWorkspaceInternal = internalQuery({
 export const listSubscriptionsForWorkspace = query({
   args: {
     workspace: v.optional(v.string()),
+    watcherKey: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    await getAuthenticatedContext(ctx)
+    const authCtx = await getAuthenticatedContext(ctx)
+    const ownerUserId = authCtx.userId ? String(authCtx.userId) : undefined
 
     const workspace = normalizeWorkspace(args.workspace)
-    return listSubscriptionsByWorkspace(ctx, workspace)
+    const watcherKey = args.watcherKey ? normalizeWatcherKey(args.watcherKey) : undefined
+
+    return listSubscriptionsByWorkspace(ctx, workspace, {
+      userId: ownerUserId,
+      watcherKey,
+    })
   },
 })

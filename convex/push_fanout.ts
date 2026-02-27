@@ -7,6 +7,7 @@ import { action } from './_generated/server'
 
 const DEFAULT_WORKSPACE = 'default'
 const DEFAULT_PUSH_TTL_SECONDS = 60 * 60
+const internalApi = internal as any
 
 type PushSubscriptionRecord = {
   endpoint: string
@@ -88,12 +89,20 @@ function bytesToBase64Url(bytes: Uint8Array): string {
   return encoded.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '')
 }
 
-function buildPushPayload(path: string, status?: string, content?: string) {
+function buildWorkspaceLogsUrl(workspace: string, aliasId: string) {
+  const encodedAlias = encodeURIComponent(aliasId)
+  if (workspace === DEFAULT_WORKSPACE) {
+    return `/default?filter=${encodedAlias}`
+  }
+  return `/${encodeURIComponent(workspace)}?filter=${encodedAlias}`
+}
+
+function buildPushPayload(path: string, targetUrl: string, status?: string, content?: string) {
   const summary = content?.trim() ? content.trim() : `New ${status ?? 'status'} event`
   return {
     title: 'Tailwatch',
     body: `${path}: ${summary}`.slice(0, 180),
-    url: '/',
+    url: targetUrl,
     tag: 'tailwatch-event',
   }
 }
@@ -127,21 +136,33 @@ export const sendPushNotificationsForEvent = action({
     }
 
     const workspace = normalizeWorkspace(args.workspace)
-    const subscriptions = (await ctx.runQuery(internal.push.listSubscriptionsForWorkspaceInternal, {
+    const subscriptions = (await ctx.runQuery(internalApi.watchers.listPushTargetsForPathInternal, {
       workspace,
+      path: args.path,
     })) as PushSubscriptionRecord[]
 
     if (subscriptions.length === 0) {
       return { attempted: 0, delivered: 0, pruned: 0, skipped: false }
     }
 
-    const payload = buildPushPayload(args.path, args.status, args.content)
+    const aliasResult = (await ctx.runMutation(internalApi.watchers.ensurePathAliasInternal, {
+      workspace,
+      path: args.path,
+    })) as { aliasId: string }
+
+    const payload = buildPushPayload(
+      args.path,
+      buildWorkspaceLogsUrl(workspace, aliasResult.aliasId),
+      args.status,
+      args.content,
+    )
 
     const outcomes: PushFanoutOutcome[] = await Promise.all(
       subscriptions.map(async (subscription): Promise<PushFanoutOutcome> => {
         if (!subscription.p256dh || !subscription.auth) {
           const result = (await ctx.runMutation(internal.push.removeSubscriptionInternal, {
             endpoint: subscription.endpoint,
+            workspace,
           })) as { ok: boolean; deleted?: number }
           return { delivered: 0, pruned: result.deleted ?? 0 }
         }
@@ -197,6 +218,7 @@ export const sendPushNotificationsForEvent = action({
         if (response.status === 404 || response.status === 410) {
           const result = (await ctx.runMutation(internal.push.removeSubscriptionInternal, {
             endpoint: subscription.endpoint,
+            workspace,
           })) as { ok: boolean; deleted?: number }
           return { delivered: 0, pruned: result.deleted ?? 0 }
         }

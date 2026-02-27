@@ -1,17 +1,23 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
-import { BellOff, ChevronLeft, Laptop2, Loader2, RefreshCw } from 'lucide-react'
+import { Bell, BellOff, ChevronLeft, Loader2, Plus, RefreshCw, Save, Target } from 'lucide-react'
 import { z } from 'zod'
 import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/card'
-import { fetchPushDevices, removePushDevice, type PushDeviceRecord } from '~/lib/client-api'
-import { NotificationManager } from '~/lib/notifications'
+import { createWatcher, fetchWatchers, updateWatcher, type WatcherRecord } from '~/lib/client-api'
+import { getClientWatcherKey, NotificationManager } from '~/lib/notifications'
 import { cn } from '~/lib/utils'
 
 const searchSchema = z.object({
   workspace: z.string().optional(),
 })
+
+type WatcherDraft = {
+  name: string
+  includePaths: string
+  ignorePaths: string
+}
 
 export const Route = createFileRoute('/settings/devices')({
   validateSearch: (search) => searchSchema.parse(search),
@@ -21,16 +27,22 @@ export const Route = createFileRoute('/settings/devices')({
 function NotificationDevicesPage() {
   const { workspace } = Route.useSearch()
   const workspaceKey = workspace?.trim() || 'default'
+  const currentWatcherKey = getClientWatcherKey()
 
-  const [devices, setDevices] = useState<PushDeviceRecord[]>([])
+  const [watchers, setWatchers] = useState<WatcherRecord[]>([])
+  const [drafts, setDrafts] = useState<Record<string, WatcherDraft>>({})
   const [isLoading, setIsLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [isCreating, setIsCreating] = useState(false)
+  const [busyWatcherId, setBusyWatcherId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
-  const [removingEndpoint, setRemovingEndpoint] = useState<string | null>(null)
-  const [currentEndpoint, setCurrentEndpoint] = useState<string | null>(null)
 
-  const loadDevices = useCallback(
+  const [newWatcherName, setNewWatcherName] = useState('')
+  const [newWatcherInclude, setNewWatcherInclude] = useState('/')
+  const [newWatcherIgnore, setNewWatcherIgnore] = useState('')
+
+  const loadWatchers = useCallback(
     async (silent = false) => {
       try {
         setError(null)
@@ -40,47 +52,34 @@ function NotificationDevicesPage() {
           setIsLoading(true)
         }
 
-        const next = await fetchPushDevices(workspaceKey)
-        setDevices(next)
+        const next = await fetchWatchers(workspaceKey, currentWatcherKey)
+        setWatchers(next)
+        setDrafts((prev) => {
+          const nextDrafts: Record<string, WatcherDraft> = { ...prev }
+          for (const watcher of next) {
+            if (!nextDrafts[watcher.id]) {
+              nextDrafts[watcher.id] = {
+                name: watcher.name,
+                includePaths: watcher.includePaths.join('\n') || '/',
+                ignorePaths: watcher.ignorePaths.join('\n'),
+              }
+            }
+          }
+          return nextDrafts
+        })
       } catch (loadError) {
-        setError(loadError instanceof Error ? loadError.message : 'Failed to load linked devices')
+        setError(loadError instanceof Error ? loadError.message : 'Failed to load watchers')
       } finally {
         setIsLoading(false)
         setIsRefreshing(false)
       }
     },
-    [workspaceKey],
+    [workspaceKey, currentWatcherKey],
   )
 
   useEffect(() => {
-    void loadDevices(false)
-  }, [loadDevices])
-
-  useEffect(() => {
-    let cancelled = false
-
-    const detectCurrentEndpoint = async () => {
-      if (typeof window === 'undefined') return
-      if (!('serviceWorker' in navigator) || !('PushManager' in window)) return
-
-      try {
-        const registration = await navigator.serviceWorker.ready
-        const subscription = await registration.pushManager.getSubscription()
-        if (!cancelled) {
-          setCurrentEndpoint(subscription?.endpoint ?? null)
-        }
-      } catch {
-        if (!cancelled) {
-          setCurrentEndpoint(null)
-        }
-      }
-    }
-
-    void detectCurrentEndpoint()
-    return () => {
-      cancelled = true
-    }
-  }, [])
+    void loadWatchers(false)
+  }, [loadWatchers])
 
   const headerLinks = useMemo(() => {
     const links = [
@@ -90,29 +89,99 @@ function NotificationDevicesPage() {
     return links
   }, [workspaceKey])
 
-  const handleDisableDevice = async (endpoint: string) => {
+  const onDraftChange = (watcherId: string, patch: Partial<WatcherDraft>) => {
+    setDrafts((prev) => ({
+      ...prev,
+      [watcherId]: {
+        name: patch.name ?? prev[watcherId]?.name ?? '',
+        includePaths: patch.includePaths ?? prev[watcherId]?.includePaths ?? '/',
+        ignorePaths: patch.ignorePaths ?? prev[watcherId]?.ignorePaths ?? '',
+      },
+    }))
+  }
+
+  const handleToggleWatcher = async (watcher: WatcherRecord) => {
     try {
       setNotice(null)
       setError(null)
-      setRemovingEndpoint(endpoint)
+      setBusyWatcherId(watcher.id)
 
-      const isCurrentDevice = currentEndpoint === endpoint
-      if (isCurrentDevice) {
-        const disabled = await NotificationManager.disableBackgroundPush()
-        if (!disabled) {
-          await removePushDevice(endpoint)
+      const isCurrent = watcher.watcherKey === currentWatcherKey
+      if (isCurrent) {
+        if (watcher.enabled) {
+          await NotificationManager.disableBackgroundPush(workspaceKey)
+        } else {
+          const enabled = await NotificationManager.enableBackgroundPush(workspaceKey)
+          if (!enabled) {
+            throw new Error(NotificationManager.getLastPushError() ?? 'Failed to enable push for this watcher')
+          }
         }
-        setCurrentEndpoint(null)
       } else {
-        await removePushDevice(endpoint)
+        await updateWatcher({
+          watcherId: watcher.id,
+          watcherKey: currentWatcherKey,
+          enabled: !watcher.enabled,
+        })
       }
 
-      setNotice(isCurrentDevice ? 'Notifications disabled for this device.' : 'Device notifications disabled.')
-      await loadDevices(true)
-    } catch (removeError) {
-      setError(removeError instanceof Error ? removeError.message : 'Failed to disable device notifications')
+      setNotice(isCurrent ? 'Bell state updated for this watcher.' : 'Watcher state updated.')
+      await loadWatchers(true)
+    } catch (toggleError) {
+      setError(toggleError instanceof Error ? toggleError.message : 'Failed to toggle watcher')
     } finally {
-      setRemovingEndpoint(null)
+      setBusyWatcherId(null)
+    }
+  }
+
+  const handleSaveWatcher = async (watcher: WatcherRecord) => {
+    const draft = drafts[watcher.id]
+    if (!draft) return
+
+    try {
+      setNotice(null)
+      setError(null)
+      setBusyWatcherId(watcher.id)
+
+      await updateWatcher({
+        watcherId: watcher.id,
+        watcherKey: currentWatcherKey,
+        name: draft.name.trim() || watcher.name,
+        includePaths: parseRuleList(draft.includePaths, ['/']),
+        ignorePaths: parseRuleList(draft.ignorePaths, []),
+      })
+
+      setNotice('Watcher rules saved.')
+      await loadWatchers(true)
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : 'Failed to save watcher')
+    } finally {
+      setBusyWatcherId(null)
+    }
+  }
+
+  const handleCreateWatcher = async () => {
+    try {
+      setNotice(null)
+      setError(null)
+      setIsCreating(true)
+
+      await createWatcher({
+        workspace: workspaceKey,
+        watcherKey: currentWatcherKey,
+        name: newWatcherName.trim() || undefined,
+        includePaths: parseRuleList(newWatcherInclude, ['/']),
+        ignorePaths: parseRuleList(newWatcherIgnore, []),
+      })
+
+      setNewWatcherName('')
+      setNewWatcherInclude('/')
+      setNewWatcherIgnore('')
+      setNotice('New watcher created.')
+      await loadWatchers(true)
+    } catch (createError) {
+      setError(createError instanceof Error ? createError.message : 'Failed to create watcher')
+    } finally {
+      setIsCreating(false)
     }
   }
 
@@ -122,9 +191,9 @@ function NotificationDevicesPage() {
         <CardHeader className="gap-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="space-y-1">
-              <CardTitle className="text-lg font-black uppercase tracking-wider">Linked Devices</CardTitle>
+              <CardTitle className="text-lg font-black uppercase tracking-wider">Watchers</CardTitle>
               <CardDescription>
-                Manage where push notifications are enabled for workspace <span className="font-semibold text-foreground">{workspaceKey}</span>.
+                Manage notification watchers for workspace <span className="font-semibold text-foreground">{workspaceKey}</span>.
               </CardDescription>
             </div>
             <Button
@@ -132,7 +201,7 @@ function NotificationDevicesPage() {
               size="sm"
               variant="outline"
               className="gap-2"
-              onClick={() => void loadDevices(true)}
+              onClick={() => void loadWatchers(true)}
               disabled={isLoading || isRefreshing}
             >
               <RefreshCw className={cn('h-3.5 w-3.5', isRefreshing && 'animate-spin')} />
@@ -152,7 +221,7 @@ function NotificationDevicesPage() {
             ))}
           </div>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-4">
           {notice ? (
             <div className="rounded-lg border border-success/30 bg-success/10 px-3 py-2 text-xs font-medium text-success">
               {notice}
@@ -165,52 +234,111 @@ function NotificationDevicesPage() {
             </div>
           ) : null}
 
+          <div className="rounded-lg border border-border/50 bg-background/40 p-3">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Add watcher</p>
+            <div className="grid gap-2 md:grid-cols-[1.2fr_1fr_1fr_auto]">
+              <input
+                value={newWatcherName}
+                onChange={(event) => setNewWatcherName(event.target.value)}
+                className="h-9 rounded-md border border-border/60 bg-background px-3 text-sm"
+                placeholder="Watcher name"
+              />
+              <input
+                value={newWatcherInclude}
+                onChange={(event) => setNewWatcherInclude(event.target.value)}
+                className="h-9 rounded-md border border-border/60 bg-background px-3 text-sm font-mono"
+                placeholder="Include paths (newline/comma)"
+              />
+              <input
+                value={newWatcherIgnore}
+                onChange={(event) => setNewWatcherIgnore(event.target.value)}
+                className="h-9 rounded-md border border-border/60 bg-background px-3 text-sm font-mono"
+                placeholder="Ignore paths (newline/comma)"
+              />
+              <Button className="gap-1.5" onClick={() => void handleCreateWatcher()} disabled={isCreating}>
+                {isCreating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+                Add
+              </Button>
+            </div>
+          </div>
+
           {isLoading ? (
             <div className="flex items-center gap-2 rounded-lg border border-border/50 bg-background/40 px-3 py-3 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
-              Loading linked devices...
+              Loading watchers...
             </div>
-          ) : devices.length === 0 ? (
+          ) : watchers.length === 0 ? (
             <div className="rounded-lg border border-border/50 bg-background/40 px-3 py-4 text-sm text-muted-foreground">
-              No linked devices found for this workspace yet.
+              No watchers found yet.
             </div>
           ) : (
             <div className="space-y-2">
-              {devices.map((device) => {
-                const isCurrentDevice = currentEndpoint === device.endpoint
-                const label = formatDeviceLabel(device.userAgent)
-                const updated = formatRelativeTime(device.updatedAt)
+              {watchers.map((watcher) => {
+                const draft = drafts[watcher.id] ?? {
+                  name: watcher.name,
+                  includePaths: watcher.includePaths.join('\n') || '/',
+                  ignorePaths: watcher.ignorePaths.join('\n'),
+                }
+                const isCurrent = watcher.watcherKey === currentWatcherKey
+                const isBusy = busyWatcherId === watcher.id
 
                 return (
                   <div
-                    key={device.endpoint}
-                    className="flex flex-col gap-3 rounded-lg border border-border/60 bg-background/50 p-3 md:flex-row md:items-center md:justify-between"
+                    key={watcher.id}
+                    className="space-y-3 rounded-lg border border-border/60 bg-background/50 p-3"
                   >
-                    <div className="min-w-0 space-y-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Laptop2 className="h-4 w-4 text-primary" />
-                        <p className="text-sm font-semibold text-foreground">{label}</p>
-                        {isCurrentDevice ? <Badge variant="success">This device</Badge> : null}
-                        <Badge variant="outline">{device.workspace ?? 'default'}</Badge>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <Target className="h-4 w-4 text-primary" />
+                        <p className="text-sm font-semibold text-foreground">{watcher.name}</p>
+                        {isCurrent ? <Badge variant="success">This device</Badge> : null}
+                        <Badge variant={watcher.enabled ? 'success' : 'outline'}>{watcher.enabled ? 'Enabled' : 'Disabled'}</Badge>
                       </div>
-                      <p className="truncate text-xs text-muted-foreground">{shortEndpoint(device.endpoint)}</p>
-                      <p className="text-xs text-muted-foreground">{updated}</p>
-                    </div>
-                    <div className="shrink-0">
                       <Button
                         type="button"
                         size="sm"
                         variant="outline"
                         className="gap-1.5"
-                        onClick={() => void handleDisableDevice(device.endpoint)}
-                        disabled={removingEndpoint === device.endpoint}
+                        onClick={() => void handleToggleWatcher(watcher)}
+                        disabled={isBusy}
                       >
-                        {removingEndpoint === device.endpoint ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        ) : (
-                          <BellOff className="h-3.5 w-3.5" />
-                        )}
-                        {isCurrentDevice ? 'Disable here' : 'Disable device'}
+                        {isBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : watcher.enabled ? <BellOff className="h-3.5 w-3.5" /> : <Bell className="h-3.5 w-3.5" />}
+                        {watcher.enabled ? 'Disable bell' : 'Enable bell'}
+                      </Button>
+                    </div>
+
+                    <div className="grid gap-2 md:grid-cols-3">
+                      <input
+                        value={draft.name}
+                        onChange={(event) => onDraftChange(watcher.id, { name: event.target.value })}
+                        className="h-9 rounded-md border border-border/60 bg-background px-3 text-sm"
+                        placeholder="Watcher name"
+                      />
+                      <textarea
+                        value={draft.includePaths}
+                        onChange={(event) => onDraftChange(watcher.id, { includePaths: event.target.value })}
+                        className="min-h-[72px] rounded-md border border-border/60 bg-background px-3 py-2 text-xs font-mono"
+                        placeholder="Include paths"
+                      />
+                      <textarea
+                        value={draft.ignorePaths}
+                        onChange={(event) => onDraftChange(watcher.id, { ignorePaths: event.target.value })}
+                        className="min-h-[72px] rounded-md border border-border/60 bg-background px-3 py-2 text-xs font-mono"
+                        placeholder="Ignore paths"
+                      />
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+                      <span className="truncate font-mono">{watcher.endpoint ? shortEndpoint(watcher.endpoint) : 'No push subscription yet'}</span>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1.5"
+                        onClick={() => void handleSaveWatcher(watcher)}
+                        disabled={isBusy}
+                      >
+                        <Save className="h-3.5 w-3.5" />
+                        Save rules
                       </Button>
                     </div>
                   </div>
@@ -224,44 +352,20 @@ function NotificationDevicesPage() {
   )
 }
 
-function formatDeviceLabel(userAgent?: string) {
-  if (!userAgent || !userAgent.trim()) return 'Unknown device'
-  const browser = parseBrowser(userAgent)
-  const os = parseOs(userAgent)
-  return `${browser} on ${os}`
-}
+function parseRuleList(input: string, fallback: string[]) {
+  const values = input
+    .split(/[\n,]/)
+    .map((value) => value.trim())
+    .filter(Boolean)
 
-function parseBrowser(userAgent: string) {
-  if (userAgent.includes('Edg/')) return 'Edge'
-  if (userAgent.includes('OPR/') || userAgent.includes('Opera')) return 'Opera'
-  if (userAgent.includes('Firefox/')) return 'Firefox'
-  if (userAgent.includes('Chrome/')) return 'Chrome'
-  if (userAgent.includes('Safari/')) return 'Safari'
-  return 'Browser'
-}
+  if (values.length === 0) {
+    return fallback
+  }
 
-function parseOs(userAgent: string) {
-  if (userAgent.includes('Windows')) return 'Windows'
-  if (userAgent.includes('Mac OS X')) return 'macOS'
-  if (userAgent.includes('Android')) return 'Android'
-  if (userAgent.includes('iPhone') || userAgent.includes('iPad')) return 'iOS'
-  if (userAgent.includes('Linux')) return 'Linux'
-  return 'Unknown OS'
+  return values
 }
 
 function shortEndpoint(endpoint: string) {
   if (endpoint.length <= 84) return endpoint
   return `${endpoint.slice(0, 52)}...${endpoint.slice(-24)}`
-}
-
-function formatRelativeTime(value?: string) {
-  if (!value) return 'Last seen: unknown'
-  const timestamp = Date.parse(value)
-  if (Number.isNaN(timestamp)) return `Last seen: ${value}`
-
-  const diffMs = Date.now() - timestamp
-  if (diffMs < 60_000) return 'Last seen just now'
-  if (diffMs < 3_600_000) return `Last seen ${Math.floor(diffMs / 60_000)}m ago`
-  if (diffMs < 86_400_000) return `Last seen ${Math.floor(diffMs / 3_600_000)}h ago`
-  return `Last seen ${Math.floor(diffMs / 86_400_000)}d ago`
 }

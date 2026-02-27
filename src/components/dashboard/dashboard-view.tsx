@@ -4,14 +4,14 @@ import { Activity, Terminal, LayoutGrid, ListTree, Info, Bell, BellOff, Volume2,
 import { Card, CardContent } from '~/components/ui/card'
 import { Button } from '~/components/ui/button'
 import type { EventStatus } from '~/lib/types'
-import { publishEvent } from '~/lib/client-api'
+import { ensurePathAlias, fetchCurrentWatcher, publishEvent, resolvePathAlias } from '~/lib/client-api'
 import { LogStream } from './log-stream'
 import { StatCards } from './stat-cards'
 import { StatusBoard } from './status-board'
 import { TopicSelector } from './topic-selector'
 import { useDashboardData } from './use-dashboard-data'
 import { cn } from '~/lib/utils'
-import { NotificationManager } from '~/lib/notifications'
+import { getClientWatcherKey, getClientWatcherName, NotificationManager } from '~/lib/notifications'
 import { Authenticated, Unauthenticated } from 'convex/react'
 import { SignIn, UserMenu } from '~/components/auth/auth-ui'
 
@@ -25,10 +25,11 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<EventStatus | 'all'>('all')
   const [isSoundEnabled, setIsSoundEnabled] = useState(NotificationManager.isEnabled())
-  const [hasPushPermission, setHasPushPermission] = useState(false)
+  const [isBellEnabled, setIsBellEnabled] = useState(false)
   const [isDebugMode, setIsDebugMode] = useState(false)
   const [isGeneratingRandomEvents, setIsGeneratingRandomEvents] = useState(false)
   const [generatorMessage, setGeneratorMessage] = useState<string | null>(null)
+  const [isHydratingFilter, setIsHydratingFilter] = useState(true)
   
   const deferredSearch = useDeferredValue(search)
 
@@ -52,23 +53,108 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
         }
       }
 
-      if ('Notification' in window) {
-        void NotificationManager.isPushSubscribed(workspace).then((subscribed) => {
-          if (subscribed) {
-            setHasPushPermission(true)
-            return
-          }
+      setIsHydratingFilter(true)
 
-          if (window.Notification.permission !== 'granted') {
-            setHasPushPermission(false)
-            return
-          }
+      let cancelled = false
+      const watcherKey = getClientWatcherKey()
+      const watcherName = getClientWatcherName()
 
-          void NotificationManager.ensureBackgroundPush(workspace).then(setHasPushPermission)
-        })
+      const hydrateFilterFromUrl = async () => {
+        const params = new URLSearchParams(window.location.search)
+        const aliasId = params.get('filter')?.trim()
+        const directPath = normalizeTopicPath(params.get('path') ?? undefined)
+
+        if (aliasId) {
+          try {
+            const resolved = await resolvePathAlias(aliasId, workspace)
+            if (!cancelled) {
+              setSelectedTopic(normalizeTopicPath(resolved.path))
+            }
+          } catch {
+            if (!cancelled) {
+              setSelectedTopic(directPath)
+            }
+          } finally {
+            if (!cancelled) {
+              setIsHydratingFilter(false)
+            }
+          }
+          return
+        }
+
+        if (!cancelled) {
+          setSelectedTopic(directPath)
+          setIsHydratingFilter(false)
+        }
+      }
+
+      const syncCurrentWatcher = async () => {
+        try {
+          const watcher = await fetchCurrentWatcher({
+            workspace,
+            watcherKey,
+            watcherName,
+          })
+          if (cancelled) return
+
+          setIsBellEnabled(Boolean(watcher.enabled))
+
+          if (watcher.enabled && 'Notification' in window && window.Notification.permission === 'granted') {
+            await NotificationManager.ensureBackgroundPush(workspace)
+          }
+        } catch (error) {
+          console.warn('Failed to sync current watcher', error)
+        }
+      }
+
+      void hydrateFilterFromUrl()
+      void syncCurrentWatcher()
+
+      const timer = window.setInterval(() => {
+        void syncCurrentWatcher()
+      }, 15_000)
+
+      return () => {
+        cancelled = true
+        window.clearInterval(timer)
       }
     }
   }, [workspace])
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || isHydratingFilter) return
+
+    let cancelled = false
+    const syncFilterParam = async () => {
+      const url = new URL(window.location.href)
+
+      if (!selectedTopic) {
+        url.searchParams.delete('filter')
+        url.searchParams.delete('path')
+        window.history.replaceState({}, '', url.toString())
+        return
+      }
+
+      try {
+        const alias = await ensurePathAlias(selectedTopic, workspace)
+        if (cancelled) return
+        url.searchParams.set('filter', alias.aliasId)
+        url.searchParams.delete('path')
+      } catch {
+        if (cancelled) return
+        url.searchParams.delete('filter')
+        url.searchParams.set('path', selectedTopic)
+      }
+
+      window.history.replaceState({}, '', url.toString())
+    }
+
+    void syncFilterParam()
+
+    return () => {
+      cancelled = true
+    }
+  }, [selectedTopic, workspace, isHydratingFilter])
 
   const toggleSound = () => {
     if (isSoundEnabled) {
@@ -99,14 +185,14 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
         return
       }
     }
-    if (hasPushPermission) {
-      await NotificationManager.disableBackgroundPush()
-      setHasPushPermission(false)
+    if (isBellEnabled) {
+      await NotificationManager.disableBackgroundPush(workspace)
+      setIsBellEnabled(false)
       return
     }
 
     const enabled = await NotificationManager.enableBackgroundPush(workspace)
-    setHasPushPermission(enabled)
+    setIsBellEnabled(enabled)
     if (!enabled && typeof window !== 'undefined' && window.Notification.permission === 'granted') {
       alert(NotificationManager.getLastPushError() ?? 'Unable to enable background push. Verify backend VAPID configuration and try again.')
     }
@@ -199,19 +285,19 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
             <Button 
               size="icon" 
               variant="ghost" 
-              className={cn("h-8 w-8", hasPushPermission ? "text-primary" : "text-muted-foreground/40")}
+              className={cn("h-8 w-8", isBellEnabled ? "text-primary" : "text-muted-foreground/40")}
               onClick={requestNotifications}
               title={
                 typeof window !== 'undefined' && !('Notification' in window) 
                   ? "Notifications not supported" 
                   : typeof window !== 'undefined' && !window.isSecureContext
                     ? "Notifications require HTTPS"
-                    : hasPushPermission 
+                    : isBellEnabled 
                       ? "Disable background push notifications" 
                       : "Enable background push notifications"
               }
             >
-              {hasPushPermission ? <Bell className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
+              {isBellEnabled ? <Bell className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
             </Button>
           </div>
 
@@ -242,7 +328,11 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
         {/* Global Navigation Input */}
         <div className="order-2 w-full min-w-0 md:order-2 md:flex-1">
           {data && (
-            <TopicSelector tree={data.topicTree} selectedTopic={selectedTopic} onSelectTopic={setSelectedTopic} />
+            <TopicSelector
+              tree={data.topicTree}
+              selectedTopic={selectedTopic}
+              onSelectTopic={(topic) => setSelectedTopic(normalizeTopicPath(topic))}
+            />
           )}
         </div>
         </div>
@@ -327,6 +417,13 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
       </Authenticated>
     </>
   )
+}
+
+function normalizeTopicPath(value?: string | null) {
+  if (!value) return undefined
+  const trimmed = value.trim()
+  if (!trimmed || trimmed === '/') return undefined
+  return trimmed.replace(/^\/+|\/+$/g, '').replace(/\/+/g, '/')
 }
 
 type RandomTestEventDraft = {

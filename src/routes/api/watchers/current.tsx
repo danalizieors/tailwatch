@@ -1,18 +1,26 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { getBackendMode, listPushSubscriptions } from '~/lib/server/event-repository'
+import { getBackendMode, getOrCreateCurrentWatcher } from '~/lib/server/event-repository'
 
-export const Route = createFileRoute('/api/push/devices')({
+export const Route = createFileRoute('/api/watchers/current')({
   server: {
     handlers: {
       GET: async ({ request }) => {
         try {
           const workspace = request.headers.get('x-tailwatch-workspace') ?? undefined
           const watcherKey = request.headers.get('x-tailwatch-watcher-key') ?? undefined
-          const devices = await listPushSubscriptions(workspace, watcherKey)
+          const watcherName = request.headers.get('x-tailwatch-watcher-name') ?? undefined
+          const userAgent = request.headers.get('user-agent') ?? undefined
+
+          const watcher = await getOrCreateCurrentWatcher({
+            workspace,
+            watcherKey,
+            name: watcherName,
+            userAgent,
+          })
 
           return Response.json(
             {
-              devices,
+              watcher,
             },
             {
               headers: {
@@ -21,10 +29,10 @@ export const Route = createFileRoute('/api/push/devices')({
             },
           )
         } catch (error) {
-          console.error('[API/Push/Devices] Error:', error)
+          console.error('[API/Watchers/Current] Error:', error)
           return Response.json(
             {
-              error: error instanceof Error ? error.message : 'Failed to load linked devices',
+              error: error instanceof Error ? error.message : 'Failed to load current watcher',
             },
             {
               status: 500,

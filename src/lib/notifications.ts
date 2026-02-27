@@ -5,6 +5,8 @@ export class NotificationManager {
   private static lastPushError: string | null = null
   private static readonly pushSubscribePath = '/api/push/subscribe'
   private static readonly pushUnsubscribePath = '/api/push/unsubscribe'
+  private static readonly watcherStorageKey = 'tailwatch_watcher_key'
+  private static readonly watcherNameStorageKey = 'tailwatch_watcher_name'
 
   static enableSound() {
     if (typeof window === 'undefined') return
@@ -21,6 +23,30 @@ export class NotificationManager {
 
   static isEnabled() {
     return this.isSoundEnabled
+  }
+
+  static getWatcherKey() {
+    if (typeof window === 'undefined') return 'watcher_server'
+
+    const existing = window.localStorage.getItem(this.watcherStorageKey)
+    if (existing?.trim()) return existing
+
+    const generated = `watcher_${Math.random().toString(36).slice(2, 10)}`
+    window.localStorage.setItem(this.watcherStorageKey, generated)
+    return generated
+  }
+
+  static getWatcherName() {
+    if (typeof window === 'undefined') return 'Server Watcher'
+
+    const stored = window.localStorage.getItem(this.watcherNameStorageKey)
+    if (stored?.trim()) return stored
+
+    const browser = detectBrowser(window.navigator.userAgent)
+    const os = detectOs(window.navigator.userAgent)
+    const generated = `${browser} on ${os}`
+    window.localStorage.setItem(this.watcherNameStorageKey, generated)
+    return generated
   }
 
   static playBeep() {
@@ -196,6 +222,8 @@ export class NotificationManager {
       headers: {
         'content-type': 'application/json',
         ...(workspace ? { 'x-tailwatch-workspace': workspace } : {}),
+        'x-tailwatch-watcher-key': this.getWatcherKey(),
+        'x-tailwatch-watcher-name': this.getWatcherName(),
       },
       body: JSON.stringify({
         subscription: subscription.toJSON(),
@@ -256,24 +284,24 @@ export class NotificationManager {
     return true
   }
 
-  static async disableBackgroundPush(): Promise<boolean> {
+  static async disableBackgroundPush(workspace?: string): Promise<boolean> {
     try {
       if (!this.isPushSupported()) return false
 
       const reg = await navigator.serviceWorker.ready
       const subscription = await reg.pushManager.getSubscription()
-      if (!subscription) return true
-
-      const endpoint = subscription.endpoint
+      const endpoint = subscription?.endpoint
+      const watcherKey = this.getWatcherKey()
       const [serverResult] = await Promise.allSettled([
         fetch(this.pushUnsubscribePath, {
           method: 'POST',
           headers: {
             'content-type': 'application/json',
+            ...(workspace ? { 'x-tailwatch-workspace': workspace } : {}),
           },
-          body: JSON.stringify({ endpoint }),
+          body: JSON.stringify({ endpoint, watcherKey }),
         }),
-        subscription.unsubscribe(),
+        subscription ? subscription.unsubscribe() : Promise.resolve(true),
       ])
 
       if (serverResult.status === 'fulfilled' && !serverResult.value.ok) {
@@ -350,6 +378,32 @@ function parseServerErrorText(detail: string): string | null {
     // Non-JSON response body
   }
   return trimmed.slice(0, 300)
+}
+
+function detectBrowser(userAgent: string) {
+  if (userAgent.includes('Edg/')) return 'Edge'
+  if (userAgent.includes('OPR/') || userAgent.includes('Opera')) return 'Opera'
+  if (userAgent.includes('Firefox/')) return 'Firefox'
+  if (userAgent.includes('Chrome/')) return 'Chrome'
+  if (userAgent.includes('Safari/')) return 'Safari'
+  return 'Browser'
+}
+
+function detectOs(userAgent: string) {
+  if (userAgent.includes('Windows')) return 'Windows'
+  if (userAgent.includes('Mac OS X')) return 'macOS'
+  if (userAgent.includes('Android')) return 'Android'
+  if (userAgent.includes('iPhone') || userAgent.includes('iPad')) return 'iOS'
+  if (userAgent.includes('Linux')) return 'Linux'
+  return 'Unknown OS'
+}
+
+export function getClientWatcherKey() {
+  return NotificationManager.getWatcherKey()
+}
+
+export function getClientWatcherName() {
+  return NotificationManager.getWatcherName()
 }
 
 // Local storage for "seen" state

@@ -80,6 +80,13 @@ async function openTailwatch(event) {
 
   for (const client of windows) {
     if ('focus' in client) {
+      if ('navigate' in client) {
+        try {
+          await client.navigate(requestedUrl)
+        } catch (_error) {
+          // Ignore navigation errors and still focus existing client.
+        }
+      }
       await client.focus()
       return
     }

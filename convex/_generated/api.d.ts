@@ -14,6 +14,7 @@ import type * as functions from "../functions.js";
 import type * as http from "../http.js";
 import type * as push from "../push.js";
 import type * as push_fanout from "../push_fanout.js";
+import type * as watchers from "../watchers.js";
 
 import type {
   ApiFromModules,
@@ -28,6 +29,7 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   push: typeof push;
   push_fanout: typeof push_fanout;
+  watchers: typeof watchers;
 }>;
 
 /**

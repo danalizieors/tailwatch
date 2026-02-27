@@ -11,7 +11,13 @@ import {
 
 type BackendMode = 'local' | 'convex'
 
+const DEFAULT_WORKSPACE = 'default'
+const DEFAULT_INCLUDE_PATHS = ['/']
 const convexApi = anyApi as any
+
+const localAliasByPath = new Map<string, string>()
+const localPathByAlias = new Map<string, string>()
+const localWatcherByWorkspaceAndKey = new Map<string, WatcherRecord>()
 
 export interface PushSubscriptionRecord {
   endpoint: string
@@ -22,6 +28,9 @@ export interface PushSubscriptionRecord {
   userAgent?: string
   clientVapidPublicKey?: string
   updatedAt?: string
+  watcherKey?: string
+  watcherName?: string
+  enabled?: boolean
 }
 
 export interface UpsertPushSubscriptionResult {
@@ -31,6 +40,125 @@ export interface UpsertPushSubscriptionResult {
   pushConfigured?: boolean
   missingConfig?: string[]
   serverVapidPublicKey?: string
+}
+
+export interface WatcherRecord {
+  id: string
+  workspace: string
+  watcherKey: string
+  name: string
+  enabled: boolean
+  includePaths: string[]
+  ignorePaths: string[]
+  endpoint?: string
+  userAgent?: string
+  hasSubscription: boolean
+  createdAt: string
+  updatedAt: string
+  isCurrent?: boolean
+}
+
+export interface PathAliasRecord {
+  aliasId: string
+  path: string
+  workspace: string
+  created?: boolean
+}
+
+function nowIso() {
+  return new Date().toISOString()
+}
+
+function randomId(prefix: string) {
+  return `${prefix}_${Math.random().toString(36).slice(2, 10)}`
+}
+
+function normalizeWorkspace(value?: string) {
+  const next = value?.trim()
+  return next || DEFAULT_WORKSPACE
+}
+
+function normalizeWatcherKey(value?: string) {
+  const next = value?.trim()
+  if (!next) return randomId('watcher')
+  return next.slice(0, 128)
+}
+
+function normalizePathForAlias(value: string) {
+  const trimmed = value.trim()
+  if (!trimmed || trimmed === '/') return '/'
+  const normalized = trimmed.replace(/^\/+|\/+$/g, '').replace(/\/+/g, '/')
+  return normalized || '/'
+}
+
+function localWatcherStoreKey(workspace: string, watcherKey: string) {
+  return `${workspace}::${watcherKey}`
+}
+
+function createLocalWatcher(workspace: string, watcherKey: string, name?: string, userAgent?: string): WatcherRecord {
+  const now = nowIso()
+  return {
+    id: randomId('watcher'),
+    workspace,
+    watcherKey,
+    name: name?.trim() || `Watcher ${watcherKey.slice(-6)}`,
+    enabled: false,
+    includePaths: [...DEFAULT_INCLUDE_PATHS],
+    ignorePaths: [],
+    endpoint: undefined,
+    userAgent,
+    hasSubscription: false,
+    createdAt: now,
+    updatedAt: now,
+  }
+}
+
+function ensureLocalCurrentWatcher(input: { workspace?: string; watcherKey?: string; name?: string; userAgent?: string }) {
+  const workspace = normalizeWorkspace(input.workspace)
+  const watcherKey = normalizeWatcherKey(input.watcherKey)
+  const key = localWatcherStoreKey(workspace, watcherKey)
+
+  const existing = localWatcherByWorkspaceAndKey.get(key)
+  if (existing) {
+    const next: WatcherRecord = {
+      ...existing,
+      name: input.name?.trim() ? input.name.trim() : existing.name,
+      userAgent: input.userAgent ?? existing.userAgent,
+      updatedAt: nowIso(),
+    }
+    localWatcherByWorkspaceAndKey.set(key, next)
+    return next
+  }
+
+  const created = createLocalWatcher(workspace, watcherKey, input.name, input.userAgent)
+  localWatcherByWorkspaceAndKey.set(key, created)
+  return created
+}
+
+function ensureLocalPathAlias(workspace: string, path: string) {
+  const normalizedPath = normalizePathForAlias(path)
+  const mapKey = `${workspace}::${normalizedPath}`
+
+  const existingAlias = localAliasByPath.get(mapKey)
+  if (existingAlias) {
+    return {
+      aliasId: existingAlias,
+      path: normalizedPath,
+      workspace,
+      created: false,
+    }
+  }
+
+  const aliasId = Math.random().toString(36).slice(2, 10)
+  localAliasByPath.set(mapKey, aliasId)
+  localPathByAlias.set(`${workspace}::${aliasId}`, normalizedPath)
+
+  return {
+    aliasId,
+    path: normalizedPath,
+    workspace,
+    created: true,
+  }
 }
 
 function getConvexUrl() {
@@ -119,7 +247,7 @@ export async function appendEvent(topicPath: string, payload: unknown): Promise<
   }
 
   // Remove undefined to avoid sending them as nulls/undefineds if mutation args don't like it
-  Object.keys(convexArgs).forEach(key => convexArgs[key] === undefined && delete convexArgs[key])
+  Object.keys(convexArgs).forEach((key) => convexArgs[key] === undefined && delete convexArgs[key])
 
   try {
     const result = await client.mutation(convexApi.events.publish, convexArgs)
@@ -201,7 +329,7 @@ export async function getDashboardSnapshot(filters: DashboardFilters = {}): Prom
     q: filters.q,
     limit: filters.limit,
   }
-  Object.keys(args).forEach(key => (args[key] === undefined || args[key] === null) && delete args[key])
+  Object.keys(args).forEach((key) => (args[key] === undefined || args[key] === null) && delete args[key])
 
   const result = await client.query(convexApi.events.dashboardSnapshot, args)
   return parseConvexDashboardSnapshot(result)
@@ -217,7 +345,7 @@ export async function getStatusSnapshot(topicPrefix?: string, workspace?: string
     workspace: typeof workspace === 'string' ? workspace : undefined,
     topicPrefix,
   }
-  Object.keys(args).forEach(key => (args[key] === undefined || args[key] === null) && delete args[key])
+  Object.keys(args).forEach((key) => (args[key] === undefined || args[key] === null) && delete args[key])
 
   const result = await client.query(convexApi.events.statusSnapshot, args)
   return parseConvexDashboardSnapshot(result)
@@ -236,8 +364,26 @@ export async function clearAll(): Promise<{ success: boolean; deletedEvents: num
 
 export async function upsertPushSubscription(input: PushSubscriptionRecord): Promise<UpsertPushSubscriptionResult> {
   if (getBackendMode() === 'local') {
+    const watcher = ensureLocalCurrentWatcher({
+      workspace: input.workspace,
+      watcherKey: input.watcherKey ?? input.endpoint,
+      name: input.watcherName,
+      userAgent: input.userAgent,
+    })
+
+    const next: WatcherRecord = {
+      ...watcher,
+      endpoint: input.endpoint,
+      hasSubscription: true,
+      enabled: input.enabled ?? true,
+      updatedAt: nowIso(),
+    }
+    localWatcherByWorkspaceAndKey.set(localWatcherStoreKey(next.workspace, next.watcherKey), next)
+
     return {
       ok: true,
+      id: next.id,
+      updated: true,
       pushConfigured: false,
       missingConfig: ['CONVEX_URL'],
     }
@@ -252,48 +398,123 @@ export async function upsertPushSubscription(input: PushSubscriptionRecord): Pro
     workspace: input.workspace,
     userAgent: input.userAgent,
     clientVapidPublicKey: input.clientVapidPublicKey,
+    watcherKey: input.watcherKey,
+    watcherName: input.watcherName,
+    enabled: input.enabled,
   }
   Object.keys(args).forEach((key) => args[key] === undefined && delete args[key])
   try {
     const result = await client.mutation(convexApi.push.upsertSubscription, args)
     return result as UpsertPushSubscriptionResult
   } catch (error) {
-    if (!isUnknownClientVapidFieldError(error)) {
+    if (!isUnknownPushUpsertFieldError(error)) {
       throw error
     }
 
     // Backward compatibility: retry against older deployed Convex functions
-    // that don't yet accept `clientVapidPublicKey`.
+    // that don't yet accept watcher-aware args.
     const fallbackArgs = { ...args }
     delete fallbackArgs.clientVapidPublicKey
+    delete fallbackArgs.watcherKey
+    delete fallbackArgs.watcherName
+    delete fallbackArgs.enabled
     const fallbackResult = await client.mutation(convexApi.push.upsertSubscription, fallbackArgs)
     return fallbackResult as UpsertPushSubscriptionResult
   }
 }
 
-function isUnknownClientVapidFieldError(error: unknown) {
+function isUnknownPushUpsertFieldError(error: unknown) {
   const message = error instanceof Error ? error.message : String(error)
-  const hasField = message.includes('clientVapidPublicKey')
+  const hasKnownField =
+    message.includes('clientVapidPublicKey') ||
+    message.includes('watcherKey') ||
+    message.includes('watcherName') ||
+    message.includes('enabled')
   const unknownArg =
     message.toLowerCase().includes('extra field') ||
     message.toLowerCase().includes('unknown field') ||
     message.toLowerCase().includes('not allowed')
-  return hasField && unknownArg
+  return hasKnownField && unknownArg
 }
 
-export async function removePushSubscription(endpoint: string): Promise<{ ok: boolean; deleted?: number }> {
+export async function removePushSubscription(
+  input:
+    | string
+    | {
+        endpoint?: string
+        workspace?: string
+        watcherKey?: string
+      },
+): Promise<{ ok: boolean; deleted?: number }> {
+  const request = typeof input === 'string' ? { endpoint: input } : input
+
   if (getBackendMode() === 'local') {
-    return { ok: true, deleted: 0 }
+    const workspace = normalizeWorkspace(request.workspace)
+    const watcherKey = request.watcherKey ? normalizeWatcherKey(request.watcherKey) : undefined
+    let deleted = 0
+
+    if (watcherKey) {
+      const key = localWatcherStoreKey(workspace, watcherKey)
+      const existing = localWatcherByWorkspaceAndKey.get(key)
+      if (existing) {
+        localWatcherByWorkspaceAndKey.set(key, {
+          ...existing,
+          endpoint: undefined,
+          hasSubscription: false,
+          enabled: false,
+          updatedAt: nowIso(),
+        })
+        deleted += 1
+      }
+    }
+
+    if (request.endpoint) {
+      for (const [key, watcher] of localWatcherByWorkspaceAndKey.entries()) {
+        if (watcher.workspace !== workspace) continue
+        if (watcher.endpoint !== request.endpoint) continue
+        localWatcherByWorkspaceAndKey.set(key, {
+          ...watcher,
+          endpoint: undefined,
+          hasSubscription: false,
+          enabled: false,
+          updatedAt: nowIso(),
+        })
+        deleted += 1
+      }
+    }
+
+    return { ok: true, deleted }
   }
 
   const client = createConvexClient()
-  const result = await client.mutation(convexApi.push.removeSubscription, { endpoint })
+  const args: Record<string, string> = {}
+  if (request.endpoint) args.endpoint = request.endpoint
+  if (request.workspace) args.workspace = request.workspace
+  if (request.watcherKey) args.watcherKey = request.watcherKey
+
+  const result = await client.mutation(convexApi.push.removeSubscription, args)
   return result as { ok: boolean; deleted?: number }
 }
 
-export async function listPushSubscriptions(workspace?: string): Promise<PushSubscriptionRecord[]> {
+export async function listPushSubscriptions(workspace?: string, watcherKey?: string): Promise<PushSubscriptionRecord[]> {
   if (getBackendMode() === 'local') {
-    return []
+    const normalizedWorkspace = normalizeWorkspace(workspace)
+    const scopedWatcherKey = watcherKey ? normalizeWatcherKey(watcherKey) : undefined
+
+    const rows = Array.from(localWatcherByWorkspaceAndKey.values())
+      .filter((watcher) => watcher.workspace === normalizedWorkspace)
+      .filter((watcher) => (scopedWatcherKey ? watcher.watcherKey === scopedWatcherKey : true))
+      .filter((watcher) => Boolean(watcher.endpoint))
+
+    return rows.map((watcher) => ({
+      endpoint: watcher.endpoint!,
+      workspace: watcher.workspace,
+      userAgent: watcher.userAgent,
+      updatedAt: watcher.updatedAt,
+      watcherKey: watcher.watcherKey,
+      watcherName: watcher.name,
+      enabled: watcher.enabled,
+    }))
   }
 
   const client = createConvexClient()
@@ -301,9 +522,203 @@ export async function listPushSubscriptions(workspace?: string): Promise<PushSub
   if (workspace && workspace.trim()) {
     args.workspace = workspace.trim()
   }
+  if (watcherKey && watcherKey.trim()) {
+    args.watcherKey = watcherKey.trim()
+  }
 
   const result = await client.query(convexApi.push.listSubscriptionsForWorkspace, args)
   return Array.isArray(result) ? (result as PushSubscriptionRecord[]) : []
+}
+
+export async function ensureDefaultWatcher(input: {
+  workspace?: string
+  watcherKey?: string
+  userAgent?: string
+}): Promise<WatcherRecord> {
+  if (getBackendMode() === 'local') {
+    return ensureLocalCurrentWatcher(input)
+  }
+
+  const client = createConvexClient()
+  const args: Record<string, string> = {}
+  if (input.workspace) args.workspace = input.workspace
+  if (input.watcherKey) args.watcherKey = input.watcherKey
+  if (input.userAgent) args.userAgent = input.userAgent
+
+  const result = await client.mutation(convexApi.watchers.ensureDefaultWatcher, args)
+  return result as WatcherRecord
+}
+
+export async function getOrCreateCurrentWatcher(input: {
+  workspace?: string
+  watcherKey?: string
+  name?: string
+  userAgent?: string
+}): Promise<WatcherRecord> {
+  if (getBackendMode() === 'local') {
+    const watcher = ensureLocalCurrentWatcher(input)
+    return {
+      ...watcher,
+      isCurrent: true,
+    }
+  }
+
+  const client = createConvexClient()
+  const args: Record<string, string> = {}
+  if (input.workspace) args.workspace = input.workspace
+  if (input.watcherKey) args.watcherKey = input.watcherKey
+  if (input.name) args.name = input.name
+  if (input.userAgent) args.userAgent = input.userAgent
+
+  const result = await client.mutation(convexApi.watchers.getOrCreateCurrentWatcher, args)
+  return result as WatcherRecord
+}
+
+export async function listWatchers(workspace?: string, watcherKey?: string): Promise<WatcherRecord[]> {
+  if (getBackendMode() === 'local') {
+    const normalizedWorkspace = normalizeWorkspace(workspace)
+    const scopedWatcherKey = watcherKey ? normalizeWatcherKey(watcherKey) : undefined
+
+    return Array.from(localWatcherByWorkspaceAndKey.values())
+      .filter((watcher) => watcher.workspace === normalizedWorkspace)
+      .filter((watcher) => (scopedWatcherKey ? watcher.watcherKey === scopedWatcherKey : true))
+      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+  }
+
+  const client = createConvexClient()
+  const args: Record<string, string> = {}
+  if (workspace?.trim()) args.workspace = workspace.trim()
+  if (watcherKey?.trim()) args.watcherKey = watcherKey.trim()
+  const result = await client.query(convexApi.watchers.listWatchers, args)
+  return Array.isArray(result) ? (result as WatcherRecord[]) : []
+}
+
+export async function createWatcher(input: {
+  workspace?: string
+  name?: string
+  includePaths?: string[]
+  ignorePaths?: string[]
+  watcherKey?: string
+  userAgent?: string
+}): Promise<WatcherRecord> {
+  if (getBackendMode() === 'local') {
+    const workspace = normalizeWorkspace(input.workspace)
+    let watcherKey = normalizeWatcherKey(input.watcherKey)
+    const existing = localWatcherByWorkspaceAndKey.get(localWatcherStoreKey(workspace, watcherKey))
+    if (existing) {
+      watcherKey = normalizeWatcherKey()
+    }
+    const created = createLocalWatcher(workspace, watcherKey, input.name, input.userAgent)
+    const next: WatcherRecord = {
+      ...created,
+      includePaths: input.includePaths?.length ? input.includePaths : [...DEFAULT_INCLUDE_PATHS],
+      ignorePaths: input.ignorePaths?.length ? input.ignorePaths : [],
+    }
+    localWatcherByWorkspaceAndKey.set(localWatcherStoreKey(workspace, watcherKey), next)
+    return next
+  }
+
+  const client = createConvexClient()
+  const args: Record<string, unknown> = {
+    workspace: input.workspace,
+    name: input.name,
+    includePaths: input.includePaths,
+    ignorePaths: input.ignorePaths,
+    watcherKey: input.watcherKey,
+    userAgent: input.userAgent,
+  }
+  Object.keys(args).forEach((key) => args[key] === undefined && delete args[key])
+  const result = await client.mutation(convexApi.watchers.createWatcher, args)
+  return result as WatcherRecord
+}
+
+export async function updateWatcher(input: {
+  watcherId: string
+  enabled?: boolean
+  name?: string
+  includePaths?: string[]
+  ignorePaths?: string[]
+  watcherKey?: string
+}): Promise<WatcherRecord> {
+  if (getBackendMode() === 'local') {
+    const rows = Array.from(localWatcherByWorkspaceAndKey.entries())
+    const entry = rows.find(([, watcher]) => watcher.id === input.watcherId)
+    if (!entry) {
+      throw new Error('Watcher not found')
+    }
+
+    const [storeKey, watcher] = entry
+    const next: WatcherRecord = {
+      ...watcher,
+      enabled: typeof input.enabled === 'boolean' ? input.enabled : watcher.enabled,
+      name: typeof input.name === 'string' ? input.name : watcher.name,
+      includePaths: Array.isArray(input.includePaths) ? input.includePaths : watcher.includePaths,
+      ignorePaths: Array.isArray(input.ignorePaths) ? input.ignorePaths : watcher.ignorePaths,
+      updatedAt: nowIso(),
+    }
+
+    localWatcherByWorkspaceAndKey.set(storeKey, next)
+    return next
+  }
+
+  const client = createConvexClient()
+  const args: Record<string, unknown> = {
+    watcherId: input.watcherId,
+    enabled: input.enabled,
+    name: input.name,
+    includePaths: input.includePaths,
+    ignorePaths: input.ignorePaths,
+    watcherKey: input.watcherKey,
+  }
+  Object.keys(args).forEach((key) => args[key] === undefined && delete args[key])
+  const result = await client.mutation(convexApi.watchers.updateWatcher, args)
+  return result as WatcherRecord
+}
+
+export async function ensurePathAlias(workspace: string | undefined, path: string): Promise<PathAliasRecord> {
+  const normalizedWorkspace = normalizeWorkspace(workspace)
+  if (getBackendMode() === 'local') {
+    return ensureLocalPathAlias(normalizedWorkspace, path)
+  }
+
+  const client = createConvexClient()
+  const result = await client.mutation(convexApi.watchers.ensurePathAlias, {
+    workspace: normalizedWorkspace,
+    path,
+  })
+  return result as PathAliasRecord
+}
+
+export async function resolvePathAlias(workspace: string | undefined, aliasId: string): Promise<PathAliasRecord | null> {
+  const normalizedWorkspace = normalizeWorkspace(workspace)
+
+  if (getBackendMode() === 'local') {
+    const path = localPathByAlias.get(`${normalizedWorkspace}::${aliasId}`)
+    if (!path) return null
+    return {
+      aliasId,
+      path,
+      workspace: normalizedWorkspace,
+      created: false,
+    }
+  }
+
+  const client = createConvexClient()
+  const result = (await client.query(convexApi.watchers.resolvePathAlias, {
+    workspace: normalizedWorkspace,
+    aliasId,
+  })) as { found?: boolean; aliasId?: string; path?: string; workspace?: string }
+
+  if (!result?.found || !result.aliasId || !result.path) {
+    return null
+  }
+
+  return {
+    aliasId: result.aliasId,
+    path: result.path,
+    workspace: result.workspace ?? normalizedWorkspace,
+    created: false,
+  }
 }
 
 export async function sendPushNotificationsForEvent(input: {

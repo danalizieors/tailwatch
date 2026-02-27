@@ -32,6 +32,8 @@ export const Route = createFileRoute('/api/push/subscribe')({
 
           const workspace = request.headers.get('x-tailwatch-workspace') ?? undefined
           const userAgent = request.headers.get('user-agent') ?? undefined
+          const watcherKey = request.headers.get('x-tailwatch-watcher-key') ?? undefined
+          const watcherName = request.headers.get('x-tailwatch-watcher-name') ?? undefined
           const subscription = parsed.data.subscription
 
           const result = await upsertPushSubscription({
@@ -43,6 +45,9 @@ export const Route = createFileRoute('/api/push/subscribe')({
             workspace,
             userAgent,
             clientVapidPublicKey: parsed.data.vapidPublicKey,
+            watcherKey,
+            watcherName,
+            enabled: true,
           })
 
           return Response.json(result, {

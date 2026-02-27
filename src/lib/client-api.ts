@@ -24,6 +24,42 @@ export interface PushDeviceRecord {
   workspace?: string
   userAgent?: string
   updatedAt?: string
+  watcherId?: string
+  watcherKey?: string
+  watcherName?: string
+  enabled?: boolean
+  includePaths?: string[]
+  ignorePaths?: string[]
+}
+
+export interface WatcherRecord {
+  id: string
+  workspace: string
+  watcherKey: string
+  name: string
+  enabled: boolean
+  includePaths: string[]
+  ignorePaths: string[]
+  endpoint?: string
+  userAgent?: string
+  hasSubscription: boolean
+  createdAt: string
+  updatedAt: string
+  isCurrent?: boolean
+}
+
+export interface PathAliasRecord {
+  aliasId: string
+  path: string
+  workspace: string
+  created?: boolean
+}
+
+export interface ResolvePathAliasResult {
+  found: boolean
+  aliasId?: string
+  path?: string
+  workspace?: string
 }
 
 function toQueryString(query: DashboardQuery) {
@@ -95,10 +131,11 @@ export async function triggerPushTest(workspace?: string): Promise<PushTestResul
   return response.json()
 }
 
-export async function fetchPushDevices(workspace?: string): Promise<PushDeviceRecord[]> {
+export async function fetchPushDevices(workspace?: string, watcherKey?: string): Promise<PushDeviceRecord[]> {
   const response = await fetch('/api/push/devices', {
     headers: {
       ...(workspace ? { 'x-tailwatch-workspace': workspace } : {}),
+      ...(watcherKey ? { 'x-tailwatch-watcher-key': watcherKey } : {}),
     },
   })
 
@@ -111,13 +148,21 @@ export async function fetchPushDevices(workspace?: string): Promise<PushDeviceRe
   return Array.isArray(parsed.devices) ? parsed.devices : []
 }
 
-export async function removePushDevice(endpoint: string): Promise<{ ok: boolean; deleted?: number }> {
+export async function removePushDevice(input: {
+  endpoint?: string
+  workspace?: string
+  watcherKey?: string
+}): Promise<{ ok: boolean; deleted?: number }> {
   const response = await fetch('/api/push/unsubscribe', {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
+      ...(input.workspace ? { 'x-tailwatch-workspace': input.workspace } : {}),
     },
-    body: JSON.stringify({ endpoint }),
+    body: JSON.stringify({
+      endpoint: input.endpoint,
+      watcherKey: input.watcherKey,
+    }),
   })
 
   if (!response.ok) {
@@ -126,4 +171,147 @@ export async function removePushDevice(endpoint: string): Promise<{ ok: boolean;
   }
 
   return (await response.json()) as { ok: boolean; deleted?: number }
+}
+
+export async function fetchCurrentWatcher(input: {
+  workspace?: string
+  watcherKey?: string
+  watcherName?: string
+}): Promise<WatcherRecord> {
+  const response = await fetch('/api/watchers/current', {
+    headers: {
+      ...(input.workspace ? { 'x-tailwatch-workspace': input.workspace } : {}),
+      ...(input.watcherKey ? { 'x-tailwatch-watcher-key': input.watcherKey } : {}),
+      ...(input.watcherName ? { 'x-tailwatch-watcher-name': input.watcherName } : {}),
+    },
+  })
+
+  if (!response.ok) {
+    const detail = await response.text()
+    throw new Error(detail || `Failed to load current watcher (${response.status})`)
+  }
+
+  const parsed = (await response.json()) as { watcher?: WatcherRecord }
+  if (!parsed.watcher) {
+    throw new Error('Current watcher payload missing watcher')
+  }
+  return parsed.watcher
+}
+
+export async function fetchWatchers(workspace?: string, watcherKey?: string): Promise<WatcherRecord[]> {
+  const response = await fetch('/api/watchers', {
+    headers: {
+      ...(workspace ? { 'x-tailwatch-workspace': workspace } : {}),
+      ...(watcherKey ? { 'x-tailwatch-watcher-key': watcherKey } : {}),
+    },
+  })
+
+  if (!response.ok) {
+    const detail = await response.text()
+    throw new Error(detail || `Failed to load watchers (${response.status})`)
+  }
+
+  const parsed = (await response.json()) as { watchers?: WatcherRecord[] }
+  return Array.isArray(parsed.watchers) ? parsed.watchers : []
+}
+
+export async function createWatcher(input: {
+  workspace?: string
+  watcherKey?: string
+  name?: string
+  includePaths?: string[]
+  ignorePaths?: string[]
+}): Promise<WatcherRecord> {
+  const response = await fetch('/api/watchers', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      ...(input.workspace ? { 'x-tailwatch-workspace': input.workspace } : {}),
+      ...(input.watcherKey ? { 'x-tailwatch-watcher-key': input.watcherKey } : {}),
+    },
+    body: JSON.stringify({
+      name: input.name,
+      includePaths: input.includePaths,
+      ignorePaths: input.ignorePaths,
+    }),
+  })
+
+  if (!response.ok) {
+    const detail = await response.text()
+    throw new Error(detail || `Failed to create watcher (${response.status})`)
+  }
+
+  const parsed = (await response.json()) as { watcher?: WatcherRecord }
+  if (!parsed.watcher) {
+    throw new Error('Watcher create response is missing watcher')
+  }
+  return parsed.watcher
+}
+
+export async function updateWatcher(input: {
+  watcherId: string
+  watcherKey?: string
+  enabled?: boolean
+  name?: string
+  includePaths?: string[]
+  ignorePaths?: string[]
+}): Promise<WatcherRecord> {
+  const response = await fetch('/api/watchers', {
+    method: 'PATCH',
+    headers: {
+      'content-type': 'application/json',
+      ...(input.watcherKey ? { 'x-tailwatch-watcher-key': input.watcherKey } : {}),
+    },
+    body: JSON.stringify({
+      watcherId: input.watcherId,
+      enabled: input.enabled,
+      name: input.name,
+      includePaths: input.includePaths,
+      ignorePaths: input.ignorePaths,
+    }),
+  })
+
+  if (!response.ok) {
+    const detail = await response.text()
+    throw new Error(detail || `Failed to update watcher (${response.status})`)
+  }
+
+  const parsed = (await response.json()) as { watcher?: WatcherRecord }
+  if (!parsed.watcher) {
+    throw new Error('Watcher update response is missing watcher')
+  }
+  return parsed.watcher
+}
+
+export async function ensurePathAlias(path: string, workspace?: string): Promise<PathAliasRecord> {
+  const response = await fetch('/api/path-alias/ensure', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      ...(workspace ? { 'x-tailwatch-workspace': workspace } : {}),
+    },
+    body: JSON.stringify({ path }),
+  })
+
+  if (!response.ok) {
+    const detail = await response.text()
+    throw new Error(detail || `Failed to ensure path alias (${response.status})`)
+  }
+
+  return (await response.json()) as PathAliasRecord
+}
+
+export async function resolvePathAlias(aliasId: string, workspace?: string): Promise<ResolvePathAliasResult> {
+  const response = await fetch(`/api/path-alias/resolve?id=${encodeURIComponent(aliasId)}`, {
+    headers: {
+      ...(workspace ? { 'x-tailwatch-workspace': workspace } : {}),
+    },
+  })
+
+  if (!response.ok) {
+    const detail = await response.text()
+    throw new Error(detail || `Failed to resolve path alias (${response.status})`)
+  }
+
+  return (await response.json()) as ResolvePathAliasResult
 }

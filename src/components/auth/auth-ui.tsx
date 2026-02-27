@@ -148,10 +148,10 @@ export function UserMenu({ workspace }: UserMenuProps) {
             className="flex h-9 w-full items-center gap-2 rounded-lg px-3 text-sm hover:bg-muted"
             role="menuitem"
             onClick={() => setIsOpen(false)}
-            title="Manage linked notification devices"
+            title="Manage watchers and notification devices"
           >
             <BellRing className="h-4 w-4" />
-            Manage devices
+            Manage watchers
           </a>
           <Button
             type="button"
