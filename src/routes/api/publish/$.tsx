@@ -1,6 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { appendEvent, getBackendMode } from '~/lib/server/event-repository'
-import { notifyPushSubscribersForEvent } from '~/lib/server/push-notifier'
+import { appendEvent, getBackendMode, sendPushNotificationsForEvent } from '~/lib/server/event-repository'
 
 export const Route = createFileRoute('/api/publish/$')({
   server: {
@@ -16,9 +15,14 @@ export const Route = createFileRoute('/api/publish/$')({
           })
 
           try {
-            await notifyPushSubscribersForEvent(event)
+            await sendPushNotificationsForEvent({
+              workspace: event.workspace,
+              path: event.path,
+              status: event.status,
+              content: event.content,
+            })
           } catch (pushError) {
-            console.warn('[API/Publish] Push notify failed:', pushError)
+            console.warn('[API/Publish] Push fanout failed:', pushError)
           }
 
           return Response.json(event, {

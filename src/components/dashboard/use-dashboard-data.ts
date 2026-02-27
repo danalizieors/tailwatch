@@ -1,6 +1,6 @@
 import { startTransition, useEffect, useState, useRef } from 'react'
 import { fetchDashboardSnapshot, fetchStatusSnapshot } from '~/lib/client-api'
-import type { DashboardSnapshot } from '~/lib/types'
+import type { DashboardSnapshot, StoredEvent } from '~/lib/types'
 import { NotificationManager, getLastSeenTimestamp, setLastSeenTimestamp } from '~/lib/notifications'
 
 interface UseDashboardDataOptions {
@@ -8,6 +8,11 @@ interface UseDashboardDataOptions {
   workspace?: string
   topicPrefix?: string
   pollMs?: number
+}
+
+function isTestEvent(event: StoredEvent): boolean {
+  const content = event.content?.trim()
+  return typeof content === 'string' && content.startsWith('TEST EVENT ')
 }
 
 export function useDashboardData({ mode, workspace, topicPrefix, pollMs = 4000 }: UseDashboardDataOptions) {
@@ -50,14 +55,24 @@ export function useDashboardData({ mode, workspace, topicPrefix, pollMs = 4000 }
             const newest = Math.max(...next.events.map(e => new Date(e.timestamp).getTime()))
             
             if (hasInitialLoadRef.current && newest > lastKnownTsRef.current) {
-              const count = next.events.filter(e => new Date(e.timestamp).getTime() > lastKnownTsRef.current).length
+              const newEvents = next.events.filter(e => new Date(e.timestamp).getTime() > lastKnownTsRef.current)
+              const count = newEvents.length
               if (count > 0) {
                 NotificationManager.playBeep()
                 if (count === 1) {
-                  const e = next.events.find(e => new Date(e.timestamp).getTime() === newest)!
-                  void NotificationManager.showLocalNotification('Tailwatch New Event', `${e.path}: ${e.content?.slice(0, 50) || 'No content'}`)
+                  const e = newEvents.find(e => new Date(e.timestamp).getTime() === newest) ?? newEvents[0]
+                  const isTest = isTestEvent(e)
+                  void NotificationManager.showLocalNotification(
+                    isTest ? 'Tailwatch Test Event' : 'Tailwatch New Event',
+                    `${e.path}: ${e.content?.slice(0, 80) || (isTest ? 'Test signal received.' : 'No content')}`,
+                  )
                 } else {
-                  void NotificationManager.showLocalNotification('Tailwatch New Events', `Received ${count} new telemetry entries.`)
+                  const testCount = newEvents.filter(isTestEvent).length
+                  if (testCount === count) {
+                    void NotificationManager.showLocalNotification('Tailwatch Test Events', `Received ${count} test events.`)
+                  } else {
+                    void NotificationManager.showLocalNotification('Tailwatch New Events', `Received ${count} new telemetry entries.`)
+                  }
                 }
               }
             }

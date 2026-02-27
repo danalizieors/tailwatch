@@ -2,6 +2,7 @@
 export class NotificationManager {
   private static audioCtx: AudioContext | null = null
   private static isSoundEnabled = false
+  private static lastPushError: string | null = null
   private static readonly pushSubscribePath = '/api/push/subscribe'
   private static readonly pushUnsubscribePath = '/api/push/unsubscribe'
 
@@ -86,31 +87,79 @@ export class NotificationManager {
     )
   }
 
-  static async isPushSubscribed(): Promise<boolean> {
+  static async isPushSubscribed(workspace?: string): Promise<boolean> {
     if (!this.isPushSupported()) return false
     try {
+      this.lastPushError = null
+      if (window.Notification.permission !== 'granted') {
+        return false
+      }
+
       const reg = await navigator.serviceWorker.ready
       const subscription = await reg.pushManager.getSubscription()
-      return subscription !== null
+      if (!subscription) return false
+
+      const vapidPublicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY as string | undefined
+      return this.storePushSubscription(subscription, workspace, vapidPublicKey)
     } catch (error) {
       console.warn('Failed to inspect push subscription', error)
       return false
     }
   }
 
+  // Ensure background push is actually wired when permission is already granted,
+  // including auto-repair when the browser dropped an expired/invalid subscription.
+  static async ensureBackgroundPush(workspace?: string): Promise<boolean> {
+    if (!this.isPushSupported()) return false
+
+    try {
+      this.lastPushError = null
+      if (window.Notification.permission !== 'granted') {
+        return false
+      }
+
+      const vapidPublicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY as string | undefined
+      if (!vapidPublicKey) {
+        this.lastPushError = 'Missing VITE_VAPID_PUBLIC_KEY in web app environment.'
+        return false
+      }
+
+      const reg = await navigator.serviceWorker.ready
+      let subscription = await reg.pushManager.getSubscription()
+      if (!subscription) {
+        subscription = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: base64UrlToUint8Array(vapidPublicKey),
+        })
+      }
+
+      return this.storePushSubscription(subscription, workspace, vapidPublicKey)
+    } catch (error) {
+      console.error('Failed to ensure background push', error)
+      this.lastPushError = error instanceof Error ? error.message : 'Failed to ensure background push.'
+      return false
+    }
+  }
+
   static async enableBackgroundPush(workspace?: string): Promise<boolean> {
     try {
+      this.lastPushError = null
       if (!this.isPushSupported()) {
         console.warn('Push API is not supported in this browser')
+        this.lastPushError = 'This browser does not support Push API.'
         return false
       }
 
       const granted = await this.requestPushPermission()
-      if (!granted) return false
+      if (!granted) {
+        this.lastPushError = 'Notification permission was not granted.'
+        return false
+      }
 
-      const vapidPublicKey = import.meta.env.VITE_WEB_PUSH_PUBLIC_KEY as string | undefined
+      const vapidPublicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY as string | undefined
       if (!vapidPublicKey) {
-        console.warn('VITE_WEB_PUSH_PUBLIC_KEY is not configured')
+        console.warn('VITE_VAPID_PUBLIC_KEY is not configured')
+        this.lastPushError = 'Missing VITE_VAPID_PUBLIC_KEY in web app environment.'
         return false
       }
 
@@ -124,27 +173,87 @@ export class NotificationManager {
         })
       }
 
-      const response = await fetch(this.pushSubscribePath, {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          ...(workspace ? { 'x-tailwatch-workspace': workspace } : {}),
-        },
-        body: JSON.stringify({
-          subscription: subscription.toJSON(),
-        }),
-      })
-
-      if (!response.ok) {
-        console.error('Failed to store push subscription', await safeReadText(response))
-        return false
-      }
-
-      return true
+      return this.storePushSubscription(subscription, workspace, vapidPublicKey)
     } catch (error) {
       console.error('Failed to enable background push', error)
+      this.lastPushError = error instanceof Error ? error.message : 'Failed to enable background push.'
       return false
     }
+  }
+
+  static getLastPushError(): string | null {
+    return this.lastPushError
+  }
+
+  private static async storePushSubscription(
+    subscription: PushSubscription,
+    workspace?: string,
+    clientVapidPublicKey?: string,
+    allowRepair = true,
+  ): Promise<boolean> {
+    const response = await fetch(this.pushSubscribePath, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        ...(workspace ? { 'x-tailwatch-workspace': workspace } : {}),
+      },
+      body: JSON.stringify({
+        subscription: subscription.toJSON(),
+        ...(clientVapidPublicKey ? { vapidPublicKey: clientVapidPublicKey } : {}),
+      }),
+    })
+
+    if (!response.ok) {
+      const detail = await safeReadText(response)
+      console.error('Failed to store push subscription', detail)
+      this.lastPushError = formatPushSubscribeHttpError(response.status, detail)
+      return false
+    }
+
+    const parsed = await safeReadJson<{
+      ok?: boolean
+      pushConfigured?: boolean
+      missingConfig?: string[]
+      serverVapidPublicKey?: string
+    }>(response)
+    const backendMode = response.headers.get('x-tailwatch-backend')
+
+    if (parsed?.ok === false) {
+      console.error('Push subscription was rejected by the server')
+      this.lastPushError = 'Push subscription was rejected by the server.'
+      return false
+    }
+
+    if (parsed?.pushConfigured === false) {
+      const missingConfig = parsed.missingConfig ?? []
+      const canRepairKeyMismatch =
+        allowRepair &&
+        missingConfig.includes('VAPID_PUBLIC_KEY_MISMATCH') &&
+        typeof parsed.serverVapidPublicKey === 'string' &&
+        parsed.serverVapidPublicKey.length > 0
+
+      if (canRepairKeyMismatch) {
+        try {
+          await subscription.unsubscribe().catch(() => undefined)
+          const reg = await navigator.serviceWorker.ready
+          const repairedSubscription = await reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: base64UrlToUint8Array(parsed.serverVapidPublicKey!),
+          })
+          return this.storePushSubscription(repairedSubscription, workspace, parsed.serverVapidPublicKey, false)
+        } catch (repairError) {
+          console.error('Failed to repair push subscription with server VAPID key', repairError)
+          this.lastPushError = 'Push key mismatch detected, but automatic re-subscribe failed.'
+        }
+      }
+
+      console.warn('Push subscription saved, but server delivery is not configured', parsed.missingConfig ?? [])
+      this.lastPushError = formatPushConfigError(parsed.missingConfig, backendMode)
+      return false
+    }
+
+    this.lastPushError = null
+    return true
   }
 
   static async disableBackgroundPush(): Promise<boolean> {
@@ -180,6 +289,10 @@ export class NotificationManager {
 
   static async showLocalNotification(title: string, body: string) {
     if (typeof window !== 'undefined' && 'Notification' in window && window.Notification.permission === 'granted') {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        return
+      }
+
       try {
         // Try Service Worker first (preferred for background support)
         if ('serviceWorker' in navigator) {
@@ -223,6 +336,51 @@ async function safeReadText(response: Response) {
   } catch {
     return ''
   }
+}
+
+async function safeReadJson<T>(response: Response): Promise<T | null> {
+  try {
+    return (await response.clone().json()) as T
+  } catch {
+    return null
+  }
+}
+
+function formatPushConfigError(missingConfig?: string[], backendMode?: string | null): string {
+  const items = missingConfig ?? []
+  if (backendMode === 'local') {
+    return 'Push backend is in local mode. Configure CONVEX_URL/VITE_CONVEX_URL on the server runtime.'
+  }
+  if (items.length === 0) {
+    return 'Push subscription saved, but server delivery is not configured.'
+  }
+  if (items.includes('VAPID_PUBLIC_KEY_MISMATCH')) {
+    return 'Client/server VAPID public keys do not match.'
+  }
+  if (items.includes('INVALID_VAPID_KEY_CONFIGURATION')) {
+    return 'VAPID keys are set but not a valid key pair/format.'
+  }
+  return `Missing push config: ${items.join(', ')}.`
+}
+
+function formatPushSubscribeHttpError(status: number, detail: string): string {
+  const parsed = parseServerErrorText(detail)
+  if (parsed) return `Failed to save push subscription: ${parsed}`
+  return `Failed to save push subscription (${status}).`
+}
+
+function parseServerErrorText(detail: string): string | null {
+  const trimmed = detail.trim()
+  if (!trimmed) return null
+  try {
+    const parsed = JSON.parse(trimmed) as { error?: unknown }
+    if (typeof parsed.error === 'string' && parsed.error.trim()) {
+      return parsed.error.trim()
+    }
+  } catch {
+    // Non-JSON response body
+  }
+  return trimmed.slice(0, 300)
 }
 
 // Local storage for "seen" state

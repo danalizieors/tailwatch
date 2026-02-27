@@ -5,16 +5,15 @@ import { getBackendMode, upsertPushSubscription } from '~/lib/server/event-repos
 const pushSubscriptionSchema = z.object({
   endpoint: z.string().url(),
   expirationTime: z.number().nullable().optional(),
-  keys: z
-    .object({
-      p256dh: z.string().optional(),
-      auth: z.string().optional(),
-    })
-    .optional(),
+  keys: z.object({
+    p256dh: z.string().min(1),
+    auth: z.string().min(1),
+  }),
 })
 
 const bodySchema = z.object({
   subscription: pushSubscriptionSchema,
+  vapidPublicKey: z.string().min(1).optional(),
 })
 
 export const Route = createFileRoute('/api/push/subscribe')({
@@ -35,24 +34,22 @@ export const Route = createFileRoute('/api/push/subscribe')({
           const userAgent = request.headers.get('user-agent') ?? undefined
           const subscription = parsed.data.subscription
 
-          await upsertPushSubscription({
+          const result = await upsertPushSubscription({
             endpoint: subscription.endpoint,
             expirationTime:
               typeof subscription.expirationTime === 'number' ? subscription.expirationTime : undefined,
-            p256dh: subscription.keys?.p256dh,
-            auth: subscription.keys?.auth,
+            p256dh: subscription.keys.p256dh,
+            auth: subscription.keys.auth,
             workspace,
             userAgent,
+            clientVapidPublicKey: parsed.data.vapidPublicKey,
           })
 
-          return Response.json(
-            { ok: true },
-            {
-              headers: {
-                'x-tailwatch-backend': getBackendMode(),
-              },
+          return Response.json(result, {
+            headers: {
+              'x-tailwatch-backend': getBackendMode(),
             },
-          )
+          })
         } catch (error) {
           console.error('[API/Push/Subscribe] Error:', error)
           return Response.json(

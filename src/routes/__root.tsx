@@ -35,6 +35,8 @@ export const Route = createRootRoute({
 
 function RootDocument() {
   useEffect(() => {
+    console.info(`[Tailwatch] build ${import.meta.env.VITE_APP_COMMIT_SHA || 'unknown'}`)
+
     if (!('serviceWorker' in navigator)) return
 
     void navigator.serviceWorker

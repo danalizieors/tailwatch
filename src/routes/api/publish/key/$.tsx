@@ -1,6 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { appendEventByBindingKey, getBackendMode } from '~/lib/server/event-repository'
-import { notifyPushSubscribersForEvent } from '~/lib/server/push-notifier'
+import { appendEventByBindingKey, getBackendMode, sendPushNotificationsForEvent } from '~/lib/server/event-repository'
 
 export const Route = createFileRoute('/api/publish/key/$')({
   server: {
@@ -24,9 +23,14 @@ export const Route = createFileRoute('/api/publish/key/$')({
           const event = await appendEventByBindingKey(key, subpath, typeof payload === 'object' ? payload : {})
 
           try {
-            await notifyPushSubscribersForEvent(event)
+            await sendPushNotificationsForEvent({
+              workspace: event.workspace,
+              path: event.path,
+              status: event.status,
+              content: event.content,
+            })
           } catch (pushError) {
-            console.warn('[API/PublishKey] Push notify failed:', pushError)
+            console.warn('[API/PublishKey] Push fanout failed:', pushError)
           }
 
           return Response.json(event, {

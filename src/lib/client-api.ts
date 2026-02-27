@@ -9,6 +9,13 @@ export interface DashboardQuery {
   limit?: number
 }
 
+export interface PushTestResult {
+  attempted: number
+  delivered: number
+  pruned: number
+  skipped: boolean
+}
+
 function toQueryString(query: DashboardQuery) {
   const params = new URLSearchParams()
   if (query.topicPrefix) params.set('topicPrefix', query.topicPrefix)
@@ -59,5 +66,21 @@ export async function publishEvent(path: string, payload: PublishEventPayload, w
     const detail = await response.text()
     throw new Error(detail || `Publish failed (${response.status})`)
   }
+  return response.json()
+}
+
+export async function triggerPushTest(workspace?: string): Promise<PushTestResult> {
+  const response = await fetch('/api/push/test', {
+    method: 'POST',
+    headers: {
+      ...(workspace ? { 'x-tailwatch-workspace': workspace } : {}),
+    },
+  })
+
+  if (!response.ok) {
+    const detail = await response.text()
+    throw new Error(detail || `Push test failed (${response.status})`)
+  }
+
   return response.json()
 }

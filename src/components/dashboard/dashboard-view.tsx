@@ -3,8 +3,8 @@ import { Link } from '@tanstack/react-router'
 import { Activity, Terminal, LayoutGrid, ListTree, Info, Bell, BellOff, Volume2, VolumeX, CheckCircle2, ShieldCheck, Shuffle } from 'lucide-react'
 import { Card, CardContent } from '~/components/ui/card'
 import { Button } from '~/components/ui/button'
-import type { EventStatus, EventType } from '~/lib/types'
-import { publishEvent } from '~/lib/client-api'
+import type { EventStatus } from '~/lib/types'
+import { publishEvent, triggerPushTest } from '~/lib/client-api'
 import { LogStream } from './log-stream'
 import { StatCards } from './stat-cards'
 import { StatusBoard } from './status-board'
@@ -28,7 +28,9 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
   const [hasPushPermission, setHasPushPermission] = useState(false)
   const [isDebugMode, setIsDebugMode] = useState(false)
   const [isGeneratingRandomEvents, setIsGeneratingRandomEvents] = useState(false)
+  const [isSendingPushTest, setIsSendingPushTest] = useState(false)
   const [generatorMessage, setGeneratorMessage] = useState<string | null>(null)
+  const [pushTestMessage, setPushTestMessage] = useState<string | null>(null)
   
   const deferredSearch = useDeferredValue(search)
 
@@ -53,10 +55,22 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
       }
 
       if ('Notification' in window) {
-        void NotificationManager.isPushSubscribed().then(setHasPushPermission)
+        void NotificationManager.isPushSubscribed(workspace).then((subscribed) => {
+          if (subscribed) {
+            setHasPushPermission(true)
+            return
+          }
+
+          if (window.Notification.permission !== 'granted') {
+            setHasPushPermission(false)
+            return
+          }
+
+          void NotificationManager.ensureBackgroundPush(workspace).then(setHasPushPermission)
+        })
       }
     }
-  }, [])
+  }, [workspace])
 
   const toggleSound = () => {
     if (isSoundEnabled) {
@@ -95,6 +109,9 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
 
     const enabled = await NotificationManager.enableBackgroundPush(workspace)
     setHasPushPermission(enabled)
+    if (!enabled && typeof window !== 'undefined' && window.Notification.permission === 'granted') {
+      alert(NotificationManager.getLastPushError() ?? 'Unable to enable background push. Verify backend VAPID configuration and try again.')
+    }
   }
 
   const generateRandomEvents = async () => {
@@ -103,23 +120,38 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
     setIsGeneratingRandomEvents(true)
     setGeneratorMessage(null)
 
-    const batch = buildRandomEventBurst()
-    const results = await Promise.allSettled(
-      batch.map((entry) => publishEvent(entry.path, entry.payload, workspace)),
-    )
-
-    const succeeded = results.filter((result) => result.status === 'fulfilled').length
-    const failed = results.length - succeeded
-
-    refresh()
-
-    if (failed > 0) {
-      setGeneratorMessage(`Generated ${succeeded}/${batch.length} events`)
-    } else {
-      setGeneratorMessage(`Generated ${succeeded} random events`)
+    const testEvent = buildRandomTestEvent()
+    try {
+      await publishEvent(testEvent.path, testEvent.payload, workspace)
+      refresh()
+      setGeneratorMessage(`Test event sent: ${testEvent.path}`)
+    } catch {
+      setGeneratorMessage('Failed to send test event')
     }
 
     setIsGeneratingRandomEvents(false)
+  }
+
+  const sendPushTestToAllDevices = async () => {
+    if (isSendingPushTest) return
+
+    setIsSendingPushTest(true)
+    setPushTestMessage(null)
+
+    try {
+      const result = await triggerPushTest(workspace)
+      if (result.skipped) {
+        setPushTestMessage('Push test skipped: server push is not configured')
+      } else if (result.attempted === 0) {
+        setPushTestMessage('Push test sent: no subscribed devices')
+      } else {
+        setPushTestMessage(`Push test sent: delivered ${result.delivered}/${result.attempted}`)
+      }
+    } catch {
+      setPushTestMessage('Push test failed')
+    }
+
+    setIsSendingPushTest(false)
   }
 
   const filteredEvents = (data?.events ?? []).filter((event) => {
@@ -137,17 +169,34 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
           {generatorMessage}
         </span>
       )}
+      {pushTestMessage && (
+        <span className="hidden md:inline text-[10px] font-semibold text-muted-foreground/80">
+          {pushTestMessage}
+        </span>
+      )}
       <Button
         size="sm"
         variant="outline"
         className="h-8 rounded-lg border-primary/20 bg-primary/5 px-3 text-[9px] font-black uppercase tracking-widest text-primary gap-1.5"
         onClick={generateRandomEvents}
         disabled={isGeneratingRandomEvents}
-        title="Publish a varied random burst of sample events"
+        title="Publish one random test event"
       >
         <Shuffle className="h-3.5 w-3.5" />
-        <span className="hidden sm:inline">{isGeneratingRandomEvents ? 'Generating…' : 'Random Burst'}</span>
-        <span className="sm:hidden">{isGeneratingRandomEvents ? 'Gen…' : 'Burst'}</span>
+        <span className="hidden sm:inline">{isGeneratingRandomEvents ? 'Sending…' : 'Send Test'}</span>
+        <span className="sm:hidden">{isGeneratingRandomEvents ? 'Sending…' : 'Test'}</span>
+      </Button>
+      <Button
+        size="sm"
+        variant="outline"
+        className="h-8 rounded-lg border-primary/20 bg-primary/5 px-3 text-[9px] font-black uppercase tracking-widest text-primary gap-1.5"
+        onClick={sendPushTestToAllDevices}
+        disabled={isSendingPushTest}
+        title="Immediately send a push notification to all connected devices"
+      >
+        <Bell className="h-3.5 w-3.5" />
+        <span className="hidden sm:inline">{isSendingPushTest ? 'Pushing…' : 'Push All'}</span>
+        <span className="sm:hidden">{isSendingPushTest ? 'Push…' : 'Push'}</span>
       </Button>
     </>
   )
@@ -321,19 +370,13 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
   )
 }
 
-type RandomEventDraft = {
+type RandomTestEventDraft = {
   path: string
   payload: {
-    type: EventType
-    timestamp?: string
-    runId?: string
-    entityId?: string
-    entityType?: string
-    level?: 'debug' | 'info' | 'warn' | 'error'
     status?: string
-    content?: string
+    timestamp?: string
+    content: string
     meta?: Record<string, string | number | boolean>
-    metrics?: Record<string, number>
   }
 }
 
@@ -348,139 +391,38 @@ const RANDOM_PATHS = [
   { path: 'support/webhook/slack-sync', entityId: 'slack-sync', entityType: 'integration' },
 ] as const
 
-const RANDOM_MESSAGES = {
-  start: [
-    'Run started',
-    'Starting execution window',
-    'Worker accepted new task batch',
-    'Pipeline bootstrap initialized',
-  ],
-  log: [
-    'Fetched upstream metadata',
-    'Queued 24 items for processing',
-    'Retrying transient dependency timeout',
-    'Applied config diff and reloaded',
-    'Checkpoint written to object store',
-  ],
-  heartbeat: [
-    'Still processing',
-    'Progress heartbeat emitted',
-    'Waiting on downstream ACK',
-    'Worker healthy and active',
-  ],
-  status: [
-    'Idle and waiting for next batch',
-    'Drain mode enabled',
-    'Backpressure detected',
-    'Healthy with low queue depth',
-  ],
-  stop: [
-    'Run completed successfully',
-    'Processing window closed',
-    'Task batch finished',
-  ],
-  error: [
-    'Upstream API returned 502',
-    'Disk quota threshold exceeded',
-    'Rate limit exceeded on provider',
-    'Schema mismatch in payload',
-  ],
-} as const
+const RANDOM_TEST_MESSAGES = [
+  'Synthetic push delivery check',
+  'Notification channel smoke test',
+  'Randomized test signal from dashboard',
+  'End-to-end browser alert validation',
+  'Service worker wakeup verification',
+] as const
 
 function pickRandom<T>(items: readonly T[]): T {
   return items[Math.floor(Math.random() * items.length)] as T
-}
-
-function shuffleArray<T>(items: readonly T[]): T[] {
-  const copy = [...items]
-  for (let i = copy.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(Math.random() * (i + 1))
-    const temp = copy[i]
-    copy[i] = copy[j]
-    copy[j] = temp
-  }
-  return copy
 }
 
 function randomId(prefix: string) {
   return `${prefix}_${Math.random().toString(36).slice(2, 8)}`
 }
 
-function weightedEventType(): EventType {
-  const roll = Math.random()
-  if (roll < 0.2) return 'start'
-  if (roll < 0.5) return 'log'
-  if (roll < 0.67) return 'heartbeat'
-  if (roll < 0.82) return 'status'
-  if (roll < 0.92) return 'stop'
-  return 'error'
-}
+function buildRandomTestEvent(): RandomTestEventDraft {
+  const source = pickRandom(RANDOM_PATHS)
+  const testId = randomId('test')
+  const status = Math.random() < 0.75 ? 'idle' : 'busy'
 
-function buildRandomEventBurst(): RandomEventDraft[] {
-  const count = 3 + Math.floor(Math.random() * 4) // 3-6
-  const paths = shuffleArray(RANDOM_PATHS)
-  const forcedTypes = shuffleArray(['start', 'log', 'heartbeat', 'status', 'stop', 'error'] as const)
-
-  return Array.from({ length: count }, (_, index) => {
-    const source = paths[index % paths.length]
-    const type = index < forcedTypes.length ? forcedTypes[index] : weightedEventType()
-    const timestamp = new Date(Date.now() - Math.floor(Math.random() * 25_000)).toISOString()
-    const runId = `${source.entityId}_${randomId('run')}`
-
-    const base: RandomEventDraft = {
-      path: source.path,
-      payload: {
-        type,
-        timestamp,
-        entityId: source.entityId,
-        entityType: source.entityType,
-        runId: type === 'status' ? undefined : runId,
-        content: pickRandom(RANDOM_MESSAGES[type]),
-        meta: {
-          source: 'random-ui-generator',
-          host: pickRandom(['worker-a', 'worker-b', 'edge-us', 'edge-eu']),
-          burst: true,
-        },
+  return {
+    path: source.path,
+    payload: {
+      timestamp: new Date().toISOString(),
+      status,
+      content: `TEST EVENT ${testId}: ${pickRandom(RANDOM_TEST_MESSAGES)}`,
+      meta: {
+        source: 'dashboard-test-button',
+        test: true,
+        target: source.entityId,
       },
-    }
-
-    if (type === 'log') {
-      base.payload.level = pickRandom(['debug', 'info', 'warn'])
-      if (Math.random() < 0.6) {
-        base.payload.metrics = {
-          queueDepth: Math.floor(Math.random() * 250),
-          latencyMs: Math.floor(Math.random() * 800) + 20,
-        }
-      }
-    }
-
-    if (type === 'heartbeat') {
-      base.payload.metrics = {
-        progressPct: Math.floor(Math.random() * 100),
-        throughputRps: Number((Math.random() * 40 + 1).toFixed(1)),
-      }
-    }
-
-    if (type === 'status') {
-      base.payload.status = pickRandom(['idle', 'working', 'stopped', 'error'])
-    }
-
-    if (type === 'start') {
-      base.payload.status = 'working'
-    }
-
-    if (type === 'stop') {
-      base.payload.status = pickRandom(['success', 'stopped', 'done'])
-    }
-
-    if (type === 'error') {
-      base.payload.level = 'error'
-      base.payload.status = pickRandom(['error', 'failed'])
-      base.payload.metrics = {
-        retries: Math.floor(Math.random() * 5) + 1,
-      }
-    }
-
-    return base
-  })
+    },
+  }
 }

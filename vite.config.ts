@@ -1,4 +1,5 @@
 import { defineConfig, loadEnv } from 'vite'
+import { execSync } from 'node:child_process'
 import tsConfigPaths from 'vite-tsconfig-paths'
 import { tanstackStart } from '@tanstack/react-start/plugin/vite'
 import tailwindcss from '@tailwindcss/vite'
@@ -6,10 +7,25 @@ import viteReact from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import { cloudflare } from "@cloudflare/vite-plugin"
 
+function resolveCommitHash() {
+  try {
+    return execSync('git rev-parse --short=12 HEAD', { stdio: ['ignore', 'pipe', 'ignore'] })
+      .toString()
+      .trim()
+  } catch {
+    const fallback = process.env.GITHUB_SHA || process.env.CI_COMMIT_SHA || process.env.COMMIT_SHA
+    return fallback ? String(fallback).slice(0, 12) : 'unknown'
+  }
+}
+
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd())
+  const commitHash = resolveCommitHash()
 
   return {
+    define: {
+      'import.meta.env.VITE_APP_COMMIT_SHA': JSON.stringify(commitHash),
+    },
     server: {
       port: 3000,
       allowedHosts: env.VITE_ALLOWED_HOSTS ? env.VITE_ALLOWED_HOSTS.split(',') : undefined,
