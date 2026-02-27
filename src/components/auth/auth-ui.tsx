@@ -3,7 +3,7 @@ import { useAuthActions } from "@convex-dev/auth/react";
 import { useConvexAuth, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Button } from "../ui/button";
-import { ChevronDown, Github, LogOut, User } from "lucide-react";
+import { BellRing, ChevronDown, Github, LogOut, User } from "lucide-react";
 
 export function SignIn() {
   const { signIn } = useAuthActions();
@@ -54,7 +54,11 @@ export function SignIn() {
   );
 }
 
-export function UserMenu() {
+interface UserMenuProps {
+  workspace?: string
+}
+
+export function UserMenu({ workspace }: UserMenuProps) {
   const { signOut } = useAuthActions();
   const { isAuthenticated } = useConvexAuth();
   const [isOpen, setIsOpen] = useState(false);
@@ -101,6 +105,7 @@ export function UserMenu() {
   const displayName = user?.name || user?.email || (isDebugMode ? "Guest Mode" : "GitHub User");
   const avatarInitial = (displayName.trim().charAt(0) || "G").toUpperCase();
   const avatarSrc = !isDebugMode ? user?.image ?? undefined : undefined;
+  const settingsHref = workspace && workspace.trim() ? `/settings/devices?workspace=${encodeURIComponent(workspace)}` : '/settings/devices';
 
   return (
     <div ref={menuRef} className="relative ml-1 flex items-center border-l border-border/40 pl-1 sm:ml-2 sm:pl-2">
@@ -138,6 +143,16 @@ export function UserMenu() {
             </p>
             <p className="truncate text-xs font-medium text-foreground">{displayName}</p>
           </div>
+          <a
+            href={settingsHref}
+            className="flex h-9 w-full items-center gap-2 rounded-lg px-3 text-sm hover:bg-muted"
+            role="menuitem"
+            onClick={() => setIsOpen(false)}
+            title="Manage linked notification devices"
+          >
+            <BellRing className="h-4 w-4" />
+            Manage devices
+          </a>
           <Button
             type="button"
             variant="ghost"

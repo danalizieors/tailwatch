@@ -236,7 +236,7 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
             </Link>
           </nav>
 
-          <UserMenu />
+          <UserMenu workspace={workspace} />
         </div>
 
         {/* Global Navigation Input */}

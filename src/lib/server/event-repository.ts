@@ -291,6 +291,21 @@ export async function removePushSubscription(endpoint: string): Promise<{ ok: bo
   return result as { ok: boolean; deleted?: number }
 }
 
+export async function listPushSubscriptions(workspace?: string): Promise<PushSubscriptionRecord[]> {
+  if (getBackendMode() === 'local') {
+    return []
+  }
+
+  const client = createConvexClient()
+  const args: Record<string, string> = {}
+  if (workspace && workspace.trim()) {
+    args.workspace = workspace.trim()
+  }
+
+  const result = await client.query(convexApi.push.listSubscriptionsForWorkspace, args)
+  return Array.isArray(result) ? (result as PushSubscriptionRecord[]) : []
+}
+
 export async function sendPushNotificationsForEvent(input: {
   workspace?: string
   path: string

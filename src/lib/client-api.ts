@@ -16,6 +16,16 @@ export interface PushTestResult {
   skipped: boolean
 }
 
+export interface PushDeviceRecord {
+  endpoint: string
+  expirationTime?: number
+  p256dh?: string
+  auth?: string
+  workspace?: string
+  userAgent?: string
+  updatedAt?: string
+}
+
 function toQueryString(query: DashboardQuery) {
   const params = new URLSearchParams()
   if (query.topicPrefix) params.set('topicPrefix', query.topicPrefix)
@@ -83,4 +93,37 @@ export async function triggerPushTest(workspace?: string): Promise<PushTestResul
   }
 
   return response.json()
+}
+
+export async function fetchPushDevices(workspace?: string): Promise<PushDeviceRecord[]> {
+  const response = await fetch('/api/push/devices', {
+    headers: {
+      ...(workspace ? { 'x-tailwatch-workspace': workspace } : {}),
+    },
+  })
+
+  if (!response.ok) {
+    const detail = await response.text()
+    throw new Error(detail || `Failed to load linked devices (${response.status})`)
+  }
+
+  const parsed = (await response.json()) as { devices?: PushDeviceRecord[] }
+  return Array.isArray(parsed.devices) ? parsed.devices : []
+}
+
+export async function removePushDevice(endpoint: string): Promise<{ ok: boolean; deleted?: number }> {
+  const response = await fetch('/api/push/unsubscribe', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({ endpoint }),
+  })
+
+  if (!response.ok) {
+    const detail = await response.text()
+    throw new Error(detail || `Failed to remove linked device (${response.status})`)
+  }
+
+  return (await response.json()) as { ok: boolean; deleted?: number }
 }
