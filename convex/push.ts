@@ -2,28 +2,12 @@ import { v } from 'convex/values'
 import { internalMutation, internalQuery, mutation, query } from './_generated/server'
 import { getAuthenticatedContext } from './functions'
 
-const DEFAULT_WORKSPACE = 'default'
-const DEFAULT_INCLUDE_PATHS = ['/']
-
-function normalizeWorkspace(value?: string) {
-  const next = value?.trim()
-  return next || DEFAULT_WORKSPACE
-}
-
 function normalizeWatcherKey(value?: string) {
   const next = value?.trim()
   if (!next) {
-    return `watcher_${Math.random().toString(36).slice(2, 10)}`
+    return `device_${Math.random().toString(36).slice(2, 10)}`
   }
   return next.slice(0, 128)
-}
-
-function omitUndefined<T extends Record<string, unknown>>(value: T) {
-  const next: Record<string, unknown> = {}
-  for (const [key, entry] of Object.entries(value)) {
-    if (entry !== undefined) next[key] = entry
-  }
-  return next
 }
 
 function getEnv(name: string): string | undefined {
@@ -128,134 +112,58 @@ type PushSubscriptionRecord = {
 }
 
 function mapPushSubscription(row: any): PushSubscriptionRecord {
+  const watcherKey = typeof row.userId === 'string' && row.userId.trim() ? row.userId : normalizeWatcherKey()
   return {
     endpoint: row.endpoint,
-    expirationTime: row.expirationTime,
     p256dh: row.p256dh,
     auth: row.auth,
-    workspace: row.workspace,
-    userAgent: row.userAgent,
-    updatedAt: row.updatedAt,
+    workspace: undefined,
+    userAgent: undefined,
+    updatedAt: new Date(row._creationTime ?? Date.now()).toISOString(),
     watcherId: String(row._id),
-    watcherKey: row.watcherKey,
+    watcherKey,
     watcherName: row.name,
-    enabled: row.enabled,
-    includePaths: Array.isArray(row.includePaths) ? row.includePaths : [...DEFAULT_INCLUDE_PATHS],
-    ignorePaths: Array.isArray(row.ignorePaths) ? row.ignorePaths : [],
+    enabled: row.notifications,
+    includePaths: ['/'],
+    ignorePaths: [],
   }
 }
 
-function isOwnerAuthorized(row: any, ownerUserId?: string, scopedWatcherKey?: string) {
-  if (ownerUserId) {
-    return row.userId === ownerUserId
-  }
-
-  if (row.userId) return false
-
-  if (!scopedWatcherKey) return false
-
-  return row.watcherKey === scopedWatcherKey
+async function listAllDeviceRows(ctx: any) {
+  return ctx.db.query('devices').collect()
 }
 
-async function dedupSubscriptions(rows: any[]) {
-  const deduped = new Map<string, any>()
-  for (const row of rows) {
-    if (!row.endpoint) continue
-
-    const existing = deduped.get(row.endpoint)
-    if (!existing) {
-      deduped.set(row.endpoint, row)
-      continue
-    }
-
-    const currentTs = Date.parse(String(existing.updatedAt ?? existing.createdAt ?? 0)) || 0
-    const nextTs = Date.parse(String(row.updatedAt ?? row.createdAt ?? 0)) || 0
-    if (nextTs >= currentTs) {
-      deduped.set(row.endpoint, row)
-    }
-  }
-
-  return Array.from(deduped.values()).map(mapPushSubscription)
+async function findDeviceByKey(ctx: any, watcherKey: string) {
+  const rows = await listAllDeviceRows(ctx)
+  return rows.find((row: any) => row.userId === watcherKey)
 }
 
-async function listSubscriptionsByWorkspace(ctx: any, workspace: string, owner?: { userId?: string; watcherKey?: string }) {
-  const rows = await ctx.db
-    .query('watchers')
-    .withIndex('by_workspace', (q: any) => q.eq('workspace', workspace))
-    .collect()
-
-  const scoped = rows.filter((row: any) => {
-    if (!row.endpoint) return false
-    if (!owner) return true
-    return isOwnerAuthorized(row, owner.userId, owner.watcherKey)
-  })
-
-  return dedupSubscriptions(scoped)
-}
-
-async function clearLegacySubscriptionsByEndpoint(ctx: any, endpoint: string) {
-  const rows = await ctx.db
-    .query('push_subscriptions')
-    .withIndex('by_endpoint', (q: any) => q.eq('endpoint', endpoint))
-    .collect()
-
-  for (const row of rows) {
-    await ctx.db.delete(row._id)
-  }
-
-  return rows.length
-}
-
-async function clearWatcherSubscriptionByEndpoint(ctx: any, endpoint: string, workspace?: string) {
-  const rows = workspace
-    ? await ctx.db
-        .query('watchers')
-        .withIndex('by_workspace', (q: any) => q.eq('workspace', workspace))
-        .collect()
-    : await ctx.db.query('watchers').collect()
-
+async function clearSubscriptionByEndpoint(ctx: any, endpoint: string) {
+  const rows = await listAllDeviceRows(ctx)
   const matched = rows.filter((row: any) => row.endpoint === endpoint)
 
   for (const row of matched) {
     await ctx.db.patch(row._id, {
       endpoint: undefined,
-      expirationTime: undefined,
       p256dh: undefined,
       auth: undefined,
-      enabled: false,
-      updatedAt: new Date().toISOString(),
+      notifications: false,
     })
   }
 
   return matched.length
 }
 
-async function clearWatcherSubscriptionByKey(
-  ctx: any,
-  input: { workspace: string; watcherKey: string; ownerUserId?: string; requiresOwnerCheck: boolean },
-) {
-  const watcher = await ctx.db
-    .query('watchers')
-    .withIndex('by_workspace_watcher_key', (q: any) => q.eq('workspace', input.workspace).eq('watcherKey', input.watcherKey))
-    .first()
+async function clearSubscriptionByWatcherKey(ctx: any, watcherKey: string) {
+  const device = await findDeviceByKey(ctx, watcherKey)
+  if (!device) return 0
 
-  if (!watcher) {
-    return 0
-  }
-
-  if (input.requiresOwnerCheck && !isOwnerAuthorized(watcher, input.ownerUserId, input.watcherKey)) {
-    return 0
-  }
-
-  await ctx.db.patch(watcher._id, {
+  await ctx.db.patch(device._id, {
     endpoint: undefined,
-    expirationTime: undefined,
     p256dh: undefined,
     auth: undefined,
-    enabled: false,
-    updatedAt: new Date().toISOString(),
+    notifications: false,
   })
-
   return 1
 }
 
@@ -273,38 +181,23 @@ export const upsertSubscription = mutation({
     enabled: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const authCtx = await getAuthenticatedContext(ctx)
+    await getAuthenticatedContext(ctx)
     const pushConfig = getPushConfigStatus(args.clientVapidPublicKey)
-    const now = new Date().toISOString()
-    const workspace = normalizeWorkspace(args.workspace)
-    const userId = authCtx.userId ? String(authCtx.userId) : undefined
+
     const watcherKey = normalizeWatcherKey(args.watcherKey ?? args.endpoint)
+    const watcherName = args.watcherName?.trim() ? args.watcherName.trim().slice(0, 120) : `Device ${watcherKey.slice(-6)}`
 
-    const existing = await ctx.db
-      .query('watchers')
-      .withIndex('by_workspace_watcher_key', (q: any) => q.eq('workspace', workspace).eq('watcherKey', watcherKey))
-      .first()
-
-    if (existing?.userId && userId && existing.userId !== userId) {
-      throw new Error('Watcher key is already bound to another user')
-    }
-
-    const patch = omitUndefined({
-      workspace,
-      watcherKey,
-      name: args.watcherName?.trim() ? args.watcherName.trim().slice(0, 120) : undefined,
-      endpoint: args.endpoint,
-      expirationTime: args.expirationTime,
-      p256dh: args.p256dh,
-      auth: args.auth,
-      userAgent: args.userAgent,
-      userId,
-      enabled: typeof args.enabled === 'boolean' ? args.enabled : true,
-      updatedAt: now,
-    })
-
+    const existing = await findDeviceByKey(ctx, watcherKey)
     if (existing) {
-      await ctx.db.patch(existing._id, patch)
+      await ctx.db.patch(existing._id, {
+        userId: watcherKey,
+        name: watcherName,
+        notifications: typeof args.enabled === 'boolean' ? args.enabled : true,
+        endpoint: args.endpoint,
+        p256dh: args.p256dh,
+        auth: args.auth,
+      })
+
       return {
         ok: true,
         id: String(existing._id),
@@ -315,22 +208,13 @@ export const upsertSubscription = mutation({
       }
     }
 
-    const createdId = await ctx.db.insert('watchers', {
-      ...(patch as any),
-      workspace,
-      watcherKey,
-      name: args.watcherName?.trim() ? args.watcherName.trim().slice(0, 120) : `Watcher ${watcherKey.slice(-6)}`,
-      enabled: typeof args.enabled === 'boolean' ? args.enabled : true,
-      includePaths: [...DEFAULT_INCLUDE_PATHS],
-      ignorePaths: [],
+    const createdId = await ctx.db.insert('devices', {
+      userId: watcherKey,
+      name: watcherName,
+      notifications: typeof args.enabled === 'boolean' ? args.enabled : true,
       endpoint: args.endpoint,
-      expirationTime: args.expirationTime,
       p256dh: args.p256dh,
       auth: args.auth,
-      userAgent: args.userAgent,
-      userId,
-      updatedAt: now,
-      createdAt: now,
     })
 
     return {
@@ -351,44 +235,16 @@ export const removeSubscription = mutation({
     watcherKey: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const authCtx = await getAuthenticatedContext(ctx)
-    const ownerUserId = authCtx.userId ? String(authCtx.userId) : undefined
-
-    const workspace = normalizeWorkspace(args.workspace)
-    const watcherKey = args.watcherKey ? normalizeWatcherKey(args.watcherKey) : undefined
+    await getAuthenticatedContext(ctx)
 
     let deleted = 0
 
-    if (watcherKey) {
-      deleted += await clearWatcherSubscriptionByKey(ctx, {
-        workspace,
-        watcherKey,
-        ownerUserId,
-        requiresOwnerCheck: true,
-      })
+    if (args.watcherKey) {
+      deleted += await clearSubscriptionByWatcherKey(ctx, normalizeWatcherKey(args.watcherKey))
     }
 
     if (args.endpoint) {
-      const scopedRows = await ctx.db
-        .query('watchers')
-        .withIndex('by_workspace', (q: any) => q.eq('workspace', workspace))
-        .collect()
-
-      for (const row of scopedRows) {
-        if (row.endpoint !== args.endpoint) continue
-        if (!isOwnerAuthorized(row, ownerUserId, watcherKey)) continue
-        await ctx.db.patch(row._id, {
-          endpoint: undefined,
-          expirationTime: undefined,
-          p256dh: undefined,
-          auth: undefined,
-          enabled: false,
-          updatedAt: new Date().toISOString(),
-        })
-        deleted += 1
-      }
-
-      deleted += await clearLegacySubscriptionsByEndpoint(ctx, args.endpoint)
+      deleted += await clearSubscriptionByEndpoint(ctx, args.endpoint)
     }
 
     return { ok: true, deleted }
@@ -401,10 +257,8 @@ export const removeSubscriptionInternal = internalMutation({
     workspace: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const workspace = args.workspace ? normalizeWorkspace(args.workspace) : undefined
-    const deletedWatchers = await clearWatcherSubscriptionByEndpoint(ctx, args.endpoint, workspace)
-    const deletedLegacy = await clearLegacySubscriptionsByEndpoint(ctx, args.endpoint)
-    return { ok: true, deleted: deletedWatchers + deletedLegacy }
+    const deleted = await clearSubscriptionByEndpoint(ctx, args.endpoint)
+    return { ok: true, deleted }
   },
 })
 
@@ -412,9 +266,9 @@ export const listSubscriptionsForWorkspaceInternal = internalQuery({
   args: {
     workspace: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const workspace = normalizeWorkspace(args.workspace)
-    return listSubscriptionsByWorkspace(ctx, workspace)
+  handler: async (ctx) => {
+    const rows = await listAllDeviceRows(ctx)
+    return rows.filter((row: any) => row.endpoint).map(mapPushSubscription)
   },
 })
 
@@ -424,15 +278,14 @@ export const listSubscriptionsForWorkspace = query({
     watcherKey: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const authCtx = await getAuthenticatedContext(ctx)
-    const ownerUserId = authCtx.userId ? String(authCtx.userId) : undefined
+    await getAuthenticatedContext(ctx)
 
-    const workspace = normalizeWorkspace(args.workspace)
-    const watcherKey = args.watcherKey ? normalizeWatcherKey(args.watcherKey) : undefined
+    const rows = await listAllDeviceRows(ctx)
+    const keyed = args.watcherKey ? normalizeWatcherKey(args.watcherKey) : undefined
 
-    return listSubscriptionsByWorkspace(ctx, workspace, {
-      userId: ownerUserId,
-      watcherKey,
-    })
+    return rows
+      .filter((row: any) => Boolean(row.endpoint))
+      .filter((row: any) => (keyed ? row.userId === keyed : true))
+      .map(mapPushSubscription)
   },
 })

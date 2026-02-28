@@ -1,10 +1,10 @@
-import { useDeferredValue, useState, useEffect } from 'react'
+import { useDeferredValue, useState, useEffect, useMemo } from 'react'
 import { Link } from '@tanstack/react-router'
-import { Activity, Terminal, LayoutGrid, ListTree, Info, Bell, BellOff, Volume2, VolumeX, ShieldCheck, Shuffle } from 'lucide-react'
+import { Activity, Terminal, LayoutGrid, ListTree, Info, Bell, BellOff, Volume2, VolumeX, ShieldCheck, Shuffle, Copy, Check } from 'lucide-react'
 import { Card, CardContent } from '~/components/ui/card'
 import { Button } from '~/components/ui/button'
 import type { EventStatus } from '~/lib/types'
-import { ensurePathAlias, fetchCurrentWatcher, publishEvent, resolvePathAlias } from '~/lib/client-api'
+import { ensurePathAlias, fetchCurrentWatcher, fetchManagedVolumes, publishEvent, resolvePathAlias } from '~/lib/client-api'
 import { LogStream } from './log-stream'
 import { StatCards } from './stat-cards'
 import { StatusBoard } from './status-board'
@@ -29,6 +29,8 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
   const [isDebugMode, setIsDebugMode] = useState(false)
   const [isGeneratingRandomEvents, setIsGeneratingRandomEvents] = useState(false)
   const [generatorMessage, setGeneratorMessage] = useState<string | null>(null)
+  const [copiedCurlVariant, setCopiedCurlVariant] = useState<'header' | 'url' | null>(null)
+  const [volumePublishKey, setVolumePublishKey] = useState<string | null>(null)
   const [isHydratingFilter, setIsHydratingFilter] = useState(true)
   
   const deferredSearch = useDeferredValue(search)
@@ -68,11 +70,17 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
           try {
             const resolved = await resolvePathAlias(aliasId, workspace)
             if (!cancelled) {
-              setSelectedTopic(normalizeTopicPath(resolved.path))
+              const fallbackAliasPath = normalizeTopicPath(aliasId)
+              const resolvedPath = normalizeTopicPath(resolved.path)
+              if (resolved.found && resolvedPath) {
+                setSelectedTopic(resolvedPath)
+              } else {
+                setSelectedTopic(directPath ?? fallbackAliasPath)
+              }
             }
           } catch {
             if (!cancelled) {
-              setSelectedTopic(directPath)
+              setSelectedTopic(directPath ?? normalizeTopicPath(aliasId))
             }
           } finally {
             if (!cancelled) {
@@ -156,6 +164,59 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
     }
   }, [selectedTopic, workspace, isHydratingFilter])
 
+  const activeWorkspace = workspace?.trim() || 'personal'
+
+  useEffect(() => {
+    let cancelled = false
+
+    const loadVolumePublishKey = async () => {
+      try {
+        const volumes = await fetchManagedVolumes()
+        if (cancelled) return
+
+        const workspaceToken = activeWorkspace.trim()
+        const matchedVolume =
+          volumes.find((row) => row.key.value.trim() === workspaceToken) ??
+          volumes.find((row) => row.name === workspaceToken) ??
+          (workspaceToken === 'personal' ? volumes.find((row) => row.isDefault) : undefined)
+
+        const key = matchedVolume?.key?.value?.trim()
+        if (key && key.length > 0) {
+          setVolumePublishKey(key)
+          return
+        }
+
+        // If current workspace token is already an alias, use it directly.
+        if (workspaceToken && workspaceToken !== 'personal') {
+          setVolumePublishKey(workspaceToken)
+          return
+        }
+
+        setVolumePublishKey(null)
+      } catch {
+        if (!cancelled) {
+          setVolumePublishKey(null)
+        }
+      }
+    }
+
+    void loadVolumePublishKey()
+
+    return () => {
+      cancelled = true
+    }
+  }, [activeWorkspace])
+
+  useEffect(() => {
+    if (!copiedCurlVariant || typeof window === 'undefined') return
+    const timer = window.setTimeout(() => {
+      setCopiedCurlVariant(null)
+    }, 1800)
+    return () => {
+      window.clearTimeout(timer)
+    }
+  }, [copiedCurlVariant])
+
   const toggleSound = () => {
     if (isSoundEnabled) {
       NotificationManager.disableSound()
@@ -223,6 +284,18 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
     const haystack = `${event.path} ${event.content ?? ''} ${event.entityId ?? ''} ${event.runId ?? ''}`.toLowerCase()
     return haystack.includes(q)
   })
+
+  const curlFilterPath = selectedTopic
+  const curlExampleBody = useMemo(() => buildRandomCurlFrontmatterBody(), [curlFilterPath, volumePublishKey])
+  const curlCommands =
+    curlFilterPath && curlFilterPath.trim() && volumePublishKey
+      ? buildPublishCurlCommands({
+          baseUrl: typeof window === 'undefined' ? 'http://localhost:3000' : window.location.origin,
+          key: volumePublishKey,
+          path: curlFilterPath,
+          body: curlExampleBody,
+        })
+      : null
 
   const randomBurstControl = (
     <>
@@ -304,7 +377,7 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
           <nav className="no-scrollbar flex max-w-full items-center overflow-x-auto rounded-lg border border-primary/10 bg-primary/5 p-1 shadow-sm backdrop-blur-sm">
             <Link
               to="/$workspaceId"
-              params={{ workspaceId: workspace ?? 'default' }}
+              params={{ workspaceId: workspace ?? 'personal' }}
               activeProps={{ className: 'bg-background text-primary border-border/60 shadow-sm' }}
               className="flex items-center gap-1.5 px-2.5 md:px-3.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 hover:text-foreground border border-transparent"
             >
@@ -312,8 +385,8 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
               <span className="hidden sm:inline">Logs</span>
             </Link>
             <Link
-              to={workspace && workspace !== 'default' ? '/$workspaceId/status' : '/status'}
-              params={workspace && workspace !== 'default' ? { workspaceId: workspace } : {}}
+              to={workspace && workspace !== 'personal' ? '/$workspaceId/status' : '/status'}
+              params={workspace && workspace !== 'personal' ? { workspaceId: workspace } : {}}
               activeProps={{ className: 'bg-background text-primary border-border/60 shadow-sm' }}
               className="flex items-center gap-1.5 px-2.5 md:px-3.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 hover:text-foreground border border-transparent"
             >
@@ -357,6 +430,75 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
               </CardContent>
             </Card>
           )}
+
+          <Card className="border-primary/20 bg-primary/5 backdrop-blur shadow-sm overflow-hidden shrink-0">
+            <CardContent className="p-3 md:p-4 space-y-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-primary/90">Publish With Curl</p>
+                  <p className="text-xs text-muted-foreground">
+                    {!curlFilterPath
+                      ? 'Select a path filter to generate a curl command for that path.'
+                      : !volumePublishKey
+                        ? 'No publish alias found for this workspace.'
+                        : `Posts to filtered path: ${curlFilterPath}`
+                    }
+                  </p>
+                  {volumePublishKey ? (
+                    <p className="text-[10px] text-muted-foreground/80">
+                      Using workspace alias: <span className="font-mono">{volumePublishKey}</span>
+                    </p>
+                  ) : null}
+                </div>
+                <span className="text-[10px] font-medium text-muted-foreground">Two options</span>
+              </div>
+              {curlCommands ? (
+                <div className="space-y-2">
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Header alias</p>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 gap-1.5 text-[10px] font-bold uppercase tracking-wider"
+                        onClick={() => {
+                          void navigator.clipboard.writeText(curlCommands.header)
+                          setCopiedCurlVariant('header')
+                        }}
+                      >
+                        {copiedCurlVariant === 'header' ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                        {copiedCurlVariant === 'header' ? 'Copied' : 'Copy'}
+                      </Button>
+                    </div>
+                    <pre className="w-full overflow-x-auto rounded-lg border border-border/60 bg-card/80 p-2.5 text-[10px] leading-5 text-foreground md:text-[11px]">
+                      <code>{curlCommands.header}</code>
+                    </pre>
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Key in URL</p>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 gap-1.5 text-[10px] font-bold uppercase tracking-wider"
+                        onClick={() => {
+                          void navigator.clipboard.writeText(curlCommands.url)
+                          setCopiedCurlVariant('url')
+                        }}
+                      >
+                        {copiedCurlVariant === 'url' ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                        {copiedCurlVariant === 'url' ? 'Copied' : 'Copy'}
+                      </Button>
+                    </div>
+                    <pre className="w-full overflow-x-auto rounded-lg border border-border/60 bg-card/80 p-2.5 text-[10px] leading-5 text-foreground md:text-[11px]">
+                      <code>{curlCommands.url}</code>
+                    </pre>
+                  </div>
+                </div>
+              ) : null}
+            </CardContent>
+          </Card>
 
           <div className="flex-1 min-h-0 flex flex-col">
              {isLoading && !data ? (
@@ -424,6 +566,35 @@ function normalizeTopicPath(value?: string | null) {
   const trimmed = value.trim()
   if (!trimmed || trimmed === '/') return undefined
   return trimmed.replace(/^\/+|\/+$/g, '').replace(/\/+/g, '/')
+}
+
+function encodeTopicPathForUrl(path: string) {
+  return path
+    .split('/')
+    .filter(Boolean)
+    .map((segment) => encodeURIComponent(segment))
+    .join('/')
+}
+
+function buildPublishCurlCommands(input: { baseUrl: string; key: string; path: string; body: string }) {
+  const baseUrl = input.baseUrl.replace(/\/+$/g, '')
+  const encodedKey = encodeURIComponent(input.key)
+  const encodedPath = encodeTopicPathForUrl(input.path)
+  const escapedBody = escapeShellSingleQuoted(input.body)
+  return {
+    header: `curl "${baseUrl}/api/publish/key/${encodedPath}" -H "x-volume-key: ${input.key}" -d '${escapedBody}'`,
+    url: `curl "${baseUrl}/api/publish/${encodedKey}/${encodedPath}" -d '${escapedBody}'`,
+  }
+}
+
+function escapeShellSingleQuoted(value: string) {
+  return value.replace(/'/g, `'"'"'`)
+}
+
+function buildRandomCurlFrontmatterBody() {
+  const status = Math.random() < 0.5 ? 'busy' : 'idle'
+  const content = `${pickRandom(RANDOM_TEST_MESSAGES)} (${randomId('curl')})`
+  return `${status} --- ${content}`
 }
 
 type RandomTestEventDraft = {

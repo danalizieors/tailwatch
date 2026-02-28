@@ -1,19 +1,86 @@
 import { v } from 'convex/values'
+import { adjectives, nouns } from 'human-id'
 import { mutation, query } from './_generated/server'
 import { getAuthenticatedContext } from './functions'
 
 const MAX_EVENTS_FOR_SNAPSHOT = 5_000
-const DEFAULT_VOLUME = 'default'
+const DEFAULT_VOLUME = 'personal'
+const DEFAULT_PERSONAL_VOLUME = 'personal'
+const KEY_ADJECTIVES = adjectives
+const KEY_NOUNS = nouns
 
 type EventStatus = 'busy' | 'idle'
+
+type VolumeDoc = {
+  _id: any
+  userId?: string
+  name: string
+  key?: string
+  keyEnabled?: boolean
+}
+
+type PathDoc = {
+  _id: any
+  volumeId?: string
+  path: string
+}
+
+type EventDoc = {
+  _id: any
+  _creationTime: number
+  pathId?: string
+  time: string
+  status: EventStatus
+  content?: string
+}
+
+function normalizeUserId(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined
+  const next = value.trim()
+  return next ? next : undefined
+}
 
 function normalizeWorkspace(value?: string) {
   const next = value?.trim()
   return next || DEFAULT_VOLUME
 }
 
+function pickRandomItem(values: readonly string[]) {
+  const index = Math.floor(Math.random() * values.length)
+  return values[index] ?? values[0] ?? 'steady'
+}
+
+function singularizeNoun(value: string) {
+  const word = value.toLowerCase()
+  if (word.endsWith('ies')) return `${word.slice(0, -3)}y`
+  if (word.endsWith('ches') || word.endsWith('shes') || word.endsWith('xes') || word.endsWith('zes') || word.endsWith('ses')) {
+    return word.slice(0, -2)
+  }
+  if (word.endsWith('s') && !word.endsWith('ss')) return word.slice(0, -1)
+  return word
+}
+
+function generateHumanReadableKey() {
+  const adjective = pickRandomItem(KEY_ADJECTIVES)
+  const noun = singularizeNoun(pickRandomItem(KEY_NOUNS))
+  const number = 10 + Math.floor(Math.random() * 90)
+  return `${adjective}-${noun}-${number}`
+}
+
+async function generateUniqueVolumeKey(ctx: any) {
+  for (let attempt = 0; attempt < 64; attempt += 1) {
+    const value = generateHumanReadableKey()
+    const existing = await ctx.db
+      .query('volumes')
+      .withIndex('by_key', (q: any) => q.eq('key', value))
+      .first()
+    if (!existing) return value
+  }
+  throw new Error('Failed to generate a unique key')
+}
+
 function normalizeTopicPath(value: string) {
-  return value.replace(/^\/+|\/+$/g, '').replace(/\/+/g, '/')
+  return value.replace(/^\/+|\/+$/g, '').replace(/\/+$/g, '').replace(/\/+/g, '/')
 }
 
 function splitTopicPath(value: string) {
@@ -70,6 +137,11 @@ function pathStatusRank(status: EventStatus) {
   }
 }
 
+function docIngestedAt(doc: { _creationTime?: number }) {
+  const ts = typeof doc._creationTime === 'number' ? doc._creationTime : Date.now()
+  return new Date(ts).toISOString()
+}
+
 function toEntityCompat(row: any) {
   const segments = Array.isArray(row.segments) && row.segments.length > 0 ? row.segments : String(row.path ?? '').split('/').filter(Boolean)
   const entityId = segments[segments.length - 1] || row.path || 'path'
@@ -86,76 +158,104 @@ function toEntityCompat(row: any) {
   }
 }
 
-function bytesToHex(input: ArrayBuffer) {
-  return Array.from(new Uint8Array(input))
-    .map((byte) => byte.toString(16).padStart(2, '0'))
-    .join('')
+async function resolveVolumeByName(ctx: any, workspace: string, userId?: string) {
+  const normalizedUserId = normalizeUserId(userId)
+  const rows = await ctx.db
+    .query('volumes')
+    .withIndex('by_user_and_name', (q: any) => q.eq('userId', normalizedUserId).eq('name', workspace))
+    .collect()
+  return (rows[0] ?? null) as VolumeDoc | null
 }
 
-async function hashWriteKey(value: string) {
-  const encoded = new TextEncoder().encode(value)
-  const digest = await crypto.subtle.digest('SHA-256', encoded)
-  return `sha256_${bytesToHex(digest)}`
+async function ensureVolumeHasKey(ctx: any, volume: VolumeDoc) {
+  const existingKey = typeof volume.key === 'string' ? volume.key.trim() : ''
+  if (existingKey) return volume
+
+  const key = await generateUniqueVolumeKey(ctx)
+  await ctx.db.patch(volume._id, {
+    key,
+    keyEnabled: true,
+  })
+  const updated = (await ctx.db.get(volume._id)) as VolumeDoc | null
+  if (!updated) {
+    return {
+      ...volume,
+      key,
+      keyEnabled: true,
+    }
+  }
+  return updated
 }
 
 async function ensureVolumeExists(ctx: any, workspace: string, userId?: string) {
-  const existing = await ctx.db
-    .query('volumes')
-    .withIndex('by_slug', (q: any) => q.eq('slug', workspace))
-    .first()
+  const normalizedUserId = normalizeUserId(userId)
+  const existing = await resolveVolumeByName(ctx, workspace, normalizedUserId)
+  if (existing) return ensureVolumeHasKey(ctx, existing)
 
-  if (existing) return existing
-
-  const now = new Date().toISOString()
+  const key = await generateUniqueVolumeKey(ctx)
   const id = await ctx.db.insert('volumes', {
-    slug: workspace,
+    userId: normalizedUserId,
     name: workspace,
-    ownerUserId: userId,
-    createdAt: now,
-    updatedAt: now,
+    key,
+    keyEnabled: true,
   })
 
   return {
     _id: id,
-    slug: workspace,
+    userId: normalizedUserId,
     name: workspace,
-    ownerUserId: userId,
-    createdAt: now,
-    updatedAt: now,
+    key,
+    keyEnabled: true,
   }
 }
 
-function mapEventDoc(doc: any) {
-  const time = String(doc.time ?? doc.timestamp ?? new Date().toISOString())
+async function ensureDefaultPersonalVolumeForUser(ctx: any, userId?: string) {
+  const normalizedUserId = normalizeUserId(userId)
+  if (!normalizedUserId) return null
+  return ensureVolumeExists(ctx, DEFAULT_PERSONAL_VOLUME, normalizedUserId)
+}
+
+async function ensurePathExists(ctx: any, volumeId: string, path: string) {
+  const rows = await ctx.db
+    .query('paths')
+    .withIndex('by_volume', (q: any) => q.eq('volumeId', volumeId))
+    .collect()
+  const existing = rows.find((row: any) => row.path === path)
+  if (existing) return existing
+
+  const id = await ctx.db.insert('paths', {
+    volumeId,
+    path,
+  })
+
+  return {
+    _id: id,
+    volumeId,
+    path,
+  }
+}
+
+function mapEventDoc(doc: EventDoc, pathDoc: PathDoc, workspace: string) {
+  const time = String(doc.time ?? new Date().toISOString())
+  const path = String(pathDoc.path ?? '')
+  const segments = splitTopicPath(path)
+  const ingestedAt = docIngestedAt(doc)
+
   return {
     id: String(doc._id),
-    workspace: doc.workspace ?? DEFAULT_VOLUME,
-    path: doc.path,
-    segments: doc.segments,
+    workspace,
+    path,
+    segments,
     time,
     timestamp: time,
-    ingestedAt: String(doc.ingestedAt ?? time),
+    ingestedAt,
     status: doc.status,
     content: doc.content,
-    pathId: doc.pathId,
-    submittedPath: doc.submittedPath,
+    pathId: doc.pathId ? String(doc.pathId) : undefined,
+    submittedPath: undefined,
     type: 'status',
-    entityId: Array.isArray(doc.segments) && doc.segments.length > 0 ? doc.segments[doc.segments.length - 1] : doc.path,
+    entityId: segments[segments.length - 1] || path,
     entityType: 'path',
-  }
-}
-
-function mapPathDoc(doc: any) {
-  return {
-    key: doc.key,
-    workspace: doc.workspace ?? DEFAULT_VOLUME,
-    path: doc.path,
-    segments: doc.segments,
-    status: doc.status,
-    lastTime: doc.lastTime,
-    lastIngestedAt: doc.lastIngestedAt,
-    lastSeenAt: doc.lastIngestedAt,
-    lastContent: doc.lastContent,
   }
 }
 
@@ -242,49 +342,48 @@ function buildTopicTree(events: Array<{ segments: string[] }>) {
   return finalize(root.children)
 }
 
-async function upsertPathState(
-  ctx: any,
-  input: {
-    workspace: string
-    path: string
-    segments: string[]
-    status: EventStatus
-    time: string
-    ingestedAt: string
-    content?: string
-    userId?: string
-  },
-) {
-  const existing = await ctx.db
+async function loadVolumeContext(ctx: any, workspaceRaw?: string, userId?: string) {
+  const normalizedUserId = normalizeUserId(userId)
+  const workspace = normalizeWorkspace(workspaceRaw)
+  const volume = await resolveVolumeByName(ctx, workspace, normalizedUserId)
+  if (!volume) {
+    return {
+      workspace,
+      volume: null,
+      pathDocs: [] as PathDoc[],
+      pathById: new Map<string, PathDoc>(),
+      pathIds: new Set<string>(),
+    }
+  }
+
+  const volumeId = String(volume._id)
+  const pathDocs = (await ctx.db
     .query('paths')
-    .withIndex('by_workspace_path', (q: any) => q.eq('workspace', input.workspace).eq('path', input.path))
-    .first()
+    .withIndex('by_volume', (q: any) => q.eq('volumeId', volumeId))
+    .collect()) as PathDoc[]
+  const pathById = new Map(pathDocs.map((row) => [String(row._id), row]))
+  const pathIds = new Set(pathDocs.map((row) => String(row._id)))
 
-  const patch = {
-    workspace: input.workspace,
-    key: `${input.workspace}::${input.path}`,
-    path: input.path,
-    segments: input.segments,
-    status: input.status,
-    lastTime: input.time,
-    lastIngestedAt: input.ingestedAt,
-    lastContent: input.content,
-    userId: input.userId,
+  return {
+    workspace,
+    volume,
+    pathDocs,
+    pathById,
+    pathIds,
   }
+}
 
-  if (existing) {
-    await ctx.db.patch(existing._id, patch)
-    return { id: String(existing._id), doc: { ...existing, ...patch } }
-  }
-
-  const inserted = await ctx.db.insert('paths', patch)
-  return { id: String(inserted), doc: { ...patch, _id: inserted } }
+async function loadVolumeEvents(ctx: any, pathIds: Set<string>) {
+  if (pathIds.size === 0) return [] as EventDoc[]
+  const allEvents = (await ctx.db.query('events').collect()) as EventDoc[]
+  return allEvents.filter((row) => row.pathId && pathIds.has(String(row.pathId)))
 }
 
 async function publishResolved(
   ctx: any,
   args: {
     workspace?: string
+    volumeId?: string
     path: string
     submittedPath?: string
     time?: string
@@ -296,53 +395,50 @@ async function publishResolved(
   },
 ) {
   const authCtx = await getAuthenticatedContext(ctx)
-  const userId = authCtx.userId ? String(authCtx.userId) : undefined
+  const userId = normalizeUserId(authCtx.userId ? String(authCtx.userId) : undefined)
+  await ensureDefaultPersonalVolumeForUser(ctx, userId)
 
   const finalPath = normalizeTopicPath(args.path)
   const segments = splitTopicPath(finalPath)
   if (segments.length === 0) throw new Error('Path is required')
 
-  const workspace = normalizeWorkspace(args.workspace)
-  await ensureVolumeExists(ctx, workspace, userId)
+  let volume: any
+  let workspace: string
+
+  if (args.volumeId) {
+    const volumeDoc = await ctx.db.get(args.volumeId)
+    if (!volumeDoc) {
+      throw new Error('Volume not found')
+    }
+    volume = volumeDoc
+    workspace = String(args.workspace ?? volumeDoc.name ?? DEFAULT_VOLUME)
+  } else {
+    workspace = normalizeWorkspace(args.workspace)
+    volume = await ensureVolumeExists(ctx, workspace, userId)
+  }
+
+  const pathDoc = await ensurePathExists(ctx, String(volume._id), finalPath)
 
   const time = args.time ?? args.timestamp ?? new Date().toISOString()
-  const ingestedAt = new Date().toISOString()
   const status = normalizeEventStatus(args.status, args.type)
   const content = args.content ?? args.message
 
-  const pathState = await upsertPathState(ctx, {
-    workspace,
-    path: finalPath,
-    segments,
-    status,
-    time,
-    ingestedAt,
-    content,
-    userId,
-  })
-
   const insertedId = await ctx.db.insert('events', {
-    workspace,
-    pathId: pathState.id,
-    path: finalPath,
-    segments,
+    pathId: String(pathDoc._id),
     time,
-    ingestedAt,
     status,
     content,
-    submittedPath: args.submittedPath,
-    userId,
   })
 
   return {
     id: String(insertedId),
     workspace,
-    pathId: pathState.id,
+    pathId: String(pathDoc._id),
     path: finalPath,
     segments,
     time,
     timestamp: time,
-    ingestedAt,
+    ingestedAt: new Date().toISOString(),
     status,
     content,
     submittedPath: args.submittedPath,
@@ -355,6 +451,7 @@ async function publishResolved(
 async function buildDashboardSnapshot(
   ctx: any,
   args: {
+    userId?: string
     workspace?: string
     topicPrefix?: string
     status?: string
@@ -363,40 +460,95 @@ async function buildDashboardSnapshot(
     limit?: number
   },
 ) {
-  const workspace = normalizeWorkspace(args.workspace)
   const limit = Math.min(Math.max(args.limit ?? 200, 1), 500)
+  const { workspace, pathById, pathDocs, pathIds } = await loadVolumeContext(ctx, args.workspace, args.userId)
 
-  const rawEvents = await ctx.db
-    .query('events')
-    .withIndex('by_workspace_ingestedAt', (q: any) => q.eq('workspace', workspace))
-    .order('desc')
-    .take(MAX_EVENTS_FOR_SNAPSHOT)
-
-  const filteredEventDocs = rawEvents.filter((doc: any) =>
-    eventMatchesFilters(
-      {
-        path: doc.path,
-        status: normalizeEventStatus(doc.status),
-        content: doc.content,
+  if (pathIds.size === 0) {
+    return {
+      events: [],
+      paths: [],
+      entities: [],
+      topicTree: [],
+      stats: {
+        totalEvents: 0,
+        pathCount: 0,
+        busyCount: 0,
+        idleCount: 0,
+        entityCount: 0,
+        activeCount: 0,
+        errorCount: 0,
       },
-      args,
-    ),
-  )
+      fetchedAt: new Date().toISOString(),
+    }
+  }
+
+  const rawEvents = (await loadVolumeEvents(ctx, pathIds))
+    .sort((a, b) => b._creationTime - a._creationTime)
+    .slice(0, MAX_EVENTS_FOR_SNAPSHOT)
+
+  const enriched = rawEvents
+    .map((doc) => {
+      const pathDoc = pathById.get(String(doc.pathId ?? ''))
+      if (!pathDoc) return null
+      return {
+        doc,
+        pathDoc,
+        mapped: mapEventDoc(doc, pathDoc, workspace),
+      }
+    })
+    .filter((row): row is { doc: EventDoc; pathDoc: PathDoc; mapped: any } => row !== null)
+
+  const filteredEventDocs = enriched
+    .filter((row) =>
+      eventMatchesFilters(
+        {
+          path: row.mapped.path,
+          status: normalizeEventStatus(row.mapped.status),
+          content: row.mapped.content,
+        },
+        args,
+      ),
+    )
+    .map((row) => row.mapped)
 
   const events = filteredEventDocs
     .slice(0, limit)
-    .map(mapEventDoc)
     .sort((a: any, b: any) => String(b.time).localeCompare(String(a.time)) || String(b.ingestedAt).localeCompare(String(a.ingestedAt)))
 
-  const allPathDocs = await ctx.db
-    .query('paths')
-    .withIndex('by_workspace', (q: any) => q.eq('workspace', workspace))
-    .collect()
+  const latestByPathId = new Map<string, any>()
+  for (const row of enriched) {
+    const key = String(row.pathDoc._id)
+    const current = latestByPathId.get(key)
+    if (!current || row.doc._creationTime > current.doc._creationTime) {
+      latestByPathId.set(key, row)
+    }
+  }
 
-  const paths = allPathDocs
-    .map(mapPathDoc)
-    .filter((row: any) => pathMatchesFilters(row, { topicPrefix: args.topicPrefix, status: args.status, q: args.q }))
-    .sort((a: any, b: any) => {
+  const allPathRows = pathDocs
+    .map((pathDoc) => {
+      const latest = latestByPathId.get(String(pathDoc._id))
+      const status = latest ? normalizeEventStatus(latest.mapped.status) : 'idle'
+      const lastTime = latest ? String(latest.mapped.time) : ''
+      const lastIngestedAt = latest ? String(latest.mapped.ingestedAt) : ''
+      const lastContent = latest ? (latest.mapped.content as string | undefined) : undefined
+      const segments = splitTopicPath(pathDoc.path)
+      return {
+        key: `${workspace}::${pathDoc.path}`,
+        workspace,
+        path: pathDoc.path,
+        segments,
+        status,
+        lastTime,
+        lastIngestedAt,
+        lastSeenAt: lastIngestedAt,
+        lastContent,
+      }
+    })
+    .filter((row) => row.lastIngestedAt)
+
+  const paths = allPathRows
+    .filter((row) => pathMatchesFilters(row, { topicPrefix: args.topicPrefix, status: args.status, q: args.q }))
+    .sort((a, b) => {
       const rank = pathStatusRank(a.status) - pathStatusRank(b.status)
       if (rank !== 0) return rank
       return String(b.lastIngestedAt).localeCompare(String(a.lastIngestedAt))
@@ -455,25 +607,30 @@ export const publishByKey = mutation({
   handler: async (ctx, args) => {
     await getAuthenticatedContext(ctx)
 
-    const keyHash = await hashWriteKey(args.key)
-    const binding = await ctx.db
-      .query('bindings')
-      .withIndex('by_key_hash', (q: any) => q.eq('keyHash', keyHash))
-      .first()
-
-    if (!binding || binding.enabled === false) {
-      throw new Error('Binding key not found')
+    const key = args.key.trim()
+    if (!key) {
+      throw new Error('Volume key is required')
     }
 
-    const suffix = normalizeTopicPath(args.subpath ?? '')
-    const base = normalizeTopicPath(binding.targetPath)
-    const path = suffix ? `${base}/${suffix}` : base
+    const volume = (await ctx.db
+      .query('volumes')
+      .withIndex('by_key', (q: any) => q.eq('key', key))
+      .first()) as VolumeDoc | null
+
+    if (!volume || volume.keyEnabled === false) {
+      throw new Error('Volume key not found')
+    }
+
+    const subpath = normalizeTopicPath(args.subpath ?? '')
+    if (!subpath) {
+      throw new Error('A path segment is required after the key')
+    }
 
     return publishResolved(ctx, {
-      // Binding workspace is authoritative for keyed publishes.
-      workspace: binding.workspace,
-      path,
-      submittedPath: suffix || undefined,
+      workspace: volume.name,
+      volumeId: String(volume._id),
+      path: subpath,
+      submittedPath: subpath,
       time: args.time,
       timestamp: args.timestamp,
       status: args.status,
@@ -491,19 +648,24 @@ export const listRecentEvents = query({
     workspace: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    await getAuthenticatedContext(ctx)
-    const workspace = normalizeWorkspace(args.workspace)
+    const authCtx = await getAuthenticatedContext(ctx)
+    const userId = normalizeUserId(authCtx.userId ? String(authCtx.userId) : undefined)
     const limit = Math.min(Math.max(args.limit ?? 200, 1), 500)
-    const rows = await ctx.db
-      .query('events')
-      .withIndex('by_workspace_ingestedAt', (q: any) => q.eq('workspace', workspace))
-      .order('desc')
-      .take(limit * 3)
+
+    const { workspace, pathById, pathIds } = await loadVolumeContext(ctx, args.workspace, userId)
+    const rows = (await loadVolumeEvents(ctx, pathIds))
+      .sort((a, b) => b._creationTime - a._creationTime)
+      .slice(0, limit * 3)
 
     return rows
+      .map((row) => {
+        const pathDoc = pathById.get(String(row.pathId ?? ''))
+        if (!pathDoc) return null
+        return mapEventDoc(row, pathDoc, workspace)
+      })
+      .filter((row): row is any => row !== null)
       .filter((row: any) => pathMatchesPrefix(row.path, args.topicPrefix))
       .slice(0, limit)
-      .map(mapEventDoc)
   },
 })
 
@@ -514,17 +676,16 @@ export const listPaths = query({
     status: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    await getAuthenticatedContext(ctx)
-    const workspace = normalizeWorkspace(args.workspace)
-    const rows = await ctx.db
-      .query('paths')
-      .withIndex('by_workspace', (q: any) => q.eq('workspace', workspace))
-      .collect()
-
-    return rows
-      .map(mapPathDoc)
-      .filter((row: any) => pathMatchesFilters(row, { topicPrefix: args.topicPrefix, status: args.status }))
-      .sort((a: any, b: any) => String(b.lastIngestedAt).localeCompare(String(a.lastIngestedAt)))
+    const authCtx = await getAuthenticatedContext(ctx)
+    const userId = normalizeUserId(authCtx.userId ? String(authCtx.userId) : undefined)
+    const snapshot = await buildDashboardSnapshot(ctx, {
+      userId,
+      workspace: args.workspace,
+      topicPrefix: args.topicPrefix,
+      status: args.status,
+      limit: 500,
+    })
+    return snapshot.paths
   },
 })
 
@@ -541,8 +702,12 @@ export const dashboardSnapshot = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    await getAuthenticatedContext(ctx)
-    return buildDashboardSnapshot(ctx, args)
+    const authCtx = await getAuthenticatedContext(ctx)
+    const userId = normalizeUserId(authCtx.userId ? String(authCtx.userId) : undefined)
+    return buildDashboardSnapshot(ctx, {
+      ...args,
+      userId,
+    })
   },
 })
 
@@ -553,8 +718,10 @@ export const statusSnapshot = query({
     status: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    await getAuthenticatedContext(ctx)
+    const authCtx = await getAuthenticatedContext(ctx)
+    const userId = normalizeUserId(authCtx.userId ? String(authCtx.userId) : undefined)
     return buildDashboardSnapshot(ctx, {
+      userId,
       workspace: args.workspace,
       topicPrefix: args.topicPrefix,
       status: args.status,

@@ -1,11 +1,10 @@
 "use node";
 
-import { buildPushHTTPRequest } from '@pushforge/builder'
 import { v } from 'convex/values'
 import { internal } from './_generated/api'
 import { action } from './_generated/server'
 
-const DEFAULT_WORKSPACE = 'default'
+const DEFAULT_WORKSPACE = 'personal'
 const DEFAULT_PUSH_TTL_SECONDS = 60 * 60
 const internalApi = internal as any
 
@@ -30,6 +29,32 @@ type PushFanoutOutcome = {
   delivered: number
   pruned: number
 }
+
+type PushHttpRequest = {
+  endpoint: string
+  headers: HeadersInit
+  body?: BodyInit | null
+}
+
+type BuildPushHTTPRequest = (args: {
+  privateJWK: JsonWebKey | string
+  subscription: {
+    endpoint: string
+    keys: {
+      p256dh: string
+      auth: string
+    }
+  }
+  message: {
+    payload: unknown
+    adminContact: string
+    options?: {
+      ttl?: number
+      urgency?: string
+      topic?: string
+    }
+  }
+}) => Promise<PushHttpRequest>
 
 function normalizeWorkspace(value?: string) {
   const next = value?.trim()
@@ -89,12 +114,12 @@ function bytesToBase64Url(bytes: Uint8Array): string {
   return encoded.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '')
 }
 
-function buildWorkspaceLogsUrl(workspace: string, aliasId: string) {
-  const encodedAlias = encodeURIComponent(aliasId)
+function buildWorkspaceLogsUrl(workspace: string, path: string) {
+  const encodedPath = encodeURIComponent(path)
   if (workspace === DEFAULT_WORKSPACE) {
-    return `/default?filter=${encodedAlias}`
+    return `/default?path=${encodedPath}`
   }
-  return `/${encodeURIComponent(workspace)}?filter=${encodedAlias}`
+  return `/${encodeURIComponent(workspace)}?path=${encodedPath}`
 }
 
 function buildPushPayload(path: string, targetUrl: string, status?: string, content?: string) {
@@ -104,6 +129,23 @@ function buildPushPayload(path: string, targetUrl: string, status?: string, cont
     body: `${path}: ${summary}`.slice(0, 180),
     url: targetUrl,
     tag: 'tailwatch-event',
+  }
+}
+
+async function loadPushBuilder(): Promise<BuildPushHTTPRequest | null> {
+  // Keep the module specifier indirect so TypeScript doesn't require local type declarations.
+  const moduleSpecifier = '@pushforge/builder'
+  try {
+    const moduleExports = (await import(moduleSpecifier)) as { buildPushHTTPRequest?: unknown }
+    if (typeof moduleExports.buildPushHTTPRequest !== 'function') {
+      return null
+    }
+    return moduleExports.buildPushHTTPRequest as BuildPushHTTPRequest
+  } catch (error) {
+    console.warn('[PushDelivery] Push builder module unavailable', {
+      error: error instanceof Error ? error.message : String(error),
+    })
+    return null
   }
 }
 
@@ -135,6 +177,11 @@ export const sendPushNotificationsForEvent = action({
       return { attempted: 0, delivered: 0, pruned: 0, skipped: true }
     }
 
+    const buildPushHTTPRequest = await loadPushBuilder()
+    if (!buildPushHTTPRequest) {
+      return { attempted: 0, delivered: 0, pruned: 0, skipped: true }
+    }
+
     const workspace = normalizeWorkspace(args.workspace)
     const subscriptions = (await ctx.runQuery(internalApi.watchers.listPushTargetsForPathInternal, {
       workspace,
@@ -145,14 +192,9 @@ export const sendPushNotificationsForEvent = action({
       return { attempted: 0, delivered: 0, pruned: 0, skipped: false }
     }
 
-    const aliasResult = (await ctx.runMutation(internalApi.watchers.ensurePathAliasInternal, {
-      workspace,
-      path: args.path,
-    })) as { aliasId: string }
-
     const payload = buildPushPayload(
       args.path,
-      buildWorkspaceLogsUrl(workspace, aliasResult.aliasId),
+      buildWorkspaceLogsUrl(workspace, args.path),
       args.status,
       args.content,
     )
@@ -167,7 +209,7 @@ export const sendPushNotificationsForEvent = action({
           return { delivered: 0, pruned: result.deleted ?? 0 }
         }
 
-        let request: Awaited<ReturnType<typeof buildPushHTTPRequest>>
+        let request: PushHttpRequest
         try {
           request = await buildPushHTTPRequest({
             privateJWK,

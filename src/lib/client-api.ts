@@ -62,6 +62,20 @@ export interface ResolvePathAliasResult {
   workspace?: string
 }
 
+export interface VolumeKeyRecord {
+  id: string
+  volumeId: string
+  value: string
+  enabled: boolean
+}
+
+export interface ManagedVolumeRecord {
+  id: string
+  name: string
+  isDefault: boolean
+  key: VolumeKeyRecord
+}
+
 function toQueryString(query: DashboardQuery) {
   const params = new URLSearchParams()
   if (query.topicPrefix) params.set('topicPrefix', query.topicPrefix)
@@ -76,7 +90,7 @@ function toQueryString(query: DashboardQuery) {
 export async function fetchDashboardSnapshot(query: DashboardQuery = {}): Promise<DashboardSnapshot> {
   const response = await fetch(`/api/dashboard${toQueryString(query)}`, {
     headers: {
-      'x-tailwatch-workspace': query.workspace || 'default'
+      'x-tailwatch-workspace': query.workspace || 'personal'
     }
   })
   if (!response.ok) {
@@ -89,7 +103,7 @@ export async function fetchStatusSnapshot(topicPrefix?: string, workspace?: stri
   const suffix = topicPrefix ? `?topicPrefix=${encodeURIComponent(topicPrefix)}` : ''
   const response = await fetch(`/api/status${suffix}`, {
     headers: {
-      'x-tailwatch-workspace': workspace || 'default'
+      'x-tailwatch-workspace': workspace || 'personal'
     }
   })
   if (!response.ok) {
@@ -314,4 +328,78 @@ export async function resolvePathAlias(aliasId: string, workspace?: string): Pro
   }
 
   return (await response.json()) as ResolvePathAliasResult
+}
+
+export async function fetchManagedVolumes(): Promise<ManagedVolumeRecord[]> {
+  const response = await fetch('/api/volumes')
+  if (!response.ok) {
+    const detail = await response.text()
+    throw new Error(detail || `Failed to load volumes (${response.status})`)
+  }
+  const parsed = (await response.json()) as { volumes?: ManagedVolumeRecord[] }
+  return Array.isArray(parsed.volumes) ? parsed.volumes : []
+}
+
+export async function createManagedVolume(input: { name: string }): Promise<ManagedVolumeRecord> {
+  const response = await fetch('/api/volumes', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      name: input.name,
+    }),
+  })
+  if (!response.ok) {
+    const detail = await response.text()
+    throw new Error(detail || `Failed to create volume (${response.status})`)
+  }
+  const parsed = (await response.json()) as { volume?: ManagedVolumeRecord }
+  if (!parsed.volume) throw new Error('Volume create response is missing volume')
+  return parsed.volume
+}
+
+export async function renameManagedVolume(input: { volumeId: string; name: string }): Promise<ManagedVolumeRecord> {
+  const response = await fetch('/api/volumes', {
+    method: 'PATCH',
+    headers: {
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      volumeId: input.volumeId,
+      name: input.name,
+    }),
+  })
+  if (!response.ok) {
+    const detail = await response.text()
+    throw new Error(detail || `Failed to rename volume (${response.status})`)
+  }
+  const parsed = (await response.json()) as { volume?: ManagedVolumeRecord }
+  if (!parsed.volume) throw new Error('Volume update response is missing volume')
+  return parsed.volume
+}
+
+export async function updateManagedVolumeKey(input: {
+  volumeId: string
+  enabled?: boolean
+  rotate?: boolean
+}): Promise<VolumeKeyRecord> {
+  const response = await fetch('/api/volumes/keys', {
+    method: 'PATCH',
+    headers: {
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      volumeId: input.volumeId,
+      enabled: input.enabled,
+      rotate: input.rotate,
+    }),
+  })
+  if (!response.ok) {
+    const detail = await response.text()
+    throw new Error(detail || `Failed to update volume key (${response.status})`)
+  }
+  const parsed = (await response.json()) as { key?: VolumeKeyRecord }
+  if (!parsed.key) throw new Error('Volume key update response is missing key')
+  return parsed.key
 }

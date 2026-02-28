@@ -3,7 +3,7 @@ import { useAuthActions } from "@convex-dev/auth/react";
 import { useConvexAuth, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Button } from "../ui/button";
-import { BellRing, ChevronDown, Github, LogOut, User } from "lucide-react";
+import { BellRing, ChevronDown, Github, HardDrive, LogOut, User } from "lucide-react";
 
 export function SignIn() {
   const { signIn } = useAuthActions();
@@ -105,7 +105,8 @@ export function UserMenu({ workspace }: UserMenuProps) {
   const displayName = user?.name || user?.email || (isDebugMode ? "Guest Mode" : "GitHub User");
   const avatarInitial = (displayName.trim().charAt(0) || "G").toUpperCase();
   const avatarSrc = !isDebugMode ? user?.image ?? undefined : undefined;
-  const settingsHref = workspace && workspace.trim() ? `/settings/devices?workspace=${encodeURIComponent(workspace)}` : '/settings/devices';
+  const deviceSettingsHref = workspace && workspace.trim() ? `/settings/devices?workspace=${encodeURIComponent(workspace)}` : '/settings/devices';
+  const volumeSettingsHref = workspace && workspace.trim() ? `/settings/volumes?workspace=${encodeURIComponent(workspace)}` : '/settings/volumes';
 
   return (
     <div ref={menuRef} className="relative ml-1 flex items-center border-l border-border/40 pl-1 sm:ml-2 sm:pl-2">
@@ -144,14 +145,24 @@ export function UserMenu({ workspace }: UserMenuProps) {
             <p className="truncate text-xs font-medium text-foreground">{displayName}</p>
           </div>
           <a
-            href={settingsHref}
+            href={volumeSettingsHref}
             className="flex h-9 w-full items-center gap-2 rounded-lg px-3 text-sm hover:bg-muted"
             role="menuitem"
             onClick={() => setIsOpen(false)}
-            title="Manage watchers and notification devices"
+            title="Manage volumes and publish keys"
+          >
+            <HardDrive className="h-4 w-4" />
+            Manage volumes
+          </a>
+          <a
+            href={deviceSettingsHref}
+            className="flex h-9 w-full items-center gap-2 rounded-lg px-3 text-sm hover:bg-muted"
+            role="menuitem"
+            onClick={() => setIsOpen(false)}
+            title="Manage notification devices"
           >
             <BellRing className="h-4 w-4" />
-            Manage watchers
+            Manage devices
           </a>
           <Button
             type="button"

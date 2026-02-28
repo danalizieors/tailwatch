@@ -1,5 +1,6 @@
 import { ConvexHttpClient } from 'convex/browser'
 import { anyApi } from 'convex/server'
+import { adjectives, nouns } from 'human-id'
 import type { DashboardSnapshot, StoredEvent } from '~/lib/types'
 import { getProcessEnv } from '~/lib/server/runtime-env'
 import {
@@ -11,13 +12,16 @@ import {
 
 type BackendMode = 'local' | 'convex'
 
-const DEFAULT_WORKSPACE = 'default'
+const DEFAULT_WORKSPACE = 'personal'
 const DEFAULT_INCLUDE_PATHS = ['/']
 const convexApi = anyApi as any
+const KEY_ADJECTIVES = adjectives
+const KEY_NOUNS = nouns
 
 const localAliasByPath = new Map<string, string>()
 const localPathByAlias = new Map<string, string>()
 const localWatcherByWorkspaceAndKey = new Map<string, WatcherRecord>()
+const localVolumeById = new Map<string, { id: string; name: string; key: string; keyEnabled: boolean }>()
 
 export interface PushSubscriptionRecord {
   endpoint: string
@@ -65,6 +69,20 @@ export interface PathAliasRecord {
   created?: boolean
 }
 
+export interface VolumeKeyRecord {
+  id: string
+  volumeId: string
+  value: string
+  enabled: boolean
+}
+
+export interface ManagedVolumeRecord {
+  id: string
+  name: string
+  isDefault: boolean
+  key: VolumeKeyRecord
+}
+
 function nowIso() {
   return new Date().toISOString()
 }
@@ -89,6 +107,61 @@ function normalizePathForAlias(value: string) {
   if (!trimmed || trimmed === '/') return '/'
   const normalized = trimmed.replace(/^\/+|\/+$/g, '').replace(/\/+/g, '/')
   return normalized || '/'
+}
+
+function normalizeVolumeName(value: string) {
+  const next = value.trim()
+  if (!next) throw new Error('Volume name is required')
+  if (next.length > 120) throw new Error('Volume name must be 120 characters or fewer')
+  if (next.includes('/')) throw new Error('Volume name cannot contain "/"')
+  return next
+}
+
+function pickRandomItem(values: readonly string[]) {
+  const index = Math.floor(Math.random() * values.length)
+  return values[index] ?? values[0] ?? 'steady'
+}
+
+function singularizeNoun(value: string) {
+  const word = value.toLowerCase()
+  if (word.endsWith('ies')) return `${word.slice(0, -3)}y`
+  if (word.endsWith('ches') || word.endsWith('shes') || word.endsWith('xes') || word.endsWith('zes') || word.endsWith('ses')) {
+    return word.slice(0, -2)
+  }
+  if (word.endsWith('s') && !word.endsWith('ss')) return word.slice(0, -1)
+  return word
+}
+
+function createHumanReadableVolumeKey() {
+  const adjective = pickRandomItem(KEY_ADJECTIVES)
+  const noun = singularizeNoun(pickRandomItem(KEY_NOUNS))
+  const number = 10 + Math.floor(Math.random() * 90)
+  return `${adjective}-${noun}-${number}`
+}
+
+function createUniqueLocalVolumeKey() {
+  const used = new Set(Array.from(localVolumeById.values()).map((row) => row.key))
+  for (let attempt = 0; attempt < 64; attempt += 1) {
+    const candidate = createHumanReadableVolumeKey()
+    if (!used.has(candidate)) {
+      return candidate
+    }
+  }
+  throw new Error('Failed to generate a unique key')
+}
+
+function ensureLocalPersonalVolume() {
+  const existing = Array.from(localVolumeById.values()).find((row) => row.name === DEFAULT_WORKSPACE)
+  if (existing) return existing
+
+  const created = {
+    id: randomId('volume'),
+    name: DEFAULT_WORKSPACE,
+    key: createUniqueLocalVolumeKey(),
+    keyEnabled: true,
+  }
+  localVolumeById.set(created.id, created)
+  return created
 }
 
 function localWatcherStoreKey(workspace: string, watcherKey: string) {
@@ -178,6 +251,16 @@ function createConvexClient() {
   return new ConvexHttpClient(url, { logger: false })
 }
 
+async function ensurePersonalVolumeIfNeeded(client?: ConvexHttpClient) {
+  if (getBackendMode() === 'local') {
+    ensureLocalPersonalVolume()
+    return
+  }
+
+  const convexClient = client ?? createConvexClient()
+  await convexClient.mutation(convexApi.volumes.ensurePersonalVolume, {})
+}
+
 function parseConvexStoredEvent(value: any): StoredEvent {
   if (!value || typeof value !== 'object') {
     throw new Error('Convex publish returned an invalid event payload')
@@ -186,7 +269,7 @@ function parseConvexStoredEvent(value: any): StoredEvent {
   const time = String(value.time ?? value.timestamp ?? new Date().toISOString())
   return {
     id: String(value.id ?? value._id ?? ''),
-    workspace: String(value.workspace ?? 'default'),
+    workspace: String(value.workspace ?? DEFAULT_WORKSPACE),
     path: String(value.path ?? value.topicPath ?? ''),
     segments: Array.isArray(value.segments) ? value.segments.map((segment: unknown) => String(segment)) : [],
     time,
@@ -317,10 +400,12 @@ export async function appendEventByBindingKey(key: string, subpath: string, payl
 
 export async function getDashboardSnapshot(filters: DashboardFilters = {}): Promise<DashboardSnapshot> {
   if (getBackendMode() === 'local') {
+    ensureLocalPersonalVolume()
     return getLocalDashboardSnapshot(filters)
   }
 
   const client = createConvexClient()
+  await ensurePersonalVolumeIfNeeded(client)
   const args: Record<string, any> = {
     workspace: typeof filters.workspace === 'string' ? filters.workspace : undefined,
     topicPrefix: filters.topicPrefix,
@@ -337,10 +422,12 @@ export async function getDashboardSnapshot(filters: DashboardFilters = {}): Prom
 
 export async function getStatusSnapshot(topicPrefix?: string, workspace?: string): Promise<DashboardSnapshot> {
   if (getBackendMode() === 'local') {
+    ensureLocalPersonalVolume()
     return getLocalStatusSnapshot(topicPrefix, workspace)
   }
 
   const client = createConvexClient()
+  await ensurePersonalVolumeIfNeeded(client)
   const args: Record<string, any> = {
     workspace: typeof workspace === 'string' ? workspace : undefined,
     topicPrefix,
@@ -719,6 +806,160 @@ export async function resolvePathAlias(workspace: string | undefined, aliasId: s
     workspace: result.workspace ?? normalizedWorkspace,
     created: false,
   }
+}
+
+function listLocalManagedVolumes() {
+  ensureLocalPersonalVolume()
+
+  return Array.from(localVolumeById.values())
+    .map((volume): ManagedVolumeRecord => ({
+      id: volume.id,
+      name: volume.name,
+      isDefault: volume.name === DEFAULT_WORKSPACE,
+      key: {
+        id: volume.id,
+        volumeId: volume.id,
+        value: volume.key,
+        enabled: volume.keyEnabled,
+      },
+    }))
+    .sort((a, b) => {
+      if (a.isDefault && !b.isDefault) return -1
+      if (!a.isDefault && b.isDefault) return 1
+      return a.name.localeCompare(b.name)
+    })
+}
+
+export async function listManagedVolumes(): Promise<ManagedVolumeRecord[]> {
+  if (getBackendMode() === 'local') {
+    return listLocalManagedVolumes()
+  }
+
+  const client = createConvexClient()
+  await ensurePersonalVolumeIfNeeded(client)
+  const result = await client.query(convexApi.volumes.listManagedVolumes, {})
+  return Array.isArray(result) ? (result as ManagedVolumeRecord[]) : []
+}
+
+export async function createManagedVolume(name: string): Promise<ManagedVolumeRecord> {
+  if (getBackendMode() === 'local') {
+    ensureLocalPersonalVolume()
+    const normalized = normalizeVolumeName(name)
+    const duplicate = Array.from(localVolumeById.values()).find((row) => row.name === normalized)
+    if (duplicate) throw new Error('Volume name already exists')
+
+    const created = {
+      id: randomId('volume'),
+      name: normalized,
+      key: createUniqueLocalVolumeKey(),
+      keyEnabled: true,
+    }
+    localVolumeById.set(created.id, created)
+    return {
+      id: created.id,
+      name: created.name,
+      isDefault: false,
+      key: {
+        id: created.id,
+        volumeId: created.id,
+        value: created.key,
+        enabled: created.keyEnabled,
+      },
+    }
+  }
+
+  const client = createConvexClient()
+  const result = await client.mutation(convexApi.volumes.createVolume, { name })
+  return result as ManagedVolumeRecord
+}
+
+export async function renameManagedVolume(input: { volumeId: string; name: string }): Promise<ManagedVolumeRecord> {
+  if (getBackendMode() === 'local') {
+    ensureLocalPersonalVolume()
+    const normalized = normalizeVolumeName(input.name)
+    const volume = localVolumeById.get(input.volumeId)
+    if (!volume) throw new Error('Volume not found')
+    if (volume.name === DEFAULT_WORKSPACE && normalized !== DEFAULT_WORKSPACE) {
+      throw new Error('The personal volume cannot be renamed')
+    }
+    const duplicate = Array.from(localVolumeById.values()).find((row) => row.id !== volume.id && row.name === normalized)
+    if (duplicate) throw new Error('Volume name already exists')
+
+    volume.name = normalized
+    localVolumeById.set(volume.id, volume)
+
+    return {
+      id: volume.id,
+      name: volume.name,
+      isDefault: volume.name === DEFAULT_WORKSPACE,
+      key: {
+        id: volume.id,
+        volumeId: volume.id,
+        value: volume.key,
+        enabled: volume.keyEnabled,
+      },
+    }
+  }
+
+  const client = createConvexClient()
+  const result = await client.mutation(convexApi.volumes.renameVolume, {
+    volumeId: input.volumeId,
+    name: input.name,
+  })
+  return result as ManagedVolumeRecord
+}
+
+export async function updateManagedVolumeKey(input: {
+  volumeId: string
+  enabled?: boolean
+}): Promise<VolumeKeyRecord> {
+  if (getBackendMode() === 'local') {
+    ensureLocalPersonalVolume()
+    const volume = localVolumeById.get(input.volumeId)
+    if (!volume) throw new Error('Volume not found')
+
+    volume.keyEnabled = typeof input.enabled === 'boolean' ? input.enabled : volume.keyEnabled
+    localVolumeById.set(volume.id, volume)
+
+    return {
+      id: volume.id,
+      volumeId: volume.id,
+      value: volume.key,
+      enabled: volume.keyEnabled,
+    }
+  }
+
+  const client = createConvexClient()
+  const args: Record<string, unknown> = {
+    volumeId: input.volumeId,
+    enabled: input.enabled,
+  }
+  Object.keys(args).forEach((key) => args[key] === undefined && delete args[key])
+  const result = await client.mutation(convexApi.volumes.updateVolumeKey, args)
+  return result as VolumeKeyRecord
+}
+
+export async function rotateManagedVolumeKey(volumeId: string): Promise<VolumeKeyRecord> {
+  if (getBackendMode() === 'local') {
+    ensureLocalPersonalVolume()
+    const volume = localVolumeById.get(volumeId)
+    if (!volume) throw new Error('Volume not found')
+
+    volume.key = createUniqueLocalVolumeKey()
+    volume.keyEnabled = true
+    localVolumeById.set(volume.id, volume)
+
+    return {
+      id: volume.id,
+      volumeId: volume.id,
+      value: volume.key,
+      enabled: volume.keyEnabled,
+    }
+  }
+
+  const client = createConvexClient()
+  const result = await client.mutation(convexApi.volumes.rotateVolumeKey, { volumeId })
+  return result as VolumeKeyRecord
 }
 
 export async function sendPushNotificationsForEvent(input: {

@@ -59,13 +59,21 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic, placeholder 
       .slice(0, 12)
   }, [allTopics, query, selectedTopic])
 
+  const normalizedQueryPath = useMemo(() => normalizeCustomTopicPath(query), [query])
+  const hasExactQueryMatch = useMemo(() => {
+    if (!normalizedQueryPath) return false
+    return allTopics.some((topic) => topic.path === normalizedQueryPath)
+  }, [allTopics, normalizedQueryPath])
+
   useEffect(() => {
-    if (isOpen && filteredTopics.length > 0) {
+    if (isOpen && normalizedQueryPath && !hasExactQueryMatch) {
+      setActiveIndex(-1)
+    } else if (isOpen && filteredTopics.length > 0) {
       setActiveIndex(0)
     } else {
       setActiveIndex(-1)
     }
-  }, [isOpen, query, selectedTopic, filteredTopics.length])
+  }, [isOpen, query, selectedTopic, filteredTopics.length, normalizedQueryPath, hasExactQueryMatch])
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -108,6 +116,13 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic, placeholder 
             t.path.split('/').length === topic.path.split('/').length + 1
           )
           setIsOpen(hasChildren)
+        } else {
+          const customPath = normalizeCustomTopicPath(query)
+          if (customPath) {
+            onSelectTopic(customPath)
+            setQuery('')
+            setIsOpen(false)
+          }
         }
         break
       case 'Escape':
@@ -182,9 +197,38 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic, placeholder 
       </div>
 
       {/* DROPDOWN */}
-      {isOpen && filteredTopics.length > 0 && (
+      {isOpen && (filteredTopics.length > 0 || Boolean(normalizedQueryPath && !hasExactQueryMatch)) && (
         <div className="absolute top-full left-0 right-0 z-[100] mt-2 overflow-hidden rounded-xl border border-border bg-popover shadow-2xl animate-in fade-in slide-in-from-top-1 duration-200">
           <div role="listbox" className="max-h-[min(60dvh,20rem)] overflow-y-auto scroll-thin py-1" ref={listRef}>
+            {normalizedQueryPath && !hasExactQueryMatch ? (
+              <button
+                type="button"
+                className={cn(
+                  "w-full flex items-center justify-between px-3 py-2.5 text-left transition-colors",
+                  activeIndex === -1 ? "bg-accent" : "hover:bg-accent/30"
+                )}
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  onSelectTopic(normalizedQueryPath)
+                  setQuery('')
+                  setIsOpen(false)
+                }}
+                onMouseEnter={() => setActiveIndex(-1)}
+              >
+                <div className="flex flex-col min-w-0">
+                  <span className="truncate text-xs font-mono font-bold text-foreground/90">
+                    {normalizedQueryPath}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground/60 font-bold uppercase tracking-tighter">
+                    Use custom path
+                  </span>
+                </div>
+                <Badge variant="secondary" className="text-[10px] font-mono opacity-50">
+                  New
+                </Badge>
+              </button>
+            ) : null}
             {filteredTopics.map((topic, index) => {
               const color = getPathColor(topic.path)
               const isSelected = selectedTopic === topic.path
@@ -230,4 +274,10 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic, placeholder 
       )}
     </div>
   )
+}
+
+function normalizeCustomTopicPath(value: string) {
+  const trimmed = value.trim()
+  if (!trimmed || trimmed === '/') return undefined
+  return trimmed.replace(/^\/+|\/+$/g, '').replace(/\/+/g, '/')
 }

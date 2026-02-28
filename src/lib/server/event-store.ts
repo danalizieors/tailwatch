@@ -16,7 +16,7 @@ import type {
 const STORE_DIR = path.join(process.cwd(), 'data')
 const STORE_FILE = path.join(STORE_DIR, 'events.json')
 const MAX_STORED_EVENTS = 5_000
-const DEFAULT_VOLUME = 'default'
+const DEFAULT_VOLUME = 'personal'
 
 const publishSchema = z
   .object({
