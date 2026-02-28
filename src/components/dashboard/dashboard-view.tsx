@@ -31,6 +31,7 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
   const [generatorMessage, setGeneratorMessage] = useState<string | null>(null)
   const [copiedCurlVariant, setCopiedCurlVariant] = useState<'header' | 'url' | null>(null)
   const [volumePublishKey, setVolumePublishKey] = useState<string | null>(null)
+  const [workspaceOptions, setWorkspaceOptions] = useState<string[]>(['personal'])
   const [isHydratingFilter, setIsHydratingFilter] = useState(true)
   
   const deferredSearch = useDeferredValue(search)
@@ -165,6 +166,14 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
   }, [selectedTopic, workspace, isHydratingFilter])
 
   const activeWorkspace = workspace?.trim() || 'personal'
+  const workspaceChoices = useMemo(() => {
+    const values = Array.from(new Set(['personal', ...workspaceOptions, activeWorkspace].map((value) => value.trim()).filter(Boolean)))
+    return values.sort((left, right) => {
+      if (left === 'personal') return -1
+      if (right === 'personal') return 1
+      return left.localeCompare(right)
+    })
+  }, [workspaceOptions, activeWorkspace])
 
   useEffect(() => {
     let cancelled = false
@@ -173,6 +182,15 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
       try {
         const volumes = await fetchManagedVolumes()
         if (cancelled) return
+
+        const knownWorkspaces = Array.from(
+          new Set(
+            volumes
+              .map((row) => row.name.trim())
+              .filter((name) => name.length > 0),
+          ),
+        )
+        setWorkspaceOptions(knownWorkspaces.length > 0 ? knownWorkspaces : ['personal'])
 
         const workspaceToken = activeWorkspace.trim()
         const matchedVolume =
@@ -195,6 +213,7 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
         setVolumePublishKey(null)
       } catch {
         if (!cancelled) {
+          setWorkspaceOptions((prev) => Array.from(new Set(['personal', activeWorkspace, ...prev])))
           setVolumePublishKey(null)
         }
       }
@@ -225,6 +244,27 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
       NotificationManager.enableSound()
       setIsSoundEnabled(true)
     }
+  }
+
+  const switchWorkspace = (nextWorkspaceRaw: string) => {
+    if (typeof window === 'undefined') return
+
+    const nextWorkspace = nextWorkspaceRaw.trim() || 'personal'
+    const currentUrl = new URL(window.location.href)
+    const targetPath =
+      mode === 'status'
+        ? nextWorkspace === 'personal'
+          ? '/status'
+          : `/${encodeURIComponent(nextWorkspace)}/status`
+        : `/${encodeURIComponent(nextWorkspace)}`
+
+    const nextUrl = new URL(targetPath, currentUrl.origin)
+    const filter = currentUrl.searchParams.get('filter')
+    const path = currentUrl.searchParams.get('path')
+    if (filter?.trim()) nextUrl.searchParams.set('filter', filter)
+    if (path?.trim()) nextUrl.searchParams.set('path', path)
+
+    window.location.assign(nextUrl.toString())
   }
 
   const requestNotifications = async () => {
@@ -344,6 +384,22 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
         {/* View Switcher & Stats */}
         <div className="order-3 flex w-full min-w-0 flex-wrap items-center gap-2 sm:ml-auto sm:w-auto sm:flex-nowrap md:order-3 md:gap-4">
           {data && <div className="hidden xl:block"><StatCards stats={data.stats} /></div>}
+
+          <div className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-card/70 px-2 py-1 backdrop-blur">
+            <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/80">Volume</span>
+            <select
+              value={activeWorkspace}
+              onChange={(event) => switchWorkspace(event.target.value)}
+              className="h-7 rounded-md border border-border/60 bg-background px-2 text-[11px] font-semibold text-foreground"
+              title="Switch active volume"
+            >
+              {workspaceChoices.map((name) => (
+                <option key={name} value={name}>
+                  {name === 'personal' ? 'personal (default)' : name}
+                </option>
+              ))}
+            </select>
+          </div>
           
           <div className="flex items-center gap-2">
             <Button 
