@@ -295,7 +295,8 @@ export const listPushTargetsForPathInternal = internalQuery({
     const rows = await listDeviceRows(ctx)
 
     return rows
-      .filter((row: any) => row.notifications && row.endpoint && row.p256dh && row.auth)
+      // Broadcast to every registered push endpoint, independent of per-device UI toggle state.
+      .filter((row: any) => row.endpoint && row.p256dh && row.auth)
       .map((row: any) => ({
         watcherId: String(row._id),
         endpoint: row.endpoint,
