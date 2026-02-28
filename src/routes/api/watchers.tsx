@@ -31,13 +31,16 @@ export const Route = createFileRoute('/api/watchers')({
           const watcherKey = request.headers.get('x-tailwatch-watcher-key') ?? undefined
           const userAgent = request.headers.get('user-agent') ?? undefined
 
-          await ensureDefaultWatcher({
-            workspace,
-            watcherKey,
-            userAgent,
-          })
+          const normalizedWatcherKey = watcherKey?.trim()
+          if (normalizedWatcherKey) {
+            await ensureDefaultWatcher({
+              workspace,
+              watcherKey: normalizedWatcherKey,
+              userAgent,
+            })
+          }
 
-          const watchers = await listWatchers(workspace, watcherKey)
+          const watchers = await listWatchers(workspace, undefined)
           return Response.json(
             {
               watchers,
