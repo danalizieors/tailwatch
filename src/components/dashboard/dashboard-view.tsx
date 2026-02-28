@@ -4,23 +4,23 @@ import { Activity, Terminal, LayoutGrid, ListTree, Info, Bell, BellOff, Volume2,
 import { Card, CardContent } from '~/components/ui/card'
 import { Button } from '~/components/ui/button'
 import type { EventStatus } from '~/lib/types'
-import { ensurePathAlias, fetchCurrentWatcher, fetchManagedVolumes, publishEvent, resolvePathAlias } from '~/lib/client-api'
+import { ensurePathAlias, fetchCurrentDevice, fetchManagedVolumes, publishEvent, resolvePathAlias } from '~/lib/client-api'
 import { LogStream } from './log-stream'
 import { StatCards } from './stat-cards'
 import { StatusBoard } from './status-board'
 import { TopicSelector } from './topic-selector'
 import { useDashboardData } from './use-dashboard-data'
 import { cn } from '~/lib/utils'
-import { getClientWatcherKey, getClientWatcherName, NotificationManager } from '~/lib/notifications'
+import { getClientDeviceKey, getClientDeviceName, NotificationManager } from '~/lib/notifications'
 import { Authenticated, Unauthenticated } from 'convex/react'
 import { SignIn, UserMenu } from '~/components/auth/auth-ui'
 
 interface DashboardViewProps {
   mode: 'logs' | 'status'
-  workspace?: string
+  volume?: string
 }
 
-export function DashboardView({ mode, workspace }: DashboardViewProps) {
+export function DashboardView({ mode, volume }: DashboardViewProps) {
   const [selectedTopic, setSelectedTopic] = useState<string | undefined>(undefined)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<EventStatus | 'all'>('all')
@@ -31,14 +31,14 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
   const [generatorMessage, setGeneratorMessage] = useState<string | null>(null)
   const [copiedCurlVariant, setCopiedCurlVariant] = useState<'header' | 'url' | null>(null)
   const [volumePublishKey, setVolumePublishKey] = useState<string | null>(null)
-  const [workspaceOptions, setWorkspaceOptions] = useState<string[]>(['personal'])
+  const [volumeOptions, setVolumeOptions] = useState<string[]>(['personal'])
   const [isHydratingFilter, setIsHydratingFilter] = useState(true)
   
   const deferredSearch = useDeferredValue(search)
 
   const { data, error, isLoading, markAllSeen, lastSeenAt, refresh } = useDashboardData({
     mode,
-    workspace,
+    volume,
     topicPrefix: selectedTopic,
   })
 
@@ -59,8 +59,8 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
       setIsHydratingFilter(true)
 
       let cancelled = false
-      const watcherKey = getClientWatcherKey()
-      const watcherName = getClientWatcherName()
+      const deviceKey = getClientDeviceKey()
+      const deviceName = getClientDeviceName()
 
       const hydrateFilterFromUrl = async () => {
         const params = new URLSearchParams(window.location.search)
@@ -69,7 +69,7 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
 
         if (aliasId) {
           try {
-            const resolved = await resolvePathAlias(aliasId, workspace)
+            const resolved = await resolvePathAlias(aliasId, volume)
             if (!cancelled) {
               const fallbackAliasPath = normalizeTopicPath(aliasId)
               const resolvedPath = normalizeTopicPath(resolved.path)
@@ -97,30 +97,29 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
         }
       }
 
-      const syncCurrentWatcher = async () => {
+      const syncCurrentDevice = async () => {
         try {
-          const watcher = await fetchCurrentWatcher({
-            workspace,
-            watcherKey,
-            watcherName,
+          const device = await fetchCurrentDevice({
+            deviceKey,
+            deviceName,
           })
           if (cancelled) return
 
-          setIsBellEnabled(Boolean(watcher.enabled))
+          setIsBellEnabled(Boolean(device.enabled))
 
-          if (watcher.enabled && 'Notification' in window && window.Notification.permission === 'granted') {
-            await NotificationManager.ensureBackgroundPush(workspace)
+          if (device.enabled && 'Notification' in window && window.Notification.permission === 'granted') {
+            await NotificationManager.ensureBackgroundPush()
           }
         } catch (error) {
-          console.warn('Failed to sync current watcher', error)
+          console.warn('Failed to sync current device', error)
         }
       }
 
       void hydrateFilterFromUrl()
-      void syncCurrentWatcher()
+      void syncCurrentDevice()
 
       const timer = window.setInterval(() => {
-        void syncCurrentWatcher()
+        void syncCurrentDevice()
       }, 15_000)
 
       return () => {
@@ -128,7 +127,7 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
         window.clearInterval(timer)
       }
     }
-  }, [workspace])
+  }, [volume])
 
   useEffect(() => {
     if (typeof window === 'undefined' || isHydratingFilter) return
@@ -145,7 +144,7 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
       }
 
       try {
-        const alias = await ensurePathAlias(selectedTopic, workspace)
+        const alias = await ensurePathAlias(selectedTopic, volume)
         if (cancelled) return
         url.searchParams.set('filter', alias.aliasId)
         url.searchParams.delete('path')
@@ -163,17 +162,17 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
     return () => {
       cancelled = true
     }
-  }, [selectedTopic, workspace, isHydratingFilter])
+  }, [selectedTopic, volume, isHydratingFilter])
 
-  const activeWorkspace = workspace?.trim() || 'personal'
-  const workspaceChoices = useMemo(() => {
-    const values = Array.from(new Set(['personal', ...workspaceOptions, activeWorkspace].map((value) => value.trim()).filter(Boolean)))
+  const activeVolume = volume?.trim() || 'personal'
+  const volumeChoices = useMemo(() => {
+    const values = Array.from(new Set(['personal', ...volumeOptions, activeVolume].map((value) => value.trim()).filter(Boolean)))
     return values.sort((left, right) => {
       if (left === 'personal') return -1
       if (right === 'personal') return 1
       return left.localeCompare(right)
     })
-  }, [workspaceOptions, activeWorkspace])
+  }, [volumeOptions, activeVolume])
 
   useEffect(() => {
     let cancelled = false
@@ -183,20 +182,20 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
         const volumes = await fetchManagedVolumes()
         if (cancelled) return
 
-        const knownWorkspaces = Array.from(
+        const knownVolumes = Array.from(
           new Set(
             volumes
               .map((row) => row.name.trim())
               .filter((name) => name.length > 0),
           ),
         )
-        setWorkspaceOptions(knownWorkspaces.length > 0 ? knownWorkspaces : ['personal'])
+        setVolumeOptions(knownVolumes.length > 0 ? knownVolumes : ['personal'])
 
-        const workspaceToken = activeWorkspace.trim()
+        const volumeToken = activeVolume.trim()
         const matchedVolume =
-          volumes.find((row) => row.key.value.trim() === workspaceToken) ??
-          volumes.find((row) => row.name === workspaceToken) ??
-          (workspaceToken === 'personal' ? volumes.find((row) => row.isDefault) : undefined)
+          volumes.find((row) => row.key.value.trim() === volumeToken) ??
+          volumes.find((row) => row.name === volumeToken) ??
+          (volumeToken === 'personal' ? volumes.find((row) => row.isDefault) : undefined)
 
         const key = matchedVolume?.key?.value?.trim()
         if (key && key.length > 0) {
@@ -204,16 +203,16 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
           return
         }
 
-        // If current workspace token is already an alias, use it directly.
-        if (workspaceToken && workspaceToken !== 'personal') {
-          setVolumePublishKey(workspaceToken)
+        // If current volume token is already an alias, use it directly.
+        if (volumeToken && volumeToken !== 'personal') {
+          setVolumePublishKey(volumeToken)
           return
         }
 
         setVolumePublishKey(null)
       } catch {
         if (!cancelled) {
-          setWorkspaceOptions((prev) => Array.from(new Set(['personal', activeWorkspace, ...prev])))
+          setVolumeOptions((prev) => Array.from(new Set(['personal', activeVolume, ...prev])))
           setVolumePublishKey(null)
         }
       }
@@ -224,7 +223,7 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
     return () => {
       cancelled = true
     }
-  }, [activeWorkspace])
+  }, [activeVolume])
 
   useEffect(() => {
     if (!copiedCurlVariant || typeof window === 'undefined') return
@@ -246,17 +245,17 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
     }
   }
 
-  const switchWorkspace = (nextWorkspaceRaw: string) => {
+  const switchVolume = (nextVolumeRaw: string) => {
     if (typeof window === 'undefined') return
 
-    const nextWorkspace = nextWorkspaceRaw.trim() || 'personal'
+    const nextVolume = nextVolumeRaw.trim() || 'personal'
     const currentUrl = new URL(window.location.href)
     const targetPath =
       mode === 'status'
-        ? nextWorkspace === 'personal'
+        ? nextVolume === 'personal'
           ? '/status'
-          : `/${encodeURIComponent(nextWorkspace)}/status`
-        : `/${encodeURIComponent(nextWorkspace)}`
+          : `/${encodeURIComponent(nextVolume)}/status`
+        : `/${encodeURIComponent(nextVolume)}`
 
     const nextUrl = new URL(targetPath, currentUrl.origin)
     const filter = currentUrl.searchParams.get('filter')
@@ -287,12 +286,12 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
       }
     }
     if (isBellEnabled) {
-      await NotificationManager.disableBackgroundPush(workspace)
+      await NotificationManager.disableBackgroundPush()
       setIsBellEnabled(false)
       return
     }
 
-    const enabled = await NotificationManager.enableBackgroundPush(workspace)
+    const enabled = await NotificationManager.enableBackgroundPush()
     setIsBellEnabled(enabled)
     if (!enabled && typeof window !== 'undefined' && window.Notification.permission === 'granted') {
       alert(NotificationManager.getLastPushError() ?? 'Unable to enable background push. Verify backend VAPID configuration and try again.')
@@ -307,7 +306,7 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
 
     const testEvent = buildRandomTestEvent()
     try {
-      await publishEvent(testEvent.path, testEvent.payload, workspace)
+      await publishEvent(testEvent.path, testEvent.payload, volume)
       refresh()
       setGeneratorMessage(`Test event sent: ${testEvent.path}`)
     } catch {
@@ -321,7 +320,7 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
     if (statusFilter !== 'all' && event.status !== statusFilter) return false
     if (!deferredSearch.trim()) return true
     const q = deferredSearch.toLowerCase()
-    const haystack = `${event.path} ${event.content ?? ''} ${event.entityId ?? ''} ${event.runId ?? ''}`.toLowerCase()
+    const haystack = `${event.path} ${event.content ?? ''} ${event.entityId ?? ''}`.toLowerCase()
     return haystack.includes(q)
   })
 
@@ -386,14 +385,14 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
           {data && <div className="hidden xl:block"><StatCards stats={data.stats} /></div>}
 
           <div className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-card/70 px-2 py-1 backdrop-blur">
-            <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/80">Volume</span>
+              <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/80">Volume</span>
             <select
-              value={activeWorkspace}
-              onChange={(event) => switchWorkspace(event.target.value)}
+              value={activeVolume}
+              onChange={(event) => switchVolume(event.target.value)}
               className="h-7 rounded-md border border-border/60 bg-background px-2 text-[11px] font-semibold text-foreground"
               title="Switch active volume"
             >
-              {workspaceChoices.map((name) => (
+              {volumeChoices.map((name) => (
                 <option key={name} value={name}>
                   {name === 'personal' ? 'personal (default)' : name}
                 </option>
@@ -432,8 +431,8 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
 
           <nav className="no-scrollbar flex max-w-full items-center overflow-x-auto rounded-lg border border-primary/10 bg-primary/5 p-1 shadow-sm backdrop-blur-sm">
             <Link
-              to="/$workspaceId"
-              params={{ workspaceId: workspace ?? 'personal' }}
+              to="/$volumeId"
+              params={{ volumeId: volume ?? 'personal' }}
               activeProps={{ className: 'bg-background text-primary border-border/60 shadow-sm' }}
               className="flex items-center gap-1.5 px-2.5 md:px-3.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 hover:text-foreground border border-transparent"
             >
@@ -441,8 +440,8 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
               <span className="hidden sm:inline">Logs</span>
             </Link>
             <Link
-              to={workspace && workspace !== 'personal' ? '/$workspaceId/status' : '/status'}
-              params={workspace && workspace !== 'personal' ? { workspaceId: workspace } : {}}
+              to={volume && volume !== 'personal' ? '/$volumeId/status' : '/status'}
+              params={volume && volume !== 'personal' ? { volumeId: volume } : {}}
               activeProps={{ className: 'bg-background text-primary border-border/60 shadow-sm' }}
               className="flex items-center gap-1.5 px-2.5 md:px-3.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 hover:text-foreground border border-transparent"
             >
@@ -451,7 +450,7 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
             </Link>
           </nav>
 
-          <UserMenu workspace={workspace} />
+          <UserMenu volume={volume} />
         </div>
 
         {/* Global Navigation Input */}
@@ -496,13 +495,13 @@ export function DashboardView({ mode, workspace }: DashboardViewProps) {
                     {!curlFilterPath
                       ? 'Select a path filter to generate a curl command for that path.'
                       : !volumePublishKey
-                        ? 'No publish alias found for this workspace.'
+                        ? 'No publish alias found for this volume.'
                         : `Posts to filtered path: ${curlFilterPath}`
                     }
                   </p>
                   {volumePublishKey ? (
                     <p className="text-[10px] text-muted-foreground/80">
-                      Using workspace alias: <span className="font-mono">{volumePublishKey}</span>
+                      Using volume alias: <span className="font-mono">{volumePublishKey}</span>
                     </p>
                   ) : null}
                 </div>
@@ -656,22 +655,21 @@ function buildRandomCurlFrontmatterBody() {
 type RandomTestEventDraft = {
   path: string
   payload: {
+    time?: string
     status?: string
-    timestamp?: string
     content: string
-    meta?: Record<string, string | number | boolean>
   }
 }
 
 const RANDOM_PATHS = [
-  { path: 'ops/cron/nightly-backup', entityId: 'nightly-backup', entityType: 'job' },
-  { path: 'app/frontend/messages', entityId: 'websocket-client', entityType: 'service' },
-  { path: 'team-a/project-x/task/planner', entityId: 'planner', entityType: 'task' },
-  { path: 'team-b/pipeline/ingest', entityId: 'ingest', entityType: 'pipeline' },
-  { path: 'ml/trainer/retrain', entityId: 'retrainer', entityType: 'worker' },
-  { path: 'payments/reconciler/daily', entityId: 'reconciler', entityType: 'job' },
-  { path: 'search/indexer/shard-3', entityId: 'indexer-shard-3', entityType: 'worker' },
-  { path: 'support/webhook/slack-sync', entityId: 'slack-sync', entityType: 'integration' },
+  'ops/cron/nightly-backup',
+  'app/frontend/messages',
+  'team-a/project-x/task/planner',
+  'team-b/pipeline/ingest',
+  'ml/trainer/retrain',
+  'payments/reconciler/daily',
+  'search/indexer/shard-3',
+  'support/webhook/slack-sync',
 ] as const
 
 const RANDOM_TEST_MESSAGES = [
@@ -691,21 +689,16 @@ function randomId(prefix: string) {
 }
 
 function buildRandomTestEvent(): RandomTestEventDraft {
-  const source = pickRandom(RANDOM_PATHS)
+  const path = pickRandom(RANDOM_PATHS)
   const testId = randomId('test')
   const status = Math.random() < 0.75 ? 'idle' : 'busy'
 
   return {
-    path: source.path,
+    path,
     payload: {
-      timestamp: new Date().toISOString(),
+      time: new Date().toISOString(),
       status,
       content: `TEST EVENT ${testId}: ${pickRandom(RANDOM_TEST_MESSAGES)}`,
-      meta: {
-        source: 'dashboard-test-button',
-        test: true,
-        target: source.entityId,
-      },
     },
   }
 }

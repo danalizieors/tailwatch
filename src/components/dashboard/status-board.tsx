@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { AlertCircle, LayoutGrid, CheckCircle2 } from 'lucide-react'
 import type { EntitySnapshot } from '~/lib/types'
-import { formatDuration, formatRelative } from '~/lib/format'
+import { formatRelative } from '~/lib/format'
 import { cn, getPathColor } from '~/lib/utils'
 import { Button } from '~/components/ui/button'
 
@@ -105,12 +105,6 @@ export function StatusBoard({ rows, lastSeenAt, onAcknowledge, headerActions }: 
                       <span className="opacity-50 uppercase text-[9px] font-black tracking-widest" style={{ color: jewelText }}>Last Seen</span>
                       <span style={{ color: jewelText }}>{formatRelative(row.lastSeenAt)}</span>
                     </div>
-                    {row.activeForMs !== undefined && (
-                      <div className="flex flex-col items-start gap-1 opacity-70 sm:flex-row sm:items-center sm:justify-between">
-                        <span className="opacity-50 uppercase text-[9px] font-black tracking-widest" style={{ color: jewelText }}>Duration</span>
-                        <span style={{ color: jewelText }}>{formatDuration(row.activeForMs)}</span>
-                      </div>
-                    )}
                     
                     <div className="mt-4 pt-4 border-t border-white/5">
                       <div 
@@ -121,7 +115,7 @@ export function StatusBoard({ rows, lastSeenAt, onAcknowledge, headerActions }: 
                           border: `1px solid oklch(from ${pathColor} 0.25 0.08 h / 0.3)`
                         }}
                       >
-                        {row.lastError ?? row.lastContent ?? <span className="italic opacity-30 uppercase tracking-tighter">No Payload</span>}
+                        {row.lastContent ?? <span className="italic opacity-30 uppercase tracking-tighter">No Payload</span>}
                       </div>
                     </div>
                   </div>
@@ -139,9 +133,6 @@ function statusBadgeColors(status: EntitySnapshot['currentStatus']) {
   switch (status) {
     case 'busy': return 'bg-amber-400/10 text-amber-300 border-amber-400/20 shadow-inner'
     case 'idle': return 'bg-info/10 text-info border-info/20'
-    case 'working': return 'bg-muted/50 text-muted-foreground border-border'
-    case 'error': return 'bg-destructive/10 text-destructive border-destructive/20 shadow-inner'
-    case 'stopped': return 'bg-success/10 text-success border-success/20'
     default: return 'bg-muted/50 text-muted-foreground border-border'
   }
 }
@@ -150,9 +141,6 @@ function statusDotColors(status: EntitySnapshot['currentStatus']) {
   switch (status) {
     case 'busy': return 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.5)]'
     case 'idle': return 'bg-info shadow-[0_0_8px_oklch(from_var(--info)_l_c_h_/_0.5)]'
-    case 'working': return 'bg-muted-foreground opacity-40'
-    case 'error': return 'bg-destructive shadow-[0_0_8px_oklch(from_var(--destructive)_l_c_h_/_0.5)]'
-    case 'stopped': return 'bg-success shadow-[0_0_8px_oklch(from_var(--success)_l_c_h_/_0.5)]'
     default: return 'bg-muted-foreground'
   }
 }

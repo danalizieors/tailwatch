@@ -1,8 +1,8 @@
 import { v } from 'convex/values'
-import { internalMutation, internalQuery, mutation, query } from './_generated/server'
+import { internalMutation, internalQuery, mutation } from './_generated/server'
 import { getAuthenticatedContext } from './functions'
 
-function normalizeWatcherKey(value?: string) {
+function normalizeDeviceKey(value?: string) {
   const next = value?.trim()
   if (!next) {
     return `device_${Math.random().toString(36).slice(2, 10)}`
@@ -100,29 +100,27 @@ type PushSubscriptionRecord = {
   expirationTime?: number
   p256dh?: string
   auth?: string
-  workspace?: string
   userAgent?: string
   updatedAt?: string
-  watcherId?: string
-  watcherKey?: string
-  watcherName?: string
+  deviceId?: string
+  deviceKey?: string
+  deviceName?: string
   enabled?: boolean
   includePaths?: string[]
   ignorePaths?: string[]
 }
 
 function mapPushSubscription(row: any): PushSubscriptionRecord {
-  const watcherKey = typeof row.userId === 'string' && row.userId.trim() ? row.userId : normalizeWatcherKey()
+  const deviceKey = typeof row.userId === 'string' && row.userId.trim() ? row.userId : normalizeDeviceKey()
   return {
     endpoint: row.endpoint,
     p256dh: row.p256dh,
     auth: row.auth,
-    workspace: undefined,
     userAgent: undefined,
     updatedAt: new Date(row._creationTime ?? Date.now()).toISOString(),
-    watcherId: String(row._id),
-    watcherKey,
-    watcherName: row.name,
+    deviceId: String(row._id),
+    deviceKey,
+    deviceName: row.name,
     enabled: row.notifications,
     includePaths: ['/'],
     ignorePaths: [],
@@ -133,9 +131,9 @@ async function listAllDeviceRows(ctx: any) {
   return ctx.db.query('devices').collect()
 }
 
-async function findDeviceByKey(ctx: any, watcherKey: string) {
+async function findDeviceByKey(ctx: any, deviceKey: string) {
   const rows = await listAllDeviceRows(ctx)
-  return rows.find((row: any) => row.userId === watcherKey)
+  return rows.find((row: any) => row.userId === deviceKey)
 }
 
 async function clearSubscriptionByEndpoint(ctx: any, endpoint: string) {
@@ -154,8 +152,8 @@ async function clearSubscriptionByEndpoint(ctx: any, endpoint: string) {
   return matched.length
 }
 
-async function clearSubscriptionByWatcherKey(ctx: any, watcherKey: string) {
-  const device = await findDeviceByKey(ctx, watcherKey)
+async function clearSubscriptionByDeviceKey(ctx: any, deviceKey: string) {
+  const device = await findDeviceByKey(ctx, deviceKey)
   if (!device) return 0
 
   await ctx.db.patch(device._id, {
@@ -170,28 +168,27 @@ async function clearSubscriptionByWatcherKey(ctx: any, watcherKey: string) {
 export const upsertSubscription = mutation({
   args: {
     endpoint: v.string(),
-    workspace: v.optional(v.string()),
     expirationTime: v.optional(v.number()),
     p256dh: v.optional(v.string()),
     auth: v.optional(v.string()),
     userAgent: v.optional(v.string()),
     clientVapidPublicKey: v.optional(v.string()),
-    watcherKey: v.optional(v.string()),
-    watcherName: v.optional(v.string()),
+    deviceKey: v.optional(v.string()),
+    deviceName: v.optional(v.string()),
     enabled: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     await getAuthenticatedContext(ctx)
     const pushConfig = getPushConfigStatus(args.clientVapidPublicKey)
 
-    const watcherKey = normalizeWatcherKey(args.watcherKey ?? args.endpoint)
-    const watcherName = args.watcherName?.trim() ? args.watcherName.trim().slice(0, 120) : `Device ${watcherKey.slice(-6)}`
+    const deviceKey = normalizeDeviceKey(args.deviceKey ?? args.endpoint)
+    const deviceName = args.deviceName?.trim() ? args.deviceName.trim().slice(0, 120) : `Device ${deviceKey.slice(-6)}`
 
-    const existing = await findDeviceByKey(ctx, watcherKey)
+    const existing = await findDeviceByKey(ctx, deviceKey)
     if (existing) {
       await ctx.db.patch(existing._id, {
-        userId: watcherKey,
-        name: watcherName,
+        userId: deviceKey,
+        name: deviceName,
         notifications: typeof args.enabled === 'boolean' ? args.enabled : true,
         endpoint: args.endpoint,
         p256dh: args.p256dh,
@@ -209,8 +206,8 @@ export const upsertSubscription = mutation({
     }
 
     const createdId = await ctx.db.insert('devices', {
-      userId: watcherKey,
-      name: watcherName,
+      userId: deviceKey,
+      name: deviceName,
       notifications: typeof args.enabled === 'boolean' ? args.enabled : true,
       endpoint: args.endpoint,
       p256dh: args.p256dh,
@@ -231,16 +228,15 @@ export const upsertSubscription = mutation({
 export const removeSubscription = mutation({
   args: {
     endpoint: v.optional(v.string()),
-    workspace: v.optional(v.string()),
-    watcherKey: v.optional(v.string()),
+    deviceKey: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     await getAuthenticatedContext(ctx)
 
     let deleted = 0
 
-    if (args.watcherKey) {
-      deleted += await clearSubscriptionByWatcherKey(ctx, normalizeWatcherKey(args.watcherKey))
+    if (args.deviceKey) {
+      deleted += await clearSubscriptionByDeviceKey(ctx, normalizeDeviceKey(args.deviceKey))
     }
 
     if (args.endpoint) {
@@ -254,7 +250,6 @@ export const removeSubscription = mutation({
 export const removeSubscriptionInternal = internalMutation({
   args: {
     endpoint: v.string(),
-    workspace: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const deleted = await clearSubscriptionByEndpoint(ctx, args.endpoint)
@@ -262,30 +257,10 @@ export const removeSubscriptionInternal = internalMutation({
   },
 })
 
-export const listSubscriptionsForWorkspaceInternal = internalQuery({
-  args: {
-    workspace: v.optional(v.string()),
-  },
+export const listSubscriptionsForVolumeInternal = internalQuery({
+  args: {},
   handler: async (ctx) => {
     const rows = await listAllDeviceRows(ctx)
     return rows.filter((row: any) => row.endpoint).map(mapPushSubscription)
-  },
-})
-
-export const listSubscriptionsForWorkspace = query({
-  args: {
-    workspace: v.optional(v.string()),
-    watcherKey: v.optional(v.string()),
-  },
-  handler: async (ctx, args) => {
-    await getAuthenticatedContext(ctx)
-
-    const rows = await listAllDeviceRows(ctx)
-    const keyed = args.watcherKey ? normalizeWatcherKey(args.watcherKey) : undefined
-
-    return rows
-      .filter((row: any) => Boolean(row.endpoint))
-      .filter((row: any) => (keyed ? row.userId === keyed : true))
-      .map(mapPushSubscription)
   },
 })

@@ -5,8 +5,8 @@ export class NotificationManager {
   private static lastPushError: string | null = null
   private static readonly pushSubscribePath = '/api/push/subscribe'
   private static readonly pushUnsubscribePath = '/api/push/unsubscribe'
-  private static readonly watcherStorageKey = 'tailwatch_watcher_key'
-  private static readonly watcherNameStorageKey = 'tailwatch_watcher_name'
+  private static readonly deviceStorageKey = 'tailwatch_device_key'
+  private static readonly deviceNameStorageKey = 'tailwatch_device_name'
 
   static enableSound() {
     if (typeof window === 'undefined') return
@@ -25,27 +25,27 @@ export class NotificationManager {
     return this.isSoundEnabled
   }
 
-  static getWatcherKey() {
-    if (typeof window === 'undefined') return 'watcher_server'
+  static getDeviceKey() {
+    if (typeof window === 'undefined') return 'device_server'
 
-    const existing = window.localStorage.getItem(this.watcherStorageKey)
+    const existing = window.localStorage.getItem(this.deviceStorageKey)
     if (existing?.trim()) return existing
 
-    const generated = `watcher_${Math.random().toString(36).slice(2, 10)}`
-    window.localStorage.setItem(this.watcherStorageKey, generated)
+    const generated = `device_${Math.random().toString(36).slice(2, 10)}`
+    window.localStorage.setItem(this.deviceStorageKey, generated)
     return generated
   }
 
-  static getWatcherName() {
-    if (typeof window === 'undefined') return 'Server Watcher'
+  static getDeviceName() {
+    if (typeof window === 'undefined') return 'Server Device'
 
-    const stored = window.localStorage.getItem(this.watcherNameStorageKey)
+    const stored = window.localStorage.getItem(this.deviceNameStorageKey)
     if (stored?.trim()) return stored
 
     const browser = detectBrowser(window.navigator.userAgent)
     const os = detectOs(window.navigator.userAgent)
     const generated = `${browser} on ${os}`
-    window.localStorage.setItem(this.watcherNameStorageKey, generated)
+    window.localStorage.setItem(this.deviceNameStorageKey, generated)
     return generated
   }
 
@@ -113,29 +113,9 @@ export class NotificationManager {
     )
   }
 
-  static async isPushSubscribed(workspace?: string): Promise<boolean> {
-    if (!this.isPushSupported()) return false
-    try {
-      this.lastPushError = null
-      if (window.Notification.permission !== 'granted') {
-        return false
-      }
-
-      const reg = await navigator.serviceWorker.ready
-      const subscription = await reg.pushManager.getSubscription()
-      if (!subscription) return false
-
-      const vapidPublicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY as string | undefined
-      return this.storePushSubscription(subscription, workspace, vapidPublicKey)
-    } catch (error) {
-      console.warn('Failed to inspect push subscription', error)
-      return false
-    }
-  }
-
   // Ensure background push is actually wired when permission is already granted,
   // including auto-repair when the browser dropped an expired/invalid subscription.
-  static async ensureBackgroundPush(workspace?: string): Promise<boolean> {
+  static async ensureBackgroundPush(): Promise<boolean> {
     if (!this.isPushSupported()) return false
 
     try {
@@ -159,7 +139,7 @@ export class NotificationManager {
         })
       }
 
-      return this.storePushSubscription(subscription, workspace, vapidPublicKey)
+      return this.storePushSubscription(subscription, vapidPublicKey)
     } catch (error) {
       console.error('Failed to ensure background push', error)
       this.lastPushError = error instanceof Error ? error.message : 'Failed to ensure background push.'
@@ -167,7 +147,7 @@ export class NotificationManager {
     }
   }
 
-  static async enableBackgroundPush(workspace?: string): Promise<boolean> {
+  static async enableBackgroundPush(): Promise<boolean> {
     try {
       this.lastPushError = null
       if (!this.isPushSupported()) {
@@ -199,7 +179,7 @@ export class NotificationManager {
         })
       }
 
-      return this.storePushSubscription(subscription, workspace, vapidPublicKey)
+      return this.storePushSubscription(subscription, vapidPublicKey)
     } catch (error) {
       console.error('Failed to enable background push', error)
       this.lastPushError = error instanceof Error ? error.message : 'Failed to enable background push.'
@@ -213,7 +193,6 @@ export class NotificationManager {
 
   private static async storePushSubscription(
     subscription: PushSubscription,
-    workspace?: string,
     clientVapidPublicKey?: string,
     allowRepair = true,
   ): Promise<boolean> {
@@ -221,9 +200,8 @@ export class NotificationManager {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
-        ...(workspace ? { 'x-tailwatch-workspace': workspace } : {}),
-        'x-tailwatch-watcher-key': this.getWatcherKey(),
-        'x-tailwatch-watcher-name': this.getWatcherName(),
+        'x-tailwatch-device-key': this.getDeviceKey(),
+        'x-tailwatch-device-name': this.getDeviceName(),
       },
       body: JSON.stringify({
         subscription: subscription.toJSON(),
@@ -268,7 +246,7 @@ export class NotificationManager {
             userVisibleOnly: true,
             applicationServerKey: base64UrlToUint8Array(parsed.serverVapidPublicKey!),
           })
-          return this.storePushSubscription(repairedSubscription, workspace, parsed.serverVapidPublicKey, false)
+          return this.storePushSubscription(repairedSubscription, parsed.serverVapidPublicKey, false)
         } catch (repairError) {
           console.error('Failed to repair push subscription with server VAPID key', repairError)
           this.lastPushError = 'Push key mismatch detected, but automatic re-subscribe failed.'
@@ -284,22 +262,21 @@ export class NotificationManager {
     return true
   }
 
-  static async disableBackgroundPush(workspace?: string): Promise<boolean> {
+  static async disableBackgroundPush(): Promise<boolean> {
     try {
       if (!this.isPushSupported()) return false
 
       const reg = await navigator.serviceWorker.ready
       const subscription = await reg.pushManager.getSubscription()
       const endpoint = subscription?.endpoint
-      const watcherKey = this.getWatcherKey()
+      const deviceKey = this.getDeviceKey()
       const [serverResult] = await Promise.allSettled([
         fetch(this.pushUnsubscribePath, {
           method: 'POST',
           headers: {
             'content-type': 'application/json',
-            ...(workspace ? { 'x-tailwatch-workspace': workspace } : {}),
           },
-          body: JSON.stringify({ endpoint, watcherKey }),
+          body: JSON.stringify({ endpoint, deviceKey }),
         }),
         subscription ? subscription.unsubscribe() : Promise.resolve(true),
       ])
@@ -398,12 +375,12 @@ function detectOs(userAgent: string) {
   return 'Unknown OS'
 }
 
-export function getClientWatcherKey() {
-  return NotificationManager.getWatcherKey()
+export function getClientDeviceKey() {
+  return NotificationManager.getDeviceKey()
 }
 
-export function getClientWatcherName() {
-  return NotificationManager.getWatcherName()
+export function getClientDeviceName() {
+  return NotificationManager.getDeviceName()
 }
 
 // Local storage for "seen" state

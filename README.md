@@ -50,9 +50,9 @@ That means you can move between:
 - the timeline (what happened)
 - the snapshot (what is happening now)
 
-### Workspace Separation
+### Volume Separation
 
-Tailwatch supports workspace scoping so teams can keep environments or organizations separated while using the same event model.
+Tailwatch supports volume scoping so teams can keep environments or organizations separated while using the same event model.
 
 ## Event Types
 
@@ -73,7 +73,7 @@ This model works well for agents, background jobs, services, and general applica
 - Status board with derived entity state
 - Hierarchical topic filtering
 - Search and event-type filtering
-- Workspace-aware monitoring views
+- Volume-aware monitoring views
 - Browser sound alerts and push notifications (optional)
 - Lightweight HTTP publish pattern for event ingestion
 

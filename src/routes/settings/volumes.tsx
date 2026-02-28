@@ -9,7 +9,7 @@ import { createManagedVolume, fetchManagedVolumes, type ManagedVolumeRecord, ren
 import { cn } from '~/lib/utils'
 
 const searchSchema = z.object({
-  workspace: z.string().optional(),
+  volume: z.string().optional(),
 })
 
 type VolumeDraft = {
@@ -22,8 +22,8 @@ export const Route = createFileRoute('/settings/volumes')({
 })
 
 function VolumeSettingsPage() {
-  const { workspace } = Route.useSearch()
-  const workspaceKey = workspace?.trim() || 'personal'
+  const { volume } = Route.useSearch()
+  const volumeKey = volume?.trim() || 'personal'
 
   const [volumes, setVolumes] = useState<ManagedVolumeRecord[]>([])
   const [volumeDrafts, setVolumeDrafts] = useState<Record<string, VolumeDraft>>({})
@@ -71,10 +71,10 @@ function VolumeSettingsPage() {
 
   const headerLinks = useMemo(() => {
     return [
-      { href: workspaceKey === 'personal' ? '/status' : `/${encodeURIComponent(workspaceKey)}/status`, label: 'Back to status' },
-      { href: workspaceKey === 'personal' ? '/settings/devices' : `/settings/devices?workspace=${encodeURIComponent(workspaceKey)}`, label: 'Device settings' },
+      { href: volumeKey === 'personal' ? '/status' : `/${encodeURIComponent(volumeKey)}/status`, label: 'Back to status' },
+      { href: volumeKey === 'personal' ? '/settings/devices' : `/settings/devices?volume=${encodeURIComponent(volumeKey)}`, label: 'Device settings' },
     ]
-  }, [workspaceKey])
+  }, [volumeKey])
 
   const setVolumeDraftName = (volumeId: string, name: string) => {
     setVolumeDrafts((prev) => ({

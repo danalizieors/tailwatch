@@ -1,41 +1,17 @@
-import type { DashboardSnapshot, EventStatus, EventType, PublishEventPayload, StoredEvent } from '~/lib/types'
+import type { DashboardSnapshot, EventStatus, PublishEventPayload, StoredEvent } from '~/lib/types'
 
 export interface DashboardQuery {
-  workspace?: string
+  volume?: string
   topicPrefix?: string
   status?: EventStatus | 'all'
-  type?: EventType | 'all'
   q?: string
   limit?: number
 }
 
-export interface PushTestResult {
-  attempted: number
-  delivered: number
-  pruned: number
-  skipped: boolean
-}
-
-export interface PushDeviceRecord {
-  endpoint: string
-  expirationTime?: number
-  p256dh?: string
-  auth?: string
-  workspace?: string
-  userAgent?: string
-  updatedAt?: string
-  watcherId?: string
-  watcherKey?: string
-  watcherName?: string
-  enabled?: boolean
-  includePaths?: string[]
-  ignorePaths?: string[]
-}
-
-export interface WatcherRecord {
+export interface DeviceRecord {
   id: string
-  workspace: string
-  watcherKey: string
+  volume: string
+  deviceKey: string
   name: string
   enabled: boolean
   includePaths: string[]
@@ -51,7 +27,7 @@ export interface WatcherRecord {
 export interface PathAliasRecord {
   aliasId: string
   path: string
-  workspace: string
+  volume: string
   created?: boolean
 }
 
@@ -59,7 +35,7 @@ export interface ResolvePathAliasResult {
   found: boolean
   aliasId?: string
   path?: string
-  workspace?: string
+  volume?: string
 }
 
 export interface VolumeKeyRecord {
@@ -80,7 +56,6 @@ function toQueryString(query: DashboardQuery) {
   const params = new URLSearchParams()
   if (query.topicPrefix) params.set('topicPrefix', query.topicPrefix)
   if (query.status && query.status !== 'all') params.set('status', query.status)
-  if (query.type && query.type !== 'all') params.set('type', query.type)
   if (query.q) params.set('q', query.q)
   if (query.limit) params.set('limit', String(query.limit))
   const value = params.toString()
@@ -90,7 +65,7 @@ function toQueryString(query: DashboardQuery) {
 export async function fetchDashboardSnapshot(query: DashboardQuery = {}): Promise<DashboardSnapshot> {
   const response = await fetch(`/api/dashboard${toQueryString(query)}`, {
     headers: {
-      'x-tailwatch-workspace': query.workspace || 'personal'
+      'x-tailwatch-volume': query.volume || 'personal'
     }
   })
   if (!response.ok) {
@@ -99,11 +74,11 @@ export async function fetchDashboardSnapshot(query: DashboardQuery = {}): Promis
   return response.json()
 }
 
-export async function fetchStatusSnapshot(topicPrefix?: string, workspace?: string): Promise<DashboardSnapshot> {
+export async function fetchStatusSnapshot(topicPrefix?: string, volume?: string): Promise<DashboardSnapshot> {
   const suffix = topicPrefix ? `?topicPrefix=${encodeURIComponent(topicPrefix)}` : ''
   const response = await fetch(`/api/status${suffix}`, {
     headers: {
-      'x-tailwatch-workspace': workspace || 'personal'
+      'x-tailwatch-volume': volume || 'personal'
     }
   })
   if (!response.ok) {
@@ -112,13 +87,13 @@ export async function fetchStatusSnapshot(topicPrefix?: string, workspace?: stri
   return response.json()
 }
 
-export async function publishEvent(path: string, payload: PublishEventPayload, workspace?: string): Promise<StoredEvent> {
+export async function publishEvent(path: string, payload: PublishEventPayload, volume?: string): Promise<StoredEvent> {
   const cleanPath = path.replace(/^\/+|\/+$/g, '')
   const response = await fetch(`/api/publish/${cleanPath}`, {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
-      ...(workspace ? { 'x-tailwatch-workspace': workspace } : {}),
+      ...(volume ? { 'x-tailwatch-volume': volume } : {}),
     },
     body: JSON.stringify(payload),
   })
@@ -129,119 +104,56 @@ export async function publishEvent(path: string, payload: PublishEventPayload, w
   return response.json()
 }
 
-export async function triggerPushTest(workspace?: string): Promise<PushTestResult> {
-  const response = await fetch('/api/push/test', {
-    method: 'POST',
+export async function fetchCurrentDevice(input: {
+  deviceKey?: string
+  deviceName?: string
+}): Promise<DeviceRecord> {
+  const response = await fetch('/api/devices/current', {
     headers: {
-      ...(workspace ? { 'x-tailwatch-workspace': workspace } : {}),
+      ...(input.deviceKey ? { 'x-tailwatch-device-key': input.deviceKey } : {}),
+      ...(input.deviceName ? { 'x-tailwatch-device-name': input.deviceName } : {}),
     },
   })
 
   if (!response.ok) {
     const detail = await response.text()
-    throw new Error(detail || `Push test failed (${response.status})`)
+    throw new Error(detail || `Failed to load current device (${response.status})`)
   }
 
-  return response.json()
+  const parsed = (await response.json()) as { device?: DeviceRecord }
+  if (!parsed.device) {
+    throw new Error('Current device payload missing device')
+  }
+  return parsed.device
 }
 
-export async function fetchPushDevices(workspace?: string, watcherKey?: string): Promise<PushDeviceRecord[]> {
-  const response = await fetch('/api/push/devices', {
+export async function fetchDevices(deviceKey?: string): Promise<DeviceRecord[]> {
+  const response = await fetch('/api/devices', {
     headers: {
-      ...(workspace ? { 'x-tailwatch-workspace': workspace } : {}),
-      ...(watcherKey ? { 'x-tailwatch-watcher-key': watcherKey } : {}),
+      ...(deviceKey ? { 'x-tailwatch-device-key': deviceKey } : {}),
     },
   })
 
   if (!response.ok) {
     const detail = await response.text()
-    throw new Error(detail || `Failed to load linked devices (${response.status})`)
+    throw new Error(detail || `Failed to load devices (${response.status})`)
   }
 
-  const parsed = (await response.json()) as { devices?: PushDeviceRecord[] }
+  const parsed = (await response.json()) as { devices?: DeviceRecord[] }
   return Array.isArray(parsed.devices) ? parsed.devices : []
 }
 
-export async function removePushDevice(input: {
-  endpoint?: string
-  workspace?: string
-  watcherKey?: string
-}): Promise<{ ok: boolean; deleted?: number }> {
-  const response = await fetch('/api/push/unsubscribe', {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      ...(input.workspace ? { 'x-tailwatch-workspace': input.workspace } : {}),
-    },
-    body: JSON.stringify({
-      endpoint: input.endpoint,
-      watcherKey: input.watcherKey,
-    }),
-  })
-
-  if (!response.ok) {
-    const detail = await response.text()
-    throw new Error(detail || `Failed to remove linked device (${response.status})`)
-  }
-
-  return (await response.json()) as { ok: boolean; deleted?: number }
-}
-
-export async function fetchCurrentWatcher(input: {
-  workspace?: string
-  watcherKey?: string
-  watcherName?: string
-}): Promise<WatcherRecord> {
-  const response = await fetch('/api/watchers/current', {
-    headers: {
-      ...(input.workspace ? { 'x-tailwatch-workspace': input.workspace } : {}),
-      ...(input.watcherKey ? { 'x-tailwatch-watcher-key': input.watcherKey } : {}),
-      ...(input.watcherName ? { 'x-tailwatch-watcher-name': input.watcherName } : {}),
-    },
-  })
-
-  if (!response.ok) {
-    const detail = await response.text()
-    throw new Error(detail || `Failed to load current watcher (${response.status})`)
-  }
-
-  const parsed = (await response.json()) as { watcher?: WatcherRecord }
-  if (!parsed.watcher) {
-    throw new Error('Current watcher payload missing watcher')
-  }
-  return parsed.watcher
-}
-
-export async function fetchWatchers(workspace?: string, watcherKey?: string): Promise<WatcherRecord[]> {
-  const response = await fetch('/api/watchers', {
-    headers: {
-      ...(workspace ? { 'x-tailwatch-workspace': workspace } : {}),
-      ...(watcherKey ? { 'x-tailwatch-watcher-key': watcherKey } : {}),
-    },
-  })
-
-  if (!response.ok) {
-    const detail = await response.text()
-    throw new Error(detail || `Failed to load watchers (${response.status})`)
-  }
-
-  const parsed = (await response.json()) as { watchers?: WatcherRecord[] }
-  return Array.isArray(parsed.watchers) ? parsed.watchers : []
-}
-
-export async function createWatcher(input: {
-  workspace?: string
-  watcherKey?: string
+export async function createDevice(input: {
+  deviceKey?: string
   name?: string
   includePaths?: string[]
   ignorePaths?: string[]
-}): Promise<WatcherRecord> {
-  const response = await fetch('/api/watchers', {
+}): Promise<DeviceRecord> {
+  const response = await fetch('/api/devices', {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
-      ...(input.workspace ? { 'x-tailwatch-workspace': input.workspace } : {}),
-      ...(input.watcherKey ? { 'x-tailwatch-watcher-key': input.watcherKey } : {}),
+      ...(input.deviceKey ? { 'x-tailwatch-device-key': input.deviceKey } : {}),
     },
     body: JSON.stringify({
       name: input.name,
@@ -252,32 +164,32 @@ export async function createWatcher(input: {
 
   if (!response.ok) {
     const detail = await response.text()
-    throw new Error(detail || `Failed to create watcher (${response.status})`)
+    throw new Error(detail || `Failed to create device (${response.status})`)
   }
 
-  const parsed = (await response.json()) as { watcher?: WatcherRecord }
-  if (!parsed.watcher) {
-    throw new Error('Watcher create response is missing watcher')
+  const parsed = (await response.json()) as { device?: DeviceRecord }
+  if (!parsed.device) {
+    throw new Error('Device create response is missing device')
   }
-  return parsed.watcher
+  return parsed.device
 }
 
-export async function updateWatcher(input: {
-  watcherId: string
-  watcherKey?: string
+export async function updateDevice(input: {
+  deviceId: string
+  deviceKey?: string
   enabled?: boolean
   name?: string
   includePaths?: string[]
   ignorePaths?: string[]
-}): Promise<WatcherRecord> {
-  const response = await fetch('/api/watchers', {
+}): Promise<DeviceRecord> {
+  const response = await fetch('/api/devices', {
     method: 'PATCH',
     headers: {
       'content-type': 'application/json',
-      ...(input.watcherKey ? { 'x-tailwatch-watcher-key': input.watcherKey } : {}),
+      ...(input.deviceKey ? { 'x-tailwatch-device-key': input.deviceKey } : {}),
     },
     body: JSON.stringify({
-      watcherId: input.watcherId,
+      deviceId: input.deviceId,
       enabled: input.enabled,
       name: input.name,
       includePaths: input.includePaths,
@@ -287,22 +199,22 @@ export async function updateWatcher(input: {
 
   if (!response.ok) {
     const detail = await response.text()
-    throw new Error(detail || `Failed to update watcher (${response.status})`)
+    throw new Error(detail || `Failed to update device (${response.status})`)
   }
 
-  const parsed = (await response.json()) as { watcher?: WatcherRecord }
-  if (!parsed.watcher) {
-    throw new Error('Watcher update response is missing watcher')
+  const parsed = (await response.json()) as { device?: DeviceRecord }
+  if (!parsed.device) {
+    throw new Error('Device update response is missing device')
   }
-  return parsed.watcher
+  return parsed.device
 }
 
-export async function ensurePathAlias(path: string, workspace?: string): Promise<PathAliasRecord> {
+export async function ensurePathAlias(path: string, volume?: string): Promise<PathAliasRecord> {
   const response = await fetch('/api/path-alias/ensure', {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
-      ...(workspace ? { 'x-tailwatch-workspace': workspace } : {}),
+      ...(volume ? { 'x-tailwatch-volume': volume } : {}),
     },
     body: JSON.stringify({ path }),
   })
@@ -312,13 +224,14 @@ export async function ensurePathAlias(path: string, workspace?: string): Promise
     throw new Error(detail || `Failed to ensure path alias (${response.status})`)
   }
 
-  return (await response.json()) as PathAliasRecord
+  const parsed = (await response.json()) as PathAliasRecord
+  return parsed
 }
 
-export async function resolvePathAlias(aliasId: string, workspace?: string): Promise<ResolvePathAliasResult> {
+export async function resolvePathAlias(aliasId: string, volume?: string): Promise<ResolvePathAliasResult> {
   const response = await fetch(`/api/path-alias/resolve?id=${encodeURIComponent(aliasId)}`, {
     headers: {
-      ...(workspace ? { 'x-tailwatch-workspace': workspace } : {}),
+      ...(volume ? { 'x-tailwatch-volume': volume } : {}),
     },
   })
 
@@ -327,7 +240,8 @@ export async function resolvePathAlias(aliasId: string, workspace?: string): Pro
     throw new Error(detail || `Failed to resolve path alias (${response.status})`)
   }
 
-  return (await response.json()) as ResolvePathAliasResult
+  const parsed = (await response.json()) as ResolvePathAliasResult
+  return parsed
 }
 
 export async function fetchManagedVolumes(): Promise<ManagedVolumeRecord[]> {

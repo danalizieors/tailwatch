@@ -5,12 +5,12 @@ import { z } from 'zod'
 import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/card'
-import { createWatcher, fetchWatchers, updateWatcher, type WatcherRecord } from '~/lib/client-api'
-import { getClientWatcherKey, NotificationManager } from '~/lib/notifications'
+import { createDevice, fetchDevices, updateDevice, type DeviceRecord } from '~/lib/client-api'
+import { getClientDeviceKey, NotificationManager } from '~/lib/notifications'
 import { cn } from '~/lib/utils'
 
 const searchSchema = z.object({
-  workspace: z.string().optional(),
+  volume: z.string().optional(),
 })
 
 type DeviceDraft = {
@@ -23,11 +23,11 @@ export const Route = createFileRoute('/settings/devices')({
 })
 
 function NotificationDevicesPage() {
-  const { workspace } = Route.useSearch()
-  const workspaceKey = workspace?.trim() || 'personal'
-  const currentWatcherKey = getClientWatcherKey()
+  const { volume } = Route.useSearch()
+  const volumeKey = volume?.trim() || 'personal'
+  const currentDeviceKey = getClientDeviceKey()
 
-  const [devices, setDevices] = useState<WatcherRecord[]>([])
+  const [devices, setDevices] = useState<DeviceRecord[]>([])
   const [drafts, setDrafts] = useState<Record<string, DeviceDraft>>({})
   const [isLoading, setIsLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -48,7 +48,7 @@ function NotificationDevicesPage() {
           setIsLoading(true)
         }
 
-        const next = await fetchWatchers(workspaceKey, currentWatcherKey)
+        const next = await fetchDevices(currentDeviceKey)
         setDevices(next)
         setDrafts((prev) => {
           const nextDrafts: Record<string, DeviceDraft> = { ...prev }
@@ -68,7 +68,7 @@ function NotificationDevicesPage() {
         setIsRefreshing(false)
       }
     },
-    [workspaceKey, currentWatcherKey],
+    [volumeKey, currentDeviceKey],
   )
 
   useEffect(() => {
@@ -77,12 +77,12 @@ function NotificationDevicesPage() {
 
   const headerLinks = useMemo(() => {
     const links = [
-      { href: `/${encodeURIComponent(workspaceKey)}`, label: 'Back to logs' },
-      { href: workspaceKey === 'personal' ? '/status' : `/${encodeURIComponent(workspaceKey)}/status`, label: 'Back to status' },
-      { href: workspaceKey === 'personal' ? '/settings/volumes' : `/settings/volumes?workspace=${encodeURIComponent(workspaceKey)}`, label: 'Volume settings' },
+      { href: `/${encodeURIComponent(volumeKey)}`, label: 'Back to logs' },
+      { href: volumeKey === 'personal' ? '/status' : `/${encodeURIComponent(volumeKey)}/status`, label: 'Back to status' },
+      { href: volumeKey === 'personal' ? '/settings/volumes' : `/settings/volumes?volume=${encodeURIComponent(volumeKey)}`, label: 'Volume settings' },
     ]
     return links
-  }, [workspaceKey])
+  }, [volumeKey])
 
   const onDraftChange = (deviceId: string, patch: Partial<DeviceDraft>) => {
     setDrafts((prev) => ({
@@ -93,25 +93,25 @@ function NotificationDevicesPage() {
     }))
   }
 
-  const handleToggleDevice = async (device: WatcherRecord) => {
+  const handleToggleDevice = async (device: DeviceRecord) => {
     try {
       setNotice(null)
       setError(null)
       setBusyDeviceId(device.id)
 
-      const isCurrent = device.watcherKey === currentWatcherKey
+      const isCurrent = device.deviceKey === currentDeviceKey
       if (isCurrent) {
         if (device.enabled) {
-          await NotificationManager.disableBackgroundPush(workspaceKey)
+          await NotificationManager.disableBackgroundPush()
         } else {
-          const enabled = await NotificationManager.enableBackgroundPush(workspaceKey)
+          const enabled = await NotificationManager.enableBackgroundPush()
           if (!enabled) {
             throw new Error(NotificationManager.getLastPushError() ?? 'Failed to enable push for this device')
           }
         }
       } else {
-        await updateWatcher({
-          watcherId: device.id,
+        await updateDevice({
+          deviceId: device.id,
           enabled: !device.enabled,
         })
       }
@@ -125,7 +125,7 @@ function NotificationDevicesPage() {
     }
   }
 
-  const handleSaveDevice = async (device: WatcherRecord) => {
+  const handleSaveDevice = async (device: DeviceRecord) => {
     const draft = drafts[device.id]
     if (!draft) return
 
@@ -134,9 +134,9 @@ function NotificationDevicesPage() {
       setError(null)
       setBusyDeviceId(device.id)
 
-      await updateWatcher({
-        watcherId: device.id,
-        watcherKey: device.watcherKey,
+      await updateDevice({
+        deviceId: device.id,
+        deviceKey: device.deviceKey,
         name: draft.name.trim() || device.name,
       })
 
@@ -155,8 +155,7 @@ function NotificationDevicesPage() {
       setError(null)
       setIsCreating(true)
 
-      await createWatcher({
-        workspace: workspaceKey,
+      await createDevice({
         name: newDeviceName.trim() || undefined,
       })
 
@@ -250,7 +249,7 @@ function NotificationDevicesPage() {
                 const draft = drafts[device.id] ?? {
                   name: device.name,
                 }
-                const isCurrent = device.watcherKey === currentWatcherKey
+                const isCurrent = device.deviceKey === currentDeviceKey
                 const isBusy = busyDeviceId === device.id
 
                 return (

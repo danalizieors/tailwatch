@@ -10,9 +10,7 @@ export const Route = createFileRoute('/api/publish/key/$')({
             .split('/')
             .filter(Boolean)
             .join('/')
-          const volumeKey =
-            request.headers.get('x-volume-key')?.trim() ??
-            request.headers.get('x-tailwatch-workspace-alias')?.trim()
+          const volumeKey = request.headers.get('x-volume-key')?.trim()
 
           if (!volumeKey) {
             return Response.json(
@@ -27,9 +25,7 @@ export const Route = createFileRoute('/api/publish/key/$')({
           const contentType = request.headers.get('content-type')?.toLowerCase() ?? ''
           const url = new URL(request.url)
           const queryStatusRaw = url.searchParams.get('status')?.trim()
-          const headerStatusRaw =
-            request.headers.get('x-event-status')?.trim() ??
-            request.headers.get('x-tailwatch-status')?.trim()
+          const headerStatusRaw = request.headers.get('x-event-status')?.trim()
           const statusRaw = queryStatusRaw || headerStatusRaw
           const statusOverride = normalizeEventStatus(statusRaw)
           const rawBody = await request.text()
@@ -71,7 +67,7 @@ export const Route = createFileRoute('/api/publish/key/$')({
 
           const event = await appendEventByBindingKey(volumeKey, topicPath, payload)
           // Keep keyed ingest responses alias-only.
-          const responseEvent = { ...event, workspace: volumeKey }
+          const responseEvent = { ...event, volume: volumeKey }
 
           return Response.json(responseEvent, {
             status: 201,

@@ -92,8 +92,8 @@ export function LogStream({ events, searchValue, onSearchChange, statusFilter, o
               {events.map((event) => {
                 const pathColor = getPathColor(event.path)
                 const isBusy = event.status === 'busy'
-                const isUnread = new Date(event.timestamp).getTime() > lastSeenAt
-                const eventDate = new Date(event.timestamp)
+                const isUnread = new Date(event.time).getTime() > lastSeenAt
+                const eventDate = new Date(event.time)
                 
                 return (
                   <div 

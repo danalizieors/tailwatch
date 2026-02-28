@@ -6,5 +6,5 @@ export const Route = createFileRoute('/status')({
 })
 
 function StatusDashboardPage() {
-  return <DashboardView mode="status" workspace="personal" />
+  return <DashboardView mode="status" volume="personal" />
 }

@@ -4,16 +4,15 @@ import { v } from 'convex/values'
 import { internal } from './_generated/api'
 import { action } from './_generated/server'
 
-const DEFAULT_WORKSPACE = 'personal'
+const DEFAULT_VOLUME = 'personal'
 const DEFAULT_PUSH_TTL_SECONDS = 60 * 60
-const internalApi = internal as any
 
 type PushSubscriptionRecord = {
   endpoint: string
   expirationTime?: number
   p256dh?: string
   auth?: string
-  workspace?: string
+  volume?: string
   userAgent?: string
   updatedAt?: string
 }
@@ -56,9 +55,9 @@ type BuildPushHTTPRequest = (args: {
   }
 }) => Promise<PushHttpRequest>
 
-function normalizeWorkspace(value?: string) {
+function normalizeVolume(value?: string) {
   const next = value?.trim()
-  return next || DEFAULT_WORKSPACE
+  return next || DEFAULT_VOLUME
 }
 
 function getEnv(name: string): string | undefined {
@@ -114,12 +113,12 @@ function bytesToBase64Url(bytes: Uint8Array): string {
   return encoded.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '')
 }
 
-function buildWorkspaceLogsUrl(workspace: string, path: string) {
+function buildVolumeLogsUrl(volume: string, path: string) {
   const encodedPath = encodeURIComponent(path)
-  if (workspace === DEFAULT_WORKSPACE) {
-    return `/default?path=${encodedPath}`
+  if (volume === DEFAULT_VOLUME) {
+    return `/${encodeURIComponent(DEFAULT_VOLUME)}?path=${encodedPath}`
   }
-  return `/${encodeURIComponent(workspace)}?path=${encodedPath}`
+  return `/${encodeURIComponent(volume)}?path=${encodedPath}`
 }
 
 function buildPushPayload(path: string, targetUrl: string, status?: string, content?: string) {
@@ -151,7 +150,7 @@ async function loadPushBuilder(): Promise<BuildPushHTTPRequest | null> {
 
 export const sendPushNotificationsForEvent = action({
   args: {
-    workspace: v.optional(v.string()),
+    volume: v.optional(v.string()),
     path: v.string(),
     status: v.optional(v.string()),
     content: v.optional(v.string()),
@@ -182,11 +181,9 @@ export const sendPushNotificationsForEvent = action({
       return { attempted: 0, delivered: 0, pruned: 0, skipped: true }
     }
 
-    const workspace = normalizeWorkspace(args.workspace)
-    const subscriptions = (await ctx.runQuery(internalApi.watchers.listPushTargetsForPathInternal, {
-      workspace,
-      path: args.path,
-    })) as PushSubscriptionRecord[]
+    const volume = normalizeVolume(args.volume)
+    // Use the push subscription registry directly (same pattern used in the known-good commit).
+    const subscriptions = (await ctx.runQuery(internal.push.listSubscriptionsForVolumeInternal, {})) as PushSubscriptionRecord[]
 
     if (subscriptions.length === 0) {
       return { attempted: 0, delivered: 0, pruned: 0, skipped: false }
@@ -194,7 +191,7 @@ export const sendPushNotificationsForEvent = action({
 
     const payload = buildPushPayload(
       args.path,
-      buildWorkspaceLogsUrl(workspace, args.path),
+      buildVolumeLogsUrl(volume, args.path),
       args.status,
       args.content,
     )
@@ -204,7 +201,6 @@ export const sendPushNotificationsForEvent = action({
         if (!subscription.p256dh || !subscription.auth) {
           const result = (await ctx.runMutation(internal.push.removeSubscriptionInternal, {
             endpoint: subscription.endpoint,
-            workspace,
           })) as { ok: boolean; deleted?: number }
           return { delivered: 0, pruned: result.deleted ?? 0 }
         }
@@ -260,7 +256,6 @@ export const sendPushNotificationsForEvent = action({
         if (response.status === 404 || response.status === 410) {
           const result = (await ctx.runMutation(internal.push.removeSubscriptionInternal, {
             endpoint: subscription.endpoint,
-            workspace,
           })) as { ok: boolean; deleted?: number }
           return { delivered: 0, pruned: result.deleted ?? 0 }
         }

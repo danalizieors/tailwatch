@@ -55,10 +55,10 @@ export function SignIn() {
 }
 
 interface UserMenuProps {
-  workspace?: string
+  volume?: string
 }
 
-export function UserMenu({ workspace }: UserMenuProps) {
+export function UserMenu({ volume }: UserMenuProps) {
   const { signOut } = useAuthActions();
   const { isAuthenticated } = useConvexAuth();
   const [isOpen, setIsOpen] = useState(false);
@@ -105,8 +105,8 @@ export function UserMenu({ workspace }: UserMenuProps) {
   const displayName = user?.name || user?.email || (isDebugMode ? "Guest Mode" : "GitHub User");
   const avatarInitial = (displayName.trim().charAt(0) || "G").toUpperCase();
   const avatarSrc = !isDebugMode ? user?.image ?? undefined : undefined;
-  const deviceSettingsHref = workspace && workspace.trim() ? `/settings/devices?workspace=${encodeURIComponent(workspace)}` : '/settings/devices';
-  const volumeSettingsHref = workspace && workspace.trim() ? `/settings/volumes?workspace=${encodeURIComponent(workspace)}` : '/settings/volumes';
+  const deviceSettingsHref = volume && volume.trim() ? `/settings/devices?volume=${encodeURIComponent(volume)}` : '/settings/devices';
+  const volumeSettingsHref = volume && volume.trim() ? `/settings/volumes?volume=${encodeURIComponent(volume)}` : '/settings/volumes';
 
   return (
     <div ref={menuRef} className="relative ml-1 flex items-center border-l border-border/40 pl-1 sm:ml-2 sm:pl-2">

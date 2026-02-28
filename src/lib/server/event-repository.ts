@@ -12,7 +12,7 @@ import {
 
 type BackendMode = 'local' | 'convex'
 
-const DEFAULT_WORKSPACE = 'personal'
+const DEFAULT_VOLUME = 'personal'
 const DEFAULT_INCLUDE_PATHS = ['/']
 const convexApi = anyApi as any
 const KEY_ADJECTIVES = adjectives
@@ -20,7 +20,7 @@ const KEY_NOUNS = nouns
 
 const localAliasByPath = new Map<string, string>()
 const localPathByAlias = new Map<string, string>()
-const localWatcherByWorkspaceAndKey = new Map<string, WatcherRecord>()
+const localDeviceByVolumeAndKey = new Map<string, DeviceRecord>()
 const localVolumeById = new Map<string, { id: string; name: string; key: string; keyEnabled: boolean }>()
 
 export interface PushSubscriptionRecord {
@@ -28,12 +28,11 @@ export interface PushSubscriptionRecord {
   expirationTime?: number
   p256dh?: string
   auth?: string
-  workspace?: string
   userAgent?: string
   clientVapidPublicKey?: string
   updatedAt?: string
-  watcherKey?: string
-  watcherName?: string
+  deviceKey?: string
+  deviceName?: string
   enabled?: boolean
 }
 
@@ -46,10 +45,10 @@ export interface UpsertPushSubscriptionResult {
   serverVapidPublicKey?: string
 }
 
-export interface WatcherRecord {
+export interface DeviceRecord {
   id: string
-  workspace: string
-  watcherKey: string
+  volume: string
+  deviceKey: string
   name: string
   enabled: boolean
   includePaths: string[]
@@ -65,7 +64,7 @@ export interface WatcherRecord {
 export interface PathAliasRecord {
   aliasId: string
   path: string
-  workspace: string
+  volume: string
   created?: boolean
 }
 
@@ -91,14 +90,14 @@ function randomId(prefix: string) {
   return `${prefix}_${Math.random().toString(36).slice(2, 10)}`
 }
 
-function normalizeWorkspace(value?: string) {
+function normalizeVolume(value?: string) {
   const next = value?.trim()
-  return next || DEFAULT_WORKSPACE
+  return next || DEFAULT_VOLUME
 }
 
-function normalizeWatcherKey(value?: string) {
+function normalizeDeviceKey(value?: string) {
   const next = value?.trim()
-  if (!next) return randomId('watcher')
+  if (!next) return randomId('device')
   return next.slice(0, 128)
 }
 
@@ -151,12 +150,12 @@ function createUniqueLocalVolumeKey() {
 }
 
 function ensureLocalPersonalVolume() {
-  const existing = Array.from(localVolumeById.values()).find((row) => row.name === DEFAULT_WORKSPACE)
+  const existing = Array.from(localVolumeById.values()).find((row) => row.name === DEFAULT_VOLUME)
   if (existing) return existing
 
   const created = {
     id: randomId('volume'),
-    name: DEFAULT_WORKSPACE,
+    name: DEFAULT_VOLUME,
     key: createUniqueLocalVolumeKey(),
     keyEnabled: true,
   }
@@ -164,17 +163,17 @@ function ensureLocalPersonalVolume() {
   return created
 }
 
-function localWatcherStoreKey(workspace: string, watcherKey: string) {
-  return `${workspace}::${watcherKey}`
+function localDeviceStoreKey(volume: string, deviceKey: string) {
+  return `${volume}::${deviceKey}`
 }
 
-function createLocalWatcher(workspace: string, watcherKey: string, name?: string, userAgent?: string): WatcherRecord {
+function createLocalDevice(volume: string, deviceKey: string, name?: string, userAgent?: string): DeviceRecord {
   const now = nowIso()
   return {
-    id: randomId('watcher'),
-    workspace,
-    watcherKey,
-    name: name?.trim() || `Watcher ${watcherKey.slice(-6)}`,
+    id: randomId('device'),
+    volume,
+    deviceKey,
+    name: name?.trim() || `Device ${deviceKey.slice(-6)}`,
     enabled: false,
     includePaths: [...DEFAULT_INCLUDE_PATHS],
     ignorePaths: [],
@@ -186,51 +185,92 @@ function createLocalWatcher(workspace: string, watcherKey: string, name?: string
   }
 }
 
-function ensureLocalCurrentWatcher(input: { workspace?: string; watcherKey?: string; name?: string; userAgent?: string }) {
-  const workspace = normalizeWorkspace(input.workspace)
-  const watcherKey = normalizeWatcherKey(input.watcherKey)
-  const key = localWatcherStoreKey(workspace, watcherKey)
+function ensureLocalCurrentDevice(input: { volume?: string; deviceKey?: string; name?: string; userAgent?: string }) {
+  const volume = normalizeVolume(input.volume)
+  const deviceKey = normalizeDeviceKey(input.deviceKey)
+  const key = localDeviceStoreKey(volume, deviceKey)
 
-  const existing = localWatcherByWorkspaceAndKey.get(key)
+  const existing = localDeviceByVolumeAndKey.get(key)
   if (existing) {
-    const next: WatcherRecord = {
+    const next: DeviceRecord = {
       ...existing,
       name: input.name?.trim() ? input.name.trim() : existing.name,
       userAgent: input.userAgent ?? existing.userAgent,
       updatedAt: nowIso(),
     }
-    localWatcherByWorkspaceAndKey.set(key, next)
+    localDeviceByVolumeAndKey.set(key, next)
     return next
   }
 
-  const created = createLocalWatcher(workspace, watcherKey, input.name, input.userAgent)
-  localWatcherByWorkspaceAndKey.set(key, created)
+  const created = createLocalDevice(volume, deviceKey, input.name, input.userAgent)
+  localDeviceByVolumeAndKey.set(key, created)
   return created
 }
 
-function ensureLocalPathAlias(workspace: string, path: string) {
+function ensureLocalPathAlias(volume: string, path: string) {
   const normalizedPath = normalizePathForAlias(path)
-  const mapKey = `${workspace}::${normalizedPath}`
+  const mapKey = `${volume}::${normalizedPath}`
 
   const existingAlias = localAliasByPath.get(mapKey)
   if (existingAlias) {
     return {
       aliasId: existingAlias,
       path: normalizedPath,
-      workspace,
+      volume,
       created: false,
     }
   }
 
   const aliasId = Math.random().toString(36).slice(2, 10)
   localAliasByPath.set(mapKey, aliasId)
-  localPathByAlias.set(`${workspace}::${aliasId}`, normalizedPath)
+  localPathByAlias.set(`${volume}::${aliasId}`, normalizedPath)
 
   return {
     aliasId,
     path: normalizedPath,
-    workspace,
+    volume,
     created: true,
+  }
+}
+
+function mapDeviceRecord(value: any): DeviceRecord {
+  const deviceKey =
+    typeof value?.deviceKey === 'string' && value.deviceKey.trim()
+      ? value.deviceKey
+      : normalizeDeviceKey(typeof value?.userId === 'string' ? value.userId : undefined)
+
+  const createdAt =
+    typeof value?.createdAt === 'string'
+      ? value.createdAt
+      : new Date(Number(value?._creationTime ?? Date.now())).toISOString()
+  const updatedAt =
+    typeof value?.updatedAt === 'string'
+      ? value.updatedAt
+      : new Date(Number(value?._creationTime ?? Date.now())).toISOString()
+
+  return {
+    id: String(value?.id ?? value?._id ?? randomId('device')),
+    volume: String(value?.volume ?? DEFAULT_VOLUME),
+    deviceKey,
+    name: typeof value?.name === 'string' && value.name.trim() ? value.name : `Device ${deviceKey.slice(-6)}`,
+    enabled: Boolean(typeof value?.enabled === 'boolean' ? value.enabled : value?.notifications),
+    includePaths:
+      Array.isArray(value?.includePaths) && value.includePaths.every((entry: unknown) => typeof entry === 'string')
+        ? [...value.includePaths]
+        : [...DEFAULT_INCLUDE_PATHS],
+    ignorePaths:
+      Array.isArray(value?.ignorePaths) && value.ignorePaths.every((entry: unknown) => typeof entry === 'string')
+        ? [...value.ignorePaths]
+        : [],
+    endpoint: typeof value?.endpoint === 'string' ? value.endpoint : undefined,
+    userAgent: typeof value?.userAgent === 'string' ? value.userAgent : undefined,
+    hasSubscription:
+      typeof value?.hasSubscription === 'boolean'
+        ? value.hasSubscription
+        : Boolean(value?.endpoint && value?.p256dh && value?.auth),
+    createdAt,
+    updatedAt,
+    isCurrent: typeof value?.isCurrent === 'boolean' ? value.isCurrent : undefined,
   }
 }
 
@@ -266,20 +306,19 @@ function parseConvexStoredEvent(value: any): StoredEvent {
     throw new Error('Convex publish returned an invalid event payload')
   }
 
-  const time = String(value.time ?? value.timestamp ?? new Date().toISOString())
+  const time = String(value.time ?? new Date().toISOString())
+  const volume = String(value.volume ?? DEFAULT_VOLUME)
   return {
     id: String(value.id ?? value._id ?? ''),
-    workspace: String(value.workspace ?? DEFAULT_WORKSPACE),
-    path: String(value.path ?? value.topicPath ?? ''),
+    volume,
+    path: String(value.path ?? ''),
     segments: Array.isArray(value.segments) ? value.segments.map((segment: unknown) => String(segment)) : [],
     time,
-    timestamp: time,
     ingestedAt: String(value.ingestedAt ?? new Date().toISOString()),
     status: value.status === 'busy' ? 'busy' : 'idle',
-    content: value.content ? String(value.content) : value.message ? String(value.message) : undefined,
+    content: typeof value.content === 'string' ? value.content : undefined,
     pathId: value.pathId ? String(value.pathId) : undefined,
     submittedPath: value.submittedPath ? String(value.submittedPath) : undefined,
-    type: (typeof value.type === 'string' ? value.type : 'status') as any,
     entityId:
       typeof value.entityId === 'string'
         ? value.entityId
@@ -300,7 +339,26 @@ function parseConvexDashboardSnapshot(value: any): DashboardSnapshot {
   if (!Array.isArray(value.entities) && Array.isArray(value.paths)) {
     value.entities = value.paths
   }
-  return value as DashboardSnapshot
+
+  const events = value.events.map((event: any) => ({
+    ...event,
+    volume: event.volume ?? DEFAULT_VOLUME,
+  }))
+  const paths = value.paths.map((row: any) => ({
+    ...row,
+    volume: row.volume ?? DEFAULT_VOLUME,
+  }))
+  const entities = value.entities.map((row: any) => ({
+    ...row,
+    volume: row.volume ?? DEFAULT_VOLUME,
+  }))
+
+  return {
+    ...value,
+    events,
+    paths,
+    entities,
+  } as DashboardSnapshot
 }
 
 export async function appendEvent(topicPath: string, payload: unknown): Promise<StoredEvent> {
@@ -310,23 +368,17 @@ export async function appendEvent(topicPath: string, payload: unknown): Promise<
 
   const payloadRecord =
     payload && typeof payload === 'object' ? ({ ...(payload as Record<string, unknown>) } as Record<string, unknown>) : {}
-  if (typeof payloadRecord.message === 'string' && typeof payloadRecord.content !== 'string') {
-    payloadRecord.content = payloadRecord.message
-  }
 
   const client = createConvexClient()
-  const workspace = payloadRecord.workspace as string | undefined
+  const volume = payloadRecord.volume as string | undefined
 
   // Sanitize for Convex publish mutation args
   const convexArgs: Record<string, any> = {
     path: topicPath,
-    workspace,
+    volume,
     time: payloadRecord.time,
-    timestamp: payloadRecord.timestamp,
-    type: payloadRecord.type,
     status: payloadRecord.status,
     content: payloadRecord.content,
-    message: payloadRecord.message,
   }
 
   // Remove undefined to avoid sending them as nulls/undefineds if mutation args don't like it
@@ -336,7 +388,7 @@ export async function appendEvent(topicPath: string, payload: unknown): Promise<
     const result = await client.mutation(convexApi.events.publish, convexArgs)
     const event = parseConvexStoredEvent(result)
     await sendPushNotificationsForEvent({
-      workspace: event.workspace,
+      volume: event.volume,
       path: event.path,
       status: event.status,
       content: event.content,
@@ -360,20 +412,14 @@ export async function appendEventByBindingKey(key: string, subpath: string, payl
 
   const payloadRecord =
     payload && typeof payload === 'object' ? ({ ...(payload as Record<string, unknown>) } as Record<string, unknown>) : {}
-  if (typeof payloadRecord.message === 'string' && typeof payloadRecord.content !== 'string') {
-    payloadRecord.content = payloadRecord.message
-  }
 
   const client = createConvexClient()
   const convexArgs: Record<string, any> = {
     key,
     subpath,
     time: payloadRecord.time,
-    timestamp: payloadRecord.timestamp,
-    type: payloadRecord.type,
     status: payloadRecord.status,
     content: payloadRecord.content,
-    message: payloadRecord.message,
   }
   Object.keys(convexArgs).forEach((argKey) => convexArgs[argKey] === undefined && delete convexArgs[argKey])
 
@@ -381,7 +427,7 @@ export async function appendEventByBindingKey(key: string, subpath: string, payl
     const result = await client.mutation(convexApi.events.publishByKey, convexArgs)
     const event = parseConvexStoredEvent(result)
     await sendPushNotificationsForEvent({
-      workspace: event.workspace,
+      volume: event.volume,
       path: event.path,
       status: event.status,
       content: event.content,
@@ -407,10 +453,9 @@ export async function getDashboardSnapshot(filters: DashboardFilters = {}): Prom
   const client = createConvexClient()
   await ensurePersonalVolumeIfNeeded(client)
   const args: Record<string, any> = {
-    workspace: typeof filters.workspace === 'string' ? filters.workspace : undefined,
+    volume: typeof filters.volume === 'string' ? filters.volume : undefined,
     topicPrefix: filters.topicPrefix,
-    status: (filters as any).status,
-    type: filters.type,
+    status: filters.status,
     q: filters.q,
     limit: filters.limit,
   }
@@ -420,16 +465,16 @@ export async function getDashboardSnapshot(filters: DashboardFilters = {}): Prom
   return parseConvexDashboardSnapshot(result)
 }
 
-export async function getStatusSnapshot(topicPrefix?: string, workspace?: string): Promise<DashboardSnapshot> {
+export async function getStatusSnapshot(topicPrefix?: string, volume?: string): Promise<DashboardSnapshot> {
   if (getBackendMode() === 'local') {
     ensureLocalPersonalVolume()
-    return getLocalStatusSnapshot(topicPrefix, workspace)
+    return getLocalStatusSnapshot(topicPrefix, volume)
   }
 
   const client = createConvexClient()
   await ensurePersonalVolumeIfNeeded(client)
   const args: Record<string, any> = {
-    workspace: typeof workspace === 'string' ? workspace : undefined,
+    volume: typeof volume === 'string' ? volume : undefined,
     topicPrefix,
   }
   Object.keys(args).forEach((key) => (args[key] === undefined || args[key] === null) && delete args[key])
@@ -451,21 +496,20 @@ export async function clearAll(): Promise<{ success: boolean; deletedEvents: num
 
 export async function upsertPushSubscription(input: PushSubscriptionRecord): Promise<UpsertPushSubscriptionResult> {
   if (getBackendMode() === 'local') {
-    const watcher = ensureLocalCurrentWatcher({
-      workspace: input.workspace,
-      watcherKey: input.watcherKey ?? input.endpoint,
-      name: input.watcherName,
+    const device = ensureLocalCurrentDevice({
+      deviceKey: input.deviceKey ?? input.endpoint,
+      name: input.deviceName,
       userAgent: input.userAgent,
     })
 
-    const next: WatcherRecord = {
-      ...watcher,
+    const next: DeviceRecord = {
+      ...device,
       endpoint: input.endpoint,
       hasSubscription: true,
       enabled: input.enabled ?? true,
       updatedAt: nowIso(),
     }
-    localWatcherByWorkspaceAndKey.set(localWatcherStoreKey(next.workspace, next.watcherKey), next)
+    localDeviceByVolumeAndKey.set(localDeviceStoreKey(next.volume, next.deviceKey), next)
 
     return {
       ok: true,
@@ -482,46 +526,15 @@ export async function upsertPushSubscription(input: PushSubscriptionRecord): Pro
     expirationTime: input.expirationTime,
     p256dh: input.p256dh,
     auth: input.auth,
-    workspace: input.workspace,
     userAgent: input.userAgent,
     clientVapidPublicKey: input.clientVapidPublicKey,
-    watcherKey: input.watcherKey,
-    watcherName: input.watcherName,
+    deviceKey: input.deviceKey,
+    deviceName: input.deviceName,
     enabled: input.enabled,
   }
   Object.keys(args).forEach((key) => args[key] === undefined && delete args[key])
-  try {
-    const result = await client.mutation(convexApi.push.upsertSubscription, args)
-    return result as UpsertPushSubscriptionResult
-  } catch (error) {
-    if (!isUnknownPushUpsertFieldError(error)) {
-      throw error
-    }
-
-    // Backward compatibility: retry against older deployed Convex functions
-    // that don't yet accept watcher-aware args.
-    const fallbackArgs = { ...args }
-    delete fallbackArgs.clientVapidPublicKey
-    delete fallbackArgs.watcherKey
-    delete fallbackArgs.watcherName
-    delete fallbackArgs.enabled
-    const fallbackResult = await client.mutation(convexApi.push.upsertSubscription, fallbackArgs)
-    return fallbackResult as UpsertPushSubscriptionResult
-  }
-}
-
-function isUnknownPushUpsertFieldError(error: unknown) {
-  const message = error instanceof Error ? error.message : String(error)
-  const hasKnownField =
-    message.includes('clientVapidPublicKey') ||
-    message.includes('watcherKey') ||
-    message.includes('watcherName') ||
-    message.includes('enabled')
-  const unknownArg =
-    message.toLowerCase().includes('extra field') ||
-    message.toLowerCase().includes('unknown field') ||
-    message.toLowerCase().includes('not allowed')
-  return hasKnownField && unknownArg
+  const result = await client.mutation(convexApi.push.upsertSubscription, args)
+  return result as UpsertPushSubscriptionResult
 }
 
 export async function removePushSubscription(
@@ -529,23 +542,20 @@ export async function removePushSubscription(
     | string
     | {
         endpoint?: string
-        workspace?: string
-        watcherKey?: string
+        deviceKey?: string
       },
 ): Promise<{ ok: boolean; deleted?: number }> {
   const request = typeof input === 'string' ? { endpoint: input } : input
 
   if (getBackendMode() === 'local') {
-    const workspace = normalizeWorkspace(request.workspace)
-    const watcherKey = request.watcherKey ? normalizeWatcherKey(request.watcherKey) : undefined
+    const deviceKey = request.deviceKey ? normalizeDeviceKey(request.deviceKey) : undefined
     let deleted = 0
 
-    if (watcherKey) {
-      const key = localWatcherStoreKey(workspace, watcherKey)
-      const existing = localWatcherByWorkspaceAndKey.get(key)
-      if (existing) {
-        localWatcherByWorkspaceAndKey.set(key, {
-          ...existing,
+    if (deviceKey) {
+      for (const [key, device] of localDeviceByVolumeAndKey.entries()) {
+        if (device.deviceKey !== deviceKey) continue
+        localDeviceByVolumeAndKey.set(key, {
+          ...device,
           endpoint: undefined,
           hasSubscription: false,
           enabled: false,
@@ -556,11 +566,10 @@ export async function removePushSubscription(
     }
 
     if (request.endpoint) {
-      for (const [key, watcher] of localWatcherByWorkspaceAndKey.entries()) {
-        if (watcher.workspace !== workspace) continue
-        if (watcher.endpoint !== request.endpoint) continue
-        localWatcherByWorkspaceAndKey.set(key, {
-          ...watcher,
+      for (const [key, device] of localDeviceByVolumeAndKey.entries()) {
+        if (device.endpoint !== request.endpoint) continue
+        localDeviceByVolumeAndKey.set(key, {
+          ...device,
           endpoint: undefined,
           hasSubscription: false,
           enabled: false,
@@ -576,225 +585,181 @@ export async function removePushSubscription(
   const client = createConvexClient()
   const args: Record<string, string> = {}
   if (request.endpoint) args.endpoint = request.endpoint
-  if (request.workspace) args.workspace = request.workspace
-  if (request.watcherKey) args.watcherKey = request.watcherKey
+  if (request.deviceKey) args.deviceKey = request.deviceKey
 
   const result = await client.mutation(convexApi.push.removeSubscription, args)
   return result as { ok: boolean; deleted?: number }
 }
 
-export async function listPushSubscriptions(workspace?: string, watcherKey?: string): Promise<PushSubscriptionRecord[]> {
-  if (getBackendMode() === 'local') {
-    const normalizedWorkspace = normalizeWorkspace(workspace)
-    const scopedWatcherKey = watcherKey ? normalizeWatcherKey(watcherKey) : undefined
-
-    const rows = Array.from(localWatcherByWorkspaceAndKey.values())
-      .filter((watcher) => watcher.workspace === normalizedWorkspace)
-      .filter((watcher) => (scopedWatcherKey ? watcher.watcherKey === scopedWatcherKey : true))
-      .filter((watcher) => Boolean(watcher.endpoint))
-
-    return rows.map((watcher) => ({
-      endpoint: watcher.endpoint!,
-      workspace: watcher.workspace,
-      userAgent: watcher.userAgent,
-      updatedAt: watcher.updatedAt,
-      watcherKey: watcher.watcherKey,
-      watcherName: watcher.name,
-      enabled: watcher.enabled,
-    }))
-  }
-
-  const client = createConvexClient()
-  const args: Record<string, string> = {}
-  if (workspace && workspace.trim()) {
-    args.workspace = workspace.trim()
-  }
-  if (watcherKey && watcherKey.trim()) {
-    args.watcherKey = watcherKey.trim()
-  }
-
-  const result = await client.query(convexApi.push.listSubscriptionsForWorkspace, args)
-  return Array.isArray(result) ? (result as PushSubscriptionRecord[]) : []
-}
-
-export async function ensureDefaultWatcher(input: {
-  workspace?: string
-  watcherKey?: string
+export async function ensureDefaultDevice(input: {
+  deviceKey?: string
   userAgent?: string
-}): Promise<WatcherRecord> {
+}): Promise<DeviceRecord> {
   if (getBackendMode() === 'local') {
-    return ensureLocalCurrentWatcher(input)
+    return ensureLocalCurrentDevice(input)
   }
 
   const client = createConvexClient()
   const args: Record<string, string> = {}
-  if (input.workspace) args.workspace = input.workspace
-  if (input.watcherKey) args.watcherKey = input.watcherKey
+  if (input.deviceKey) args.deviceKey = input.deviceKey
   if (input.userAgent) args.userAgent = input.userAgent
 
-  const result = await client.mutation(convexApi.watchers.ensureDefaultWatcher, args)
-  return result as WatcherRecord
+  const result = await client.mutation(convexApi.devices.ensureDefaultDevice, args)
+  return mapDeviceRecord(result)
 }
 
-export async function getOrCreateCurrentWatcher(input: {
-  workspace?: string
-  watcherKey?: string
+export async function getOrCreateCurrentDevice(input: {
+  deviceKey?: string
   name?: string
   userAgent?: string
-}): Promise<WatcherRecord> {
+}): Promise<DeviceRecord> {
   if (getBackendMode() === 'local') {
-    const watcher = ensureLocalCurrentWatcher(input)
+    const device = ensureLocalCurrentDevice(input)
     return {
-      ...watcher,
+      ...device,
       isCurrent: true,
     }
   }
 
   const client = createConvexClient()
   const args: Record<string, string> = {}
-  if (input.workspace) args.workspace = input.workspace
-  if (input.watcherKey) args.watcherKey = input.watcherKey
+  if (input.deviceKey) args.deviceKey = input.deviceKey
   if (input.name) args.name = input.name
   if (input.userAgent) args.userAgent = input.userAgent
 
-  const result = await client.mutation(convexApi.watchers.getOrCreateCurrentWatcher, args)
-  return result as WatcherRecord
+  const result = await client.mutation(convexApi.devices.getOrCreateCurrentDevice, args)
+  return mapDeviceRecord(result)
 }
 
-export async function listWatchers(workspace?: string, watcherKey?: string): Promise<WatcherRecord[]> {
+export async function listDevices(deviceKey?: string): Promise<DeviceRecord[]> {
   if (getBackendMode() === 'local') {
-    const normalizedWorkspace = normalizeWorkspace(workspace)
-    const scopedWatcherKey = watcherKey ? normalizeWatcherKey(watcherKey) : undefined
+    const scopedDeviceKey = deviceKey ? normalizeDeviceKey(deviceKey) : undefined
 
-    return Array.from(localWatcherByWorkspaceAndKey.values())
-      .filter((watcher) => watcher.workspace === normalizedWorkspace)
-      .filter((watcher) => (scopedWatcherKey ? watcher.watcherKey === scopedWatcherKey : true))
+    return Array.from(localDeviceByVolumeAndKey.values())
+      .filter((device) => (scopedDeviceKey ? device.deviceKey === scopedDeviceKey : true))
       .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
   }
 
   const client = createConvexClient()
   const args: Record<string, string> = {}
-  if (workspace?.trim()) args.workspace = workspace.trim()
-  if (watcherKey?.trim()) args.watcherKey = watcherKey.trim()
-  const result = await client.query(convexApi.watchers.listWatchers, args)
-  return Array.isArray(result) ? (result as WatcherRecord[]) : []
+  if (deviceKey?.trim()) args.deviceKey = deviceKey.trim()
+  const result = await client.query(convexApi.devices.listDevices, args)
+  return Array.isArray(result) ? result.map(mapDeviceRecord) : []
 }
 
-export async function createWatcher(input: {
-  workspace?: string
+export async function createDevice(input: {
   name?: string
   includePaths?: string[]
   ignorePaths?: string[]
-  watcherKey?: string
+  deviceKey?: string
   userAgent?: string
-}): Promise<WatcherRecord> {
+}): Promise<DeviceRecord> {
   if (getBackendMode() === 'local') {
-    const workspace = normalizeWorkspace(input.workspace)
-    let watcherKey = normalizeWatcherKey(input.watcherKey)
-    const existing = localWatcherByWorkspaceAndKey.get(localWatcherStoreKey(workspace, watcherKey))
+    const volume = DEFAULT_VOLUME
+    let deviceKey = normalizeDeviceKey(input.deviceKey)
+    const existing = localDeviceByVolumeAndKey.get(localDeviceStoreKey(volume, deviceKey))
     if (existing) {
-      watcherKey = normalizeWatcherKey()
+      deviceKey = normalizeDeviceKey()
     }
-    const created = createLocalWatcher(workspace, watcherKey, input.name, input.userAgent)
-    const next: WatcherRecord = {
+    const created = createLocalDevice(volume, deviceKey, input.name, input.userAgent)
+    const next: DeviceRecord = {
       ...created,
       includePaths: input.includePaths?.length ? input.includePaths : [...DEFAULT_INCLUDE_PATHS],
       ignorePaths: input.ignorePaths?.length ? input.ignorePaths : [],
     }
-    localWatcherByWorkspaceAndKey.set(localWatcherStoreKey(workspace, watcherKey), next)
+    localDeviceByVolumeAndKey.set(localDeviceStoreKey(volume, deviceKey), next)
     return next
   }
 
   const client = createConvexClient()
   const args: Record<string, unknown> = {
-    workspace: input.workspace,
     name: input.name,
     includePaths: input.includePaths,
     ignorePaths: input.ignorePaths,
-    watcherKey: input.watcherKey,
+    deviceKey: input.deviceKey,
     userAgent: input.userAgent,
   }
   Object.keys(args).forEach((key) => args[key] === undefined && delete args[key])
-  const result = await client.mutation(convexApi.watchers.createWatcher, args)
-  return result as WatcherRecord
+  const result = await client.mutation(convexApi.devices.createDevice, args)
+  return mapDeviceRecord(result)
 }
 
-export async function updateWatcher(input: {
-  watcherId: string
+export async function updateDevice(input: {
+  deviceId: string
   enabled?: boolean
   name?: string
   includePaths?: string[]
   ignorePaths?: string[]
-  watcherKey?: string
-}): Promise<WatcherRecord> {
+  deviceKey?: string
+}): Promise<DeviceRecord> {
   if (getBackendMode() === 'local') {
-    const rows = Array.from(localWatcherByWorkspaceAndKey.entries())
-    const entry = rows.find(([, watcher]) => watcher.id === input.watcherId)
+    const rows = Array.from(localDeviceByVolumeAndKey.entries())
+    const entry = rows.find(([, device]) => device.id === input.deviceId)
     if (!entry) {
-      throw new Error('Watcher not found')
+      throw new Error('Device not found')
     }
 
-    const [storeKey, watcher] = entry
-    const next: WatcherRecord = {
-      ...watcher,
-      enabled: typeof input.enabled === 'boolean' ? input.enabled : watcher.enabled,
-      name: typeof input.name === 'string' ? input.name : watcher.name,
-      includePaths: Array.isArray(input.includePaths) ? input.includePaths : watcher.includePaths,
-      ignorePaths: Array.isArray(input.ignorePaths) ? input.ignorePaths : watcher.ignorePaths,
+    const [storeKey, device] = entry
+    const next: DeviceRecord = {
+      ...device,
+      enabled: typeof input.enabled === 'boolean' ? input.enabled : device.enabled,
+      name: typeof input.name === 'string' ? input.name : device.name,
+      includePaths: Array.isArray(input.includePaths) ? input.includePaths : device.includePaths,
+      ignorePaths: Array.isArray(input.ignorePaths) ? input.ignorePaths : device.ignorePaths,
       updatedAt: nowIso(),
     }
 
-    localWatcherByWorkspaceAndKey.set(storeKey, next)
+    localDeviceByVolumeAndKey.set(storeKey, next)
     return next
   }
 
   const client = createConvexClient()
   const args: Record<string, unknown> = {
-    watcherId: input.watcherId,
+    deviceId: input.deviceId,
     enabled: input.enabled,
     name: input.name,
     includePaths: input.includePaths,
     ignorePaths: input.ignorePaths,
-    watcherKey: input.watcherKey,
+    deviceKey: input.deviceKey,
   }
   Object.keys(args).forEach((key) => args[key] === undefined && delete args[key])
-  const result = await client.mutation(convexApi.watchers.updateWatcher, args)
-  return result as WatcherRecord
+  const result = await client.mutation(convexApi.devices.updateDevice, args)
+  return mapDeviceRecord(result)
 }
 
-export async function ensurePathAlias(workspace: string | undefined, path: string): Promise<PathAliasRecord> {
-  const normalizedWorkspace = normalizeWorkspace(workspace)
+export async function ensurePathAlias(volume: string | undefined, path: string): Promise<PathAliasRecord> {
+  const normalizedVolume = normalizeVolume(volume)
   if (getBackendMode() === 'local') {
-    return ensureLocalPathAlias(normalizedWorkspace, path)
+    return ensureLocalPathAlias(normalizedVolume, path)
   }
 
   const client = createConvexClient()
-  const result = await client.mutation(convexApi.watchers.ensurePathAlias, {
-    workspace: normalizedWorkspace,
+  const result = await client.mutation(convexApi.devices.ensurePathAlias, {
+    volume: normalizedVolume,
     path,
   })
   return result as PathAliasRecord
 }
 
-export async function resolvePathAlias(workspace: string | undefined, aliasId: string): Promise<PathAliasRecord | null> {
-  const normalizedWorkspace = normalizeWorkspace(workspace)
+export async function resolvePathAlias(volume: string | undefined, aliasId: string): Promise<PathAliasRecord | null> {
+  const normalizedVolume = normalizeVolume(volume)
 
   if (getBackendMode() === 'local') {
-    const path = localPathByAlias.get(`${normalizedWorkspace}::${aliasId}`)
+    const path = localPathByAlias.get(`${normalizedVolume}::${aliasId}`)
     if (!path) return null
     return {
       aliasId,
       path,
-      workspace: normalizedWorkspace,
+      volume: normalizedVolume,
       created: false,
     }
   }
 
   const client = createConvexClient()
-  const result = (await client.query(convexApi.watchers.resolvePathAlias, {
-    workspace: normalizedWorkspace,
+  const result = (await client.query(convexApi.devices.resolvePathAlias, {
+    volume: normalizedVolume,
     aliasId,
-  })) as { found?: boolean; aliasId?: string; path?: string; workspace?: string }
+  })) as { found?: boolean; aliasId?: string; path?: string; volume?: string }
 
   if (!result?.found || !result.aliasId || !result.path) {
     return null
@@ -803,7 +768,7 @@ export async function resolvePathAlias(workspace: string | undefined, aliasId: s
   return {
     aliasId: result.aliasId,
     path: result.path,
-    workspace: result.workspace ?? normalizedWorkspace,
+    volume: result.volume ?? normalizedVolume,
     created: false,
   }
 }
@@ -815,7 +780,7 @@ function listLocalManagedVolumes() {
     .map((volume): ManagedVolumeRecord => ({
       id: volume.id,
       name: volume.name,
-      isDefault: volume.name === DEFAULT_WORKSPACE,
+      isDefault: volume.name === DEFAULT_VOLUME,
       key: {
         id: volume.id,
         volumeId: volume.id,
@@ -879,7 +844,7 @@ export async function renameManagedVolume(input: { volumeId: string; name: strin
     const normalized = normalizeVolumeName(input.name)
     const volume = localVolumeById.get(input.volumeId)
     if (!volume) throw new Error('Volume not found')
-    if (volume.name === DEFAULT_WORKSPACE && normalized !== DEFAULT_WORKSPACE) {
+    if (volume.name === DEFAULT_VOLUME && normalized !== DEFAULT_VOLUME) {
       throw new Error('The personal volume cannot be renamed')
     }
     const duplicate = Array.from(localVolumeById.values()).find((row) => row.id !== volume.id && row.name === normalized)
@@ -891,7 +856,7 @@ export async function renameManagedVolume(input: { volumeId: string; name: strin
     return {
       id: volume.id,
       name: volume.name,
-      isDefault: volume.name === DEFAULT_WORKSPACE,
+      isDefault: volume.name === DEFAULT_VOLUME,
       key: {
         id: volume.id,
         volumeId: volume.id,
@@ -963,7 +928,7 @@ export async function rotateManagedVolumeKey(volumeId: string): Promise<VolumeKe
 }
 
 export async function sendPushNotificationsForEvent(input: {
-  workspace?: string
+  volume?: string
   path: string
   status?: string
   content?: string
@@ -974,7 +939,7 @@ export async function sendPushNotificationsForEvent(input: {
 
   const client = createConvexClient()
   const args: Record<string, unknown> = {
-    workspace: input.workspace,
+    volume: input.volume,
     path: input.path,
     status: input.status,
     content: input.content,

@@ -30,10 +30,9 @@ export const Route = createFileRoute('/api/push/subscribe')({
             )
           }
 
-          const workspace = request.headers.get('x-tailwatch-workspace') ?? undefined
           const userAgent = request.headers.get('user-agent') ?? undefined
-          const watcherKey = request.headers.get('x-tailwatch-watcher-key') ?? undefined
-          const watcherName = request.headers.get('x-tailwatch-watcher-name') ?? undefined
+          const deviceKey = request.headers.get('x-tailwatch-device-key') ?? undefined
+          const deviceName = request.headers.get('x-tailwatch-device-name') ?? undefined
           const subscription = parsed.data.subscription
 
           const result = await upsertPushSubscription({
@@ -42,11 +41,10 @@ export const Route = createFileRoute('/api/push/subscribe')({
               typeof subscription.expirationTime === 'number' ? subscription.expirationTime : undefined,
             p256dh: subscription.keys.p256dh,
             auth: subscription.keys.auth,
-            workspace,
             userAgent,
             clientVapidPublicKey: parsed.data.vapidPublicKey,
-            watcherKey,
-            watcherName,
+            deviceKey,
+            deviceName,
             enabled: true,
           })
 

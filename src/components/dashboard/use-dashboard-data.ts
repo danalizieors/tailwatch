@@ -5,19 +5,19 @@ import { NotificationManager, getLastSeenTimestamp, setLastSeenTimestamp } from 
 
 interface UseDashboardDataOptions {
   mode: 'logs' | 'status'
-  workspace?: string
+  volume?: string
   topicPrefix?: string
   pollMs?: number
 }
 
-export function useDashboardData({ mode, workspace, topicPrefix, pollMs = 4000 }: UseDashboardDataOptions) {
+export function useDashboardData({ mode, volume, topicPrefix, pollMs = 4000 }: UseDashboardDataOptions) {
   const [data, setData] = useState<DashboardSnapshot | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [lastSeenAt, setLastSeenAtState] = useState<number>(0)
   
-  // Track the most recent timestamp seen during this session
+  // Track the most recent event time seen during this session.
   const lastKnownTsRef = useRef<number>(0)
   const hasInitialLoadRef = useRef(false)
 
@@ -41,16 +41,16 @@ export function useDashboardData({ mode, workspace, topicPrefix, pollMs = 4000 }
 
         const next =
           mode === 'status' 
-            ? await fetchStatusSnapshot(topicPrefix, workspace) 
-            : await fetchDashboardSnapshot({ topicPrefix, workspace })
+            ? await fetchStatusSnapshot(topicPrefix, volume) 
+            : await fetchDashboardSnapshot({ topicPrefix, volume })
 
         if (!cancelled) {
           // Check for new events since last poll to trigger beep/notify
           if (next.events && next.events.length > 0) {
-            const newest = Math.max(...next.events.map(e => new Date(e.timestamp).getTime()))
+            const newest = Math.max(...next.events.map(e => new Date(e.time).getTime()))
             
             if (hasInitialLoadRef.current && newest > lastKnownTsRef.current) {
-              const newEvents = next.events.filter(e => new Date(e.timestamp).getTime() > lastKnownTsRef.current)
+              const newEvents = next.events.filter(e => new Date(e.time).getTime() > lastKnownTsRef.current)
               if (newEvents.length > 0) {
                 NotificationManager.playBeep()
               }
@@ -84,13 +84,13 @@ export function useDashboardData({ mode, workspace, topicPrefix, pollMs = 4000 }
       cancelled = true
       window.clearInterval(timer)
     }
-  }, [mode, workspace, topicPrefix, pollMs])
+  }, [mode, volume, topicPrefix, pollMs])
 
   const markAllSeen = () => {
-    // Determine the newest timestamp from current data (events or entity updates)
+    // Determine the newest time from current data (events or entity updates).
     let newest = lastSeenAt
     if (data?.events && data.events.length > 0) {
-      newest = Math.max(newest, ...data.events.map(e => new Date(e.timestamp).getTime()))
+      newest = Math.max(newest, ...data.events.map(e => new Date(e.time).getTime()))
     }
     if (data?.entities && data.entities.length > 0) {
       newest = Math.max(newest, ...data.entities.map(e => new Date(e.lastSeenAt).getTime()))
@@ -105,8 +105,8 @@ export function useDashboardData({ mode, workspace, topicPrefix, pollMs = 4000 }
       setIsRefreshing(true)
       const request =
         mode === 'status'
-          ? fetchStatusSnapshot(topicPrefix, workspace)
-          : fetchDashboardSnapshot({ topicPrefix, workspace })
+          ? fetchStatusSnapshot(topicPrefix, volume)
+          : fetchDashboardSnapshot({ topicPrefix, volume })
 
       void request
         .then((next) => {

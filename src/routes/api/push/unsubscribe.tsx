@@ -4,7 +4,7 @@ import { getBackendMode, removePushSubscription } from '~/lib/server/event-repos
 
 const bodySchema = z.object({
   endpoint: z.string().url().optional(),
-  watcherKey: z.string().min(1).optional(),
+  deviceKey: z.string().min(1).optional(),
 })
 
 export const Route = createFileRoute('/api/push/unsubscribe')({
@@ -21,18 +21,16 @@ export const Route = createFileRoute('/api/push/unsubscribe')({
             )
           }
 
-          if (!parsed.data.endpoint && !parsed.data.watcherKey) {
+          if (!parsed.data.endpoint && !parsed.data.deviceKey) {
             return Response.json(
-              { error: 'endpoint or watcherKey is required' },
+              { error: 'endpoint or deviceKey is required' },
               { status: 400 },
             )
           }
 
-          const workspace = request.headers.get('x-tailwatch-workspace') ?? undefined
           const result = await removePushSubscription({
             endpoint: parsed.data.endpoint,
-            watcherKey: parsed.data.watcherKey,
-            workspace,
+            deviceKey: parsed.data.deviceKey,
           })
 
           return Response.json(result, {

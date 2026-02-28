@@ -21,19 +21,11 @@ const DEFAULT_VOLUME = 'personal'
 const publishSchema = z
   .object({
     time: z.string().datetime().optional(),
-    timestamp: z.string().datetime().optional(),
     status: z.string().min(1).max(100).optional(),
     content: z.string().max(10_000).optional(),
-    message: z.string().max(10_000).optional(),
-    type: z.string().max(64).optional(),
-    workspace: z.string().min(1).max(200).optional(),
+    volume: z.string().min(1).max(200).optional(),
   })
-  .passthrough()
-
-const legacyFileSchema = z.object({
-  version: z.literal(1),
-  events: z.array(z.unknown()),
-})
+  .strip()
 
 const v2FileSchema = z.object({
   version: z.literal(2),
@@ -52,11 +44,9 @@ type StoreFile = {
 }
 
 export interface DashboardFilters {
-  workspace?: string
+  volume?: string
   topicPrefix?: string
   status?: string
-  // Legacy filter kept for compatibility with current UI query shape.
-  type?: string
   q?: string
   limit?: number
 }
@@ -69,7 +59,7 @@ function randomId(prefix: string) {
   return `${prefix}_${Math.random().toString(36).slice(2, 10)}`
 }
 
-function normalizeWorkspace(value?: string) {
+function normalizeVolume(value?: string) {
   const next = value?.trim()
   return next || DEFAULT_VOLUME
 }
@@ -96,28 +86,14 @@ function pathMatchesPrefix(pathValue: string, topicPrefix?: string) {
   return pathValue === prefix || pathValue.startsWith(`${prefix}/`)
 }
 
-function normalizeEventStatus(input?: string, legacyType?: string): EventStatus {
+function normalizeEventStatus(input?: string): EventStatus {
   const normalized = input?.trim().toLowerCase()
   if (normalized === 'busy') return 'busy'
-  if (normalized === 'idle') return 'idle'
-
-  if (normalized) {
-    if (['error', 'failed', 'fail', 'warn', 'warning', 'needs_attention', 'action_required', 'alert'].includes(normalized)) {
-      return 'busy'
-    }
-    if (['ok', 'clear', 'success', 'done', 'stopped', 'passive', 'working', 'running'].includes(normalized)) {
-      return 'idle'
-    }
-  }
-
-  const legacy = legacyType?.trim().toLowerCase()
-  if (legacy === 'error') return 'busy'
   return 'idle'
 }
 
 function normalizeContent(value: Record<string, unknown>) {
   if (typeof value.content === 'string') return value.content
-  if (typeof value.message === 'string') return value.message
   return undefined
 }
 
@@ -125,12 +101,7 @@ function normalizeStoredEvent(raw: unknown): StoredEvent | null {
   if (!raw || typeof raw !== 'object') return null
   const value = raw as Record<string, unknown>
 
-  const rawPath =
-    typeof value.path === 'string'
-      ? value.path
-      : typeof value.topicPath === 'string'
-        ? value.topicPath
-        : ''
+  const rawPath = typeof value.path === 'string' ? value.path : ''
   if (!rawPath) return null
 
   let segments: string[]
@@ -148,36 +119,32 @@ function normalizeStoredEvent(raw: unknown): StoredEvent | null {
   const time =
     typeof value.time === 'string' && value.time
       ? value.time
-      : typeof value.timestamp === 'string' && value.timestamp
-        ? value.timestamp
-        : nowIso()
+      : nowIso()
   const ingestedAt = typeof value.ingestedAt === 'string' && value.ingestedAt ? value.ingestedAt : time
-  const status = normalizeEventStatus(typeof value.status === 'string' ? value.status : undefined, typeof value.type === 'string' ? value.type : undefined)
+  const status = normalizeEventStatus(typeof value.status === 'string' ? value.status : undefined)
   const content = normalizeContent(value)
-  const workspace = normalizeWorkspace(typeof value.workspace === 'string' ? value.workspace : typeof value.volume === 'string' ? value.volume : undefined)
+  const volume = normalizeVolume(typeof value.volume === 'string' ? value.volume : undefined)
 
   return {
     id: typeof value.id === 'string' ? value.id : randomId('evt'),
-    workspace,
+    volume,
     path: canonicalPath,
     segments,
     time,
-    timestamp: time,
     ingestedAt,
     status,
     content,
     pathId: typeof value.pathId === 'string' ? value.pathId : undefined,
     submittedPath: typeof value.submittedPath === 'string' ? value.submittedPath : undefined,
-    type: 'status',
     entityId: segments[segments.length - 1] || canonicalPath,
     entityType: 'path',
   }
 }
 
-function normalizeVolume(raw: unknown): VolumeRecord | null {
+function normalizeVolumeRecord(raw: unknown): VolumeRecord | null {
   if (!raw || typeof raw !== 'object') return null
   const value = raw as Record<string, unknown>
-  const slug = normalizeWorkspace(typeof value.slug === 'string' ? value.slug : typeof value.id === 'string' ? value.id : undefined)
+  const slug = normalizeVolume(typeof value.slug === 'string' ? value.slug : typeof value.id === 'string' ? value.id : undefined)
   const now = nowIso()
   return {
     id: typeof value.id === 'string' ? value.id : slug,
@@ -191,14 +158,14 @@ function normalizeVolume(raw: unknown): VolumeRecord | null {
 function normalizeBinding(raw: unknown): BindingRecord | null {
   if (!raw || typeof raw !== 'object') return null
   const value = raw as Record<string, unknown>
-  const workspace = normalizeWorkspace(typeof value.workspace === 'string' ? value.workspace : undefined)
+  const volume = normalizeVolume(typeof value.volume === 'string' ? value.volume : undefined)
   const route = typeof value.route === 'string' ? normalizeTopicPath(value.route) : ''
   const targetPath = typeof value.targetPath === 'string' ? normalizeTopicPath(value.targetPath) : ''
   if (!route || !targetPath) return null
   const now = nowIso()
   return {
     id: typeof value.id === 'string' ? value.id : randomId('bnd'),
-    workspace,
+    volume,
     route,
     targetPath,
     keyHash: typeof value.keyHash === 'string' ? value.keyHash : '',
@@ -208,64 +175,17 @@ function normalizeBinding(raw: unknown): BindingRecord | null {
   }
 }
 
-function normalizePathSnapshot(raw: unknown): PathSnapshot | null {
-  if (!raw || typeof raw !== 'object') return null
-  const value = raw as Record<string, unknown>
-  const rawPath = typeof value.path === 'string' ? value.path : ''
-  if (!rawPath) return null
-
-  let canonicalPath: string
-  let segments: string[]
-  try {
-    canonicalPath = normalizeTopicPath(rawPath)
-    if (!canonicalPath) return null
-    segments = Array.isArray(value.segments) && value.segments.every((segment) => typeof segment === 'string')
-      ? (value.segments as string[])
-      : splitTopicPath(canonicalPath)
-  } catch {
-    return null
-  }
-
-  const lastTime =
-    typeof value.lastTime === 'string' && value.lastTime
-      ? value.lastTime
-      : typeof value.lastSeenAt === 'string' && value.lastSeenAt
-        ? value.lastSeenAt
-        : nowIso()
-  const lastIngestedAt =
-    typeof value.lastIngestedAt === 'string' && value.lastIngestedAt
-      ? value.lastIngestedAt
-      : typeof value.lastSeenAt === 'string' && value.lastSeenAt
-        ? value.lastSeenAt
-        : lastTime
-  const status = normalizeEventStatus(typeof value.status === 'string' ? value.status : typeof value.currentStatus === 'string' ? value.currentStatus : undefined)
-  const workspace = normalizeWorkspace(typeof value.workspace === 'string' ? value.workspace : undefined)
-
-  return {
-    key: `${workspace}::${canonicalPath}`,
-    workspace,
-    path: canonicalPath,
-    segments,
-    status,
-    lastTime,
-    lastIngestedAt,
-    lastSeenAt: lastIngestedAt,
-    lastContent: typeof value.lastContent === 'string' ? value.lastContent : undefined,
-  }
-}
-
 function upsertPathSnapshot(paths: PathSnapshot[], event: StoredEvent) {
-  const key = `${event.workspace}::${event.path}`
+  const key = `${event.volume}::${event.path}`
   const existingIndex = paths.findIndex((row) => row.key === key)
   const next: PathSnapshot = {
     key,
-    workspace: event.workspace,
+    volume: event.volume,
     path: event.path,
     segments: event.segments,
     status: event.status,
     lastTime: event.time,
     lastIngestedAt: event.ingestedAt,
-    lastSeenAt: event.ingestedAt,
     lastContent: event.content,
   }
 
@@ -290,8 +210,8 @@ function rebuildPathsFromEvents(events: StoredEvent[]) {
   return paths
 }
 
-function ensureDefaultVolume(volumes: VolumeRecord[], workspace = DEFAULT_VOLUME) {
-  const normalized = normalizeWorkspace(workspace)
+function ensureDefaultVolume(volumes: VolumeRecord[], volumeName = DEFAULT_VOLUME) {
+  const normalized = normalizeVolume(volumeName)
   const existing = volumes.find((row) => row.slug === normalized || row.id === normalized)
   if (existing) return existing
   const now = nowIso()
@@ -315,9 +235,8 @@ async function ensureStoreFile() {
     const parsedV2 = v2FileSchema.safeParse(parsedJson)
     if (parsedV2.success) {
       const events = parsedV2.data.events.map(normalizeStoredEvent).filter((event): event is StoredEvent => event !== null)
-      const volumes = (parsedV2.data.volumes ?? []).map(normalizeVolume).filter((row): row is VolumeRecord => row !== null)
+      const volumes = (parsedV2.data.volumes ?? []).map(normalizeVolumeRecord).filter((row): row is VolumeRecord => row !== null)
       const bindings = (parsedV2.data.bindings ?? []).map(normalizeBinding).filter((row): row is BindingRecord => row !== null)
-      const normalizedPaths = (parsedV2.data.paths ?? []).map(normalizePathSnapshot).filter((row): row is PathSnapshot => row !== null)
       const rebuiltPaths = rebuildPathsFromEvents(events)
 
       const normalized: StoreFile = {
@@ -332,20 +251,6 @@ async function ensureStoreFile() {
       if (JSON.stringify(parsedJson) !== JSON.stringify(normalized)) {
         await saveStoreFile(normalized)
       }
-      return normalized
-    }
-
-    const parsedLegacy = legacyFileSchema.safeParse(parsedJson)
-    if (parsedLegacy.success) {
-      const events = parsedLegacy.data.events.map(normalizeStoredEvent).filter((event): event is StoredEvent => event !== null)
-      const normalized: StoreFile = {
-        version: 2,
-        volumes: [ensureDefaultVolume([])],
-        bindings: [],
-        paths: rebuildPathsFromEvents(events),
-        events,
-      }
-      await saveStoreFile(normalized)
       return normalized
     }
 
@@ -449,33 +354,23 @@ function createSeedEvents(): StoredEvent[] {
     const segments = splitTopicPath(normalizedPath)
     return {
       id: `seed_${index + 1}`,
-      workspace: DEFAULT_VOLUME,
+      volume: DEFAULT_VOLUME,
       path: normalizedPath,
       segments,
       time,
-      timestamp: time,
       ingestedAt,
       status: (row.payload.status ?? 'idle') as EventStatus,
       content: row.payload.content,
-      type: 'status',
       entityId: segments[segments.length - 1] || normalizedPath,
       entityType: 'path',
     }
   })
 }
 
-function legacyTypeMatchesStatus(event: StoredEvent, legacyType: string) {
-  const type = legacyType.toLowerCase()
-  if (type === 'all') return true
-  if (type === 'status') return true
-  if (type === 'error') return event.status === 'busy'
-  return event.status === 'idle'
-}
-
 function eventMatchesFilters(event: StoredEvent, filters: DashboardFilters) {
-  if (filters.workspace) {
-    if (event.workspace !== filters.workspace) return false
-  } else if (event.workspace !== DEFAULT_VOLUME) {
+  if (filters.volume) {
+    if (event.volume !== filters.volume) return false
+  } else if (event.volume !== DEFAULT_VOLUME) {
     return false
   }
 
@@ -484,8 +379,6 @@ function eventMatchesFilters(event: StoredEvent, filters: DashboardFilters) {
   if (filters.status && filters.status !== 'all') {
     if (event.status !== filters.status) return false
   }
-
-  if (filters.type && !legacyTypeMatchesStatus(event, filters.type)) return false
 
   if (filters.q) {
     const q = filters.q.toLowerCase()
@@ -497,9 +390,9 @@ function eventMatchesFilters(event: StoredEvent, filters: DashboardFilters) {
 }
 
 function pathMatchesFilters(row: PathSnapshot, filters: DashboardFilters) {
-  if (filters.workspace) {
-    if (row.workspace !== filters.workspace) return false
-  } else if (row.workspace !== DEFAULT_VOLUME) {
+  if (filters.volume) {
+    if (row.volume !== filters.volume) return false
+  } else if (row.volume !== DEFAULT_VOLUME) {
     return false
   }
 
@@ -534,13 +427,12 @@ function toEntityCompat(row: PathSnapshot): EntitySnapshot {
   const entityId = segments[segments.length - 1] || row.path || 'path'
   return {
     key: row.key,
-    workspace: row.workspace,
+    volume: row.volume,
     path: row.path,
     entityId,
     entityType: 'path',
     currentStatus: row.status,
     lastSeenAt: row.lastIngestedAt,
-    lastEventType: 'status',
     lastContent: row.lastContent,
   }
 }
@@ -610,27 +502,25 @@ export async function appendEvent(topicPath: string, payload: unknown): Promise<
 
   const segments = splitTopicPath(parsedTopic)
   const parsedPayload = parsePublishPayload(payload)
-  const workspace = normalizeWorkspace(typeof (payload as any)?.workspace === 'string' ? (payload as any).workspace : undefined)
-  const status = normalizeEventStatus(parsedPayload.status, parsedPayload.type)
-  const time = parsedPayload.time ?? parsedPayload.timestamp ?? nowIso()
+  const volume = normalizeVolume(typeof (payload as any)?.volume === 'string' ? (payload as any).volume : undefined)
+  const status = normalizeEventStatus(parsedPayload.status)
+  const time = parsedPayload.time ?? nowIso()
   const ingestedAt = nowIso()
   const event: StoredEvent = {
     id: randomId('evt'),
-    workspace,
+    volume,
     path: parsedTopic,
     segments,
     time,
-    timestamp: time,
     ingestedAt,
     status,
-    content: parsedPayload.content ?? parsedPayload.message,
-    type: 'status',
+    content: parsedPayload.content,
     entityId: segments[segments.length - 1] || parsedTopic,
     entityType: 'path',
   }
 
   const store = await ensureStoreFile()
-  ensureDefaultVolume(store.volumes, workspace)
+  ensureDefaultVolume(store.volumes, volume)
   store.events.push(event)
   if (store.events.length > MAX_STORED_EVENTS) {
     store.events = store.events.slice(-MAX_STORED_EVENTS)
@@ -671,16 +561,13 @@ export async function getDashboardSnapshot(filters: DashboardFilters = {}): Prom
       pathCount: paths.length,
       busyCount,
       idleCount,
-      entityCount: paths.length,
-      activeCount: busyCount,
-      errorCount: 0,
     },
     fetchedAt: nowIso(),
   }
 }
 
-export async function getStatusSnapshot(topicPrefix?: string, workspace?: string) {
-  return getDashboardSnapshot({ topicPrefix, workspace, limit: 200 })
+export async function getStatusSnapshot(topicPrefix?: string, volume?: string) {
+  return getDashboardSnapshot({ topicPrefix, volume, limit: 200 })
 }
 
 export async function clearAll() {

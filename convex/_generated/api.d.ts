@@ -9,13 +9,13 @@
  */
 
 import type * as auth from "../auth.js";
+import type * as devices from "../devices.js";
 import type * as events from "../events.js";
 import type * as functions from "../functions.js";
 import type * as http from "../http.js";
 import type * as push from "../push.js";
 import type * as push_fanout from "../push_fanout.js";
 import type * as volumes from "../volumes.js";
-import type * as watchers from "../watchers.js";
 
 import type {
   ApiFromModules,
@@ -25,13 +25,13 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  devices: typeof devices;
   events: typeof events;
   functions: typeof functions;
   http: typeof http;
   push: typeof push;
   push_fanout: typeof push_fanout;
   volumes: typeof volumes;
-  watchers: typeof watchers;
 }>;
 
 /**

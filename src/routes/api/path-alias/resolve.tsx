@@ -12,8 +12,8 @@ export const Route = createFileRoute('/api/path-alias/resolve')({
             return Response.json({ error: 'id query param is required' }, { status: 400 })
           }
 
-          const workspace = request.headers.get('x-tailwatch-workspace') ?? undefined
-          const resolved = await resolvePathAlias(workspace, aliasId)
+          const volume = request.headers.get('x-tailwatch-volume') ?? undefined
+          const resolved = await resolvePathAlias(volume, aliasId)
 
           if (!resolved) {
             return Response.json(

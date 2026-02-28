@@ -11,16 +11,12 @@ export const Route = createFileRoute('/api/publish/$')({
             .filter(Boolean)
             .join('/')
           const urlParts = splat.split('/').filter(Boolean)
-          const headerVolumeKey =
-            request.headers.get('x-volume-key')?.trim() ??
-            request.headers.get('x-tailwatch-workspace-alias')?.trim()
-          const workspace = request.headers.get('x-tailwatch-workspace') ?? undefined
+          const headerVolumeKey = request.headers.get('x-volume-key')?.trim()
+          const volume = request.headers.get('x-tailwatch-volume') ?? undefined
           const contentType = request.headers.get('content-type')?.toLowerCase() ?? ''
           const url = new URL(request.url)
           const queryStatusRaw = url.searchParams.get('status')?.trim()
-          const headerStatusRaw =
-            request.headers.get('x-event-status')?.trim() ??
-            request.headers.get('x-tailwatch-status')?.trim()
+          const headerStatusRaw = request.headers.get('x-event-status')?.trim()
           const statusRaw = queryStatusRaw || headerStatusRaw
           const statusOverride = normalizeEventStatus(statusRaw)
           const rawBody = await request.text()
@@ -65,8 +61,8 @@ export const Route = createFileRoute('/api/publish/$')({
 
           if (headerVolumeKey) {
             event = await appendEventByBindingKey(headerVolumeKey, splat, payload)
-            responseEvent = { ...event, workspace: headerVolumeKey }
-          } else if (!workspace) {
+            responseEvent = { ...event, volume: headerVolumeKey }
+          } else if (!volume) {
             const [urlKey, ...subpathParts] = urlParts
             if (!urlKey) {
               return Response.json(
@@ -79,16 +75,16 @@ export const Route = createFileRoute('/api/publish/$')({
             }
             const subpath = subpathParts.join('/')
             event = await appendEventByBindingKey(urlKey, subpath, payload)
-            responseEvent = { ...event, workspace: urlKey }
+            responseEvent = { ...event, volume: urlKey }
           } else {
             event = await appendEvent(splat, {
                 ...payload,
-                workspace,
+                volume,
               })
             responseEvent = event
           }
 
-          // Avoid leaking real workspace names when alias-based ingest is used.
+          // Avoid leaking real volume names when alias-based ingest is used.
 
           return Response.json(responseEvent, {
             status: 201,

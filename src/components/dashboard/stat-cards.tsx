@@ -8,8 +8,8 @@ interface StatCardsProps {
 export function StatCards({ stats }: StatCardsProps) {
   const items = [
     { label: 'Events', value: stats.totalEvents, icon: Binary, color: 'text-primary' },
-    { label: 'Paths', value: stats.pathCount ?? stats.entityCount, icon: Shapes, color: 'text-info' },
-    { label: 'Busy', value: stats.busyCount ?? stats.activeCount, icon: AlertTriangle, color: 'text-amber-300' },
+    { label: 'Paths', value: stats.pathCount, icon: Shapes, color: 'text-info' },
+    { label: 'Busy', value: stats.busyCount, icon: AlertTriangle, color: 'text-amber-300' },
     { label: 'Idle', value: stats.idleCount ?? 0, icon: Activity, color: 'text-success' },
   ]
 

@@ -23,8 +23,8 @@ export const Route = createFileRoute('/api/path-alias/ensure')({
             )
           }
 
-          const workspace = request.headers.get('x-tailwatch-workspace') ?? undefined
-          const alias = await ensurePathAlias(workspace, parsed.data.path)
+          const volume = request.headers.get('x-tailwatch-volume') ?? undefined
+          const alias = await ensurePathAlias(volume, parsed.data.path)
 
           return Response.json(alias, {
             headers: {

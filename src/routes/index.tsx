@@ -33,9 +33,9 @@ const proofStats = [
     icon: LayoutGrid,
   },
   {
-    label: 'Event Types',
-    value: '6',
-    detail: 'start, log, stop, error, heartbeat, status',
+    label: 'Status Values',
+    value: '2',
+    detail: 'busy, idle',
     icon: Activity,
   },
   {
@@ -62,7 +62,7 @@ const problemCards = [
   {
     title: 'Status goes stale',
     description:
-      'A log line says “started”, but nobody can tell what is still running, failed, idle, or stopped right now.',
+      'A log line says “started”, but nobody can tell what is still active or blocked right now.',
     icon: Clock3,
   },
   {
@@ -90,7 +90,7 @@ const workflowSteps = [
     step: '03',
     title: 'Derive current state',
     description:
-      'The status board turns event sequences into entity snapshots: working, stopped, error, idle, or unknown.',
+      'The status board turns event sequences into current snapshots: busy or idle, with the latest content.',
     icon: LayoutGrid,
   },
   {
@@ -115,17 +115,17 @@ const featureCards = [
   },
   {
     title: 'Status board mode',
-    description: 'See current entity state at a glance with the latest content, run ID, and timestamps.',
+    description: 'See current entity state at a glance with the latest content and recency.',
     icon: LayoutGrid,
   },
   {
     title: 'Search and filters',
-    description: 'Filter by topic, type, run, and content to isolate exactly the event thread you need.',
+    description: 'Filter by topic, status, and content to isolate exactly the events you need.',
     icon: Database,
   },
   {
-    title: 'Workspace scoping',
-    description: 'Separate streams with workspace headers for multi-team or environment-specific monitoring.',
+    title: 'Volume scoping',
+    description: 'Separate streams with volume headers for multi-team or environment-specific monitoring.',
     icon: Lock,
   },
 ]
@@ -133,7 +133,7 @@ const featureCards = [
 const useCases = [
   {
     title: 'Agent orchestration',
-    body: 'Track planner, coder, reviewer, and tool runs by topic path and run ID.',
+    body: 'Track planner, coder, reviewer, and tool activity by topic path and current status.',
     icon: Sparkles,
   },
   {
@@ -143,7 +143,7 @@ const useCases = [
   },
   {
     title: 'Cron + ops tasks',
-    body: 'Monitor scheduled jobs, backup checks, and health routines with simple start/stop/error events.',
+    body: 'Monitor scheduled jobs, backup checks, and health routines with simple busy/idle updates.',
     icon: ShieldCheck,
   },
   {
@@ -168,17 +168,15 @@ const faqItems = [
   },
   {
     q: 'Can I separate environments or teams?',
-    a: 'Yes. Tailwatch supports workspace scoping and hierarchical topic paths, so you can split production, staging, or team-specific feeds cleanly.',
+    a: 'Yes. Tailwatch supports volume scoping and hierarchical topic paths, so you can split production, staging, or team-specific feeds cleanly.',
   },
 ]
 
 const curlExample = `curl -X POST http://localhost:3000/api/publish/team-a/project-x/task/planner \\
   -H "Content-Type: application/json" \\
   -d '{
-    "type":"start",
-    "runId":"run_123",
-    "entityId":"planner",
-    "entityType":"task",
+    "time":"2026-02-28T21:00:00.000Z",
+    "status":"busy",
     "content":"Starting plan"
   }'`
 
@@ -238,16 +236,16 @@ function TailwatchLandingPage() {
 
             <div className="ml-auto flex w-full min-w-0 items-center justify-end gap-2 sm:w-auto">
               <Link
-                to="/$workspaceId/status"
-                params={{ workspaceId: 'personal' }}
+                to="/$volumeId/status"
+                params={{ volumeId: 'personal' }}
                 className="hidden cursor-pointer rounded-lg border border-border/70 bg-card/70 px-3 py-2 text-xs font-semibold text-foreground transition-colors duration-200 hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:inline-flex sm:items-center sm:gap-2"
               >
                 <LayoutGrid className="h-3.5 w-3.5" />
                 Status Board
               </Link>
               <Link
-                to="/$workspaceId"
-                params={{ workspaceId: 'personal' }}
+                to="/$volumeId"
+                params={{ volumeId: 'personal' }}
                 className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-primary/35 bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition-opacity duration-200 hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <span className="hidden sm:inline">Open Dashboard</span>
@@ -284,16 +282,16 @@ function TailwatchLandingPage() {
 
               <div className="flex flex-col gap-3 sm:flex-row">
                 <Link
-                  to="/$workspaceId"
-                  params={{ workspaceId: 'personal' }}
+                  to="/$volumeId"
+                  params={{ volumeId: 'personal' }}
                   className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-primary/35 bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition-opacity duration-200 hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   Open Logs Dashboard
                   <ListTree className="h-4 w-4" />
                 </Link>
                 <Link
-                  to="/$workspaceId/status"
-                  params={{ workspaceId: 'personal' }}
+                  to="/$volumeId/status"
+                  params={{ volumeId: 'personal' }}
                   className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-border/70 bg-card/80 px-5 py-3 text-sm font-semibold text-foreground transition-colors duration-200 hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   Status Board
@@ -341,7 +339,7 @@ function TailwatchLandingPage() {
                     </div>
                     <div className="min-w-0">
                       <p className="text-xs font-medium tracking-[0.04em] text-muted-foreground">Live feed</p>
-                      <p className="truncate text-sm font-semibold text-foreground">Workspace `default`</p>
+                      <p className="truncate text-sm font-semibold text-foreground">Volume `personal`</p>
                     </div>
                   </div>
                   <div className="inline-flex w-fit items-center gap-2 rounded-full border border-success/20 bg-success/10 px-3 py-1 text-xs font-medium text-success">
@@ -357,20 +355,20 @@ function TailwatchLandingPage() {
                         <ListTree className="h-3.5 w-3.5" />
                         Log Stream
                       </CardTitle>
-                      <CardDescription className="text-xs">Chronological events with path, type, and payload content.</CardDescription>
+                      <CardDescription className="text-xs">Chronological events with path, status, and payload content.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-2 pb-4">
                       <div className="rounded-lg border border-border/60 bg-card/60 p-2">
                         <p className="break-all text-[11px] font-semibold text-foreground">team-a/project-x/task/planner</p>
-                        <p className="text-[10px] font-medium text-success">start • run_123</p>
+                        <p className="text-[10px] font-medium text-warning">busy • planning in progress</p>
                       </div>
                       <div className="rounded-lg border border-border/60 bg-card/60 p-2">
                         <p className="break-all text-[11px] font-semibold text-foreground">team-a/project-x/task/planner</p>
-                        <p className="text-[10px] font-medium text-muted-foreground">log • "Fetched repository files"</p>
+                        <p className="text-[10px] font-medium text-muted-foreground">idle • repository sync complete</p>
                       </div>
-                      <div className="rounded-lg border border-destructive/25 bg-destructive/10 p-2">
+                      <div className="rounded-lg border border-warning/25 bg-warning/10 p-2">
                         <p className="break-all text-[11px] font-semibold text-foreground">ops/cron/nightly-backup</p>
-                        <p className="text-[10px] font-medium text-destructive">error • disk snapshot timeout</p>
+                        <p className="text-[10px] font-medium text-warning">busy • snapshot taking longer than expected</p>
                       </div>
                     </CardContent>
                   </Card>
@@ -384,17 +382,17 @@ function TailwatchLandingPage() {
                       <CardDescription className="text-xs">Derived state per entity for quick operator decisions.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-2 pb-4">
-                      <div className="rounded-lg border border-success/20 bg-success/10 p-2">
+                      <div className="rounded-lg border border-warning/25 bg-warning/10 p-2">
                         <p className="text-[11px] font-semibold text-foreground">planner</p>
-                        <p className="text-[10px] font-medium text-success">working • active for 00:23</p>
+                        <p className="text-[10px] font-medium text-warning">busy • review pending</p>
                       </div>
                       <div className="rounded-lg border border-warning/25 bg-warning/10 p-2">
                         <p className="text-[11px] font-semibold text-foreground">deployer</p>
                         <p className="text-[10px] font-medium text-warning">idle • last seen 2m ago</p>
                       </div>
-                      <div className="rounded-lg border border-destructive/25 bg-destructive/10 p-2">
+                      <div className="rounded-lg border border-success/20 bg-success/10 p-2">
                         <p className="text-[11px] font-semibold text-foreground">nightly-backup</p>
-                        <p className="text-[10px] font-medium text-destructive">error • snapshot timeout</p>
+                        <p className="text-[10px] font-medium text-success">idle • backup complete</p>
                       </div>
                     </CardContent>
                   </Card>
@@ -614,16 +612,16 @@ function TailwatchLandingPage() {
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <Link
-                  to="/$workspaceId"
-                  params={{ workspaceId: 'personal' }}
+                  to="/$volumeId"
+                  params={{ volumeId: 'personal' }}
                   className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-primary/30 bg-primary px-5 py-4 text-sm font-semibold text-primary-foreground transition-opacity duration-200 hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   Open Logs Dashboard
                   <ListTree className="h-4 w-4" />
                 </Link>
                 <Link
-                  to="/$workspaceId/status"
-                  params={{ workspaceId: 'personal' }}
+                  to="/$volumeId/status"
+                  params={{ volumeId: 'personal' }}
                   className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-border/70 bg-card/70 px-5 py-4 text-sm font-semibold text-foreground transition-colors duration-200 hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   Open Status Board
@@ -659,15 +657,15 @@ function TailwatchLandingPage() {
             </div>
             <div className="flex flex-wrap items-center gap-4">
               <Link
-                to="/$workspaceId"
-                params={{ workspaceId: 'personal' }}
+                to="/$volumeId"
+                params={{ volumeId: 'personal' }}
                 className="cursor-pointer transition-colors duration-200 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 Logs
               </Link>
               <Link
-                to="/$workspaceId/status"
-                params={{ workspaceId: 'personal' }}
+                to="/$volumeId/status"
+                params={{ volumeId: 'personal' }}
                 className="cursor-pointer transition-colors duration-200 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 Status
