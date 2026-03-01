@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link, createFileRoute } from '@tanstack/react-router'
+import { createFileRoute } from '@tanstack/react-router'
 import { useAuthActions } from '@convex-dev/auth/react'
 import { Ban, HardDrive, Loader2, LogIn, Plus, RotateCw, Trash2 } from 'lucide-react'
 import { useConvexAuth, useMutation, useQuery } from 'convex/react'
+import { AppShellHeader } from '~/components/layout/app-shell-header'
 import { api } from '../../../convex/_generated/api'
 import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
@@ -152,42 +153,47 @@ function VolumeSettingsPage() {
 
   if (authLoading) {
     return (
-      <main className="mx-auto flex min-h-[100svh] w-full max-w-4xl items-center px-4 py-10 md:min-h-dvh md:px-8">
-        <Card className="w-full border-border/70 bg-card/85 backdrop-blur">
-          <CardContent className="flex items-center gap-2 p-4 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Loading authentication state...
-          </CardContent>
-        </Card>
-      </main>
+      <div className="flex min-h-[100svh] w-full flex-col md:min-h-dvh">
+        <AppShellHeader current="volumes" />
+        <main className="mx-auto flex w-full max-w-4xl flex-1 items-center px-4 py-10 md:px-8">
+          <Card className="w-full border-border/70 bg-card/85 backdrop-blur">
+            <CardContent className="flex items-center gap-2 p-4 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Loading authentication state...
+            </CardContent>
+          </Card>
+        </main>
+      </div>
     )
   }
 
   if (!isAuthenticated) {
     return (
-      <main className="mx-auto flex min-h-[100svh] w-full max-w-4xl items-center px-4 py-10 md:min-h-dvh md:px-8">
-        <Card className="w-full border-border/70 bg-card/85 backdrop-blur">
-          <CardHeader>
-            <CardTitle className="text-base font-black uppercase tracking-wider">Volume API Key Management</CardTitle>
-            <CardDescription>Sign in to manage volumes and API keys.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Button type="button" className="gap-1.5" onClick={() => void signIn('github')}>
-              <LogIn className="h-3.5 w-3.5" />
-              Sign in with GitHub
-            </Button>
-            <Link to="/" className="text-xs font-medium text-muted-foreground underline-offset-4 hover:underline">
-              Back to home
-            </Link>
-          </CardContent>
-        </Card>
-      </main>
+      <div className="flex min-h-[100svh] w-full flex-col md:min-h-dvh">
+        <AppShellHeader current="volumes" />
+        <main className="mx-auto flex w-full max-w-4xl flex-1 items-center px-4 py-10 md:px-8">
+          <Card className="w-full border-border/70 bg-card/85 backdrop-blur">
+            <CardHeader>
+              <CardTitle className="text-base font-black uppercase tracking-wider">Volume API Key Management</CardTitle>
+              <CardDescription>Sign in to manage volumes and API keys.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Button type="button" className="gap-1.5" onClick={() => void signIn('github', { redirectTo: '/settings/volumes' })}>
+                <LogIn className="h-3.5 w-3.5" />
+                Sign in with GitHub
+              </Button>
+            </CardContent>
+          </Card>
+        </main>
+      </div>
     )
   }
 
   return (
-    <main className="mx-auto flex min-h-[100svh] w-full max-w-4xl flex-col gap-4 px-4 py-6 md:min-h-dvh md:px-8 md:py-10">
-      <Card className="border-border/70 bg-card/85 backdrop-blur">
+    <div className="flex min-h-[100svh] w-full flex-col md:min-h-dvh">
+      <AppShellHeader current="volumes" />
+      <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-4 px-4 py-6 md:px-8 md:py-10">
+        <Card className="border-border/70 bg-card/85 backdrop-blur">
         <CardHeader className="space-y-2">
           <CardTitle className="flex items-center gap-2 text-base font-black uppercase tracking-wider">
             <HardDrive className="h-4 w-4 text-primary" />
@@ -310,13 +316,9 @@ function VolumeSettingsPage() {
             </div>
           ) : null}
 
-          <div className="pt-1">
-            <Link to="/" className="text-xs font-medium text-muted-foreground underline-offset-4 hover:underline">
-              Back to home
-            </Link>
-          </div>
         </CardContent>
       </Card>
-    </main>
+      </main>
+    </div>
   )
 }

@@ -12,6 +12,7 @@ import type * as auth from "../auth.js";
 import type * as devices from "../devices.js";
 import type * as events from "../events.js";
 import type * as http from "../http.js";
+import type * as users from "../users.js";
 import type * as volumes from "../volumes.js";
 
 import type {
@@ -25,6 +26,7 @@ declare const fullApi: ApiFromModules<{
   devices: typeof devices;
   events: typeof events;
   http: typeof http;
+  users: typeof users;
   volumes: typeof volumes;
 }>;
 

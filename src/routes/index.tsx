@@ -1,10 +1,10 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
 import { useAuthActions } from '@convex-dev/auth/react'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import { useConvexAuth } from 'convex/react'
+import type { MouseEvent } from 'react'
 import {
   Activity,
   ArrowRight,
-  Laptop,
   Bell,
   ChevronRight,
   CircleAlert,
@@ -20,11 +20,8 @@ import {
   Terminal,
   Webhook,
   Zap,
-  LogIn,
-  LogOut,
 } from 'lucide-react'
 import { Badge } from '~/components/ui/badge'
-import { Button } from '~/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/card'
 
 export const Route = createFileRoute('/')({
@@ -33,15 +30,15 @@ export const Route = createFileRoute('/')({
 
 const proofStats = [
   {
-    label: 'Modes',
-    value: '2',
-    detail: 'Live logs + status board',
+    label: 'Experience',
+    value: '1',
+    detail: 'Unified dashboard',
     icon: LayoutGrid,
   },
   {
-    label: 'Status Values',
-    value: '2',
-    detail: 'busy, idle',
+    label: 'Event Types',
+    value: '6',
+    detail: 'start, message, stop, error, heartbeat, update',
     icon: Activity,
   },
   {
@@ -66,9 +63,9 @@ const problemCards = [
     icon: ListTree,
   },
   {
-    title: 'Status goes stale',
+    title: 'State drifts silently',
     description:
-      'A log line says “started”, but nobody can tell what is still active or blocked right now.',
+      'An event says “started”, but nobody can tell what is still running, failed, idle, or stopped right now.',
     icon: Clock3,
   },
   {
@@ -83,20 +80,20 @@ const workflowSteps = [
   {
     step: '01',
     title: 'Publish to a path',
-    description: 'POST to /api/publish with topic path segments so Tailwatch can keep hierarchy and state in sync.',
+    description: 'Post events to `/api/publish/<topic>` where the URL path becomes the hierarchy Tailwatch tracks.',
     icon: Webhook,
   },
   {
     step: '02',
     title: 'Stream in realtime',
-    description: 'Tailwatch appends and streams events so the log view updates live without polling refresh loops.',
+    description: 'Tailwatch appends and streams events instantly so operators can react as systems change.',
     icon: Zap,
   },
   {
     step: '03',
     title: 'Derive current state',
     description:
-      'The status board turns event sequences into current snapshots: busy or idle, with the latest content.',
+      'The dashboard summarizes event sequences into entity snapshots: working, stopped, error, idle, or unknown.',
     icon: LayoutGrid,
   },
   {
@@ -115,23 +112,23 @@ const featureCards = [
     icon: GitBranch,
   },
   {
-    title: 'Log stream mode',
+    title: 'Realtime timeline',
     description: 'Treat Tailwatch like a lightweight observability console for live activity and message trails.',
     icon: ListTree,
   },
   {
-    title: 'Status board mode',
-    description: 'See current entity state at a glance with the latest content and recency.',
+    title: 'State snapshots',
+    description: 'See current entity state at a glance with the latest content, run ID, and timestamps.',
     icon: LayoutGrid,
   },
   {
     title: 'Search and filters',
-    description: 'Filter by topic, status, and content to isolate exactly the events you need.',
+    description: 'Filter by topic, type, run, and content to isolate exactly the event thread you need.',
     icon: Database,
   },
   {
-    title: 'Volume scoping',
-    description: 'Separate streams with volume headers for multi-team or environment-specific monitoring.',
+    title: 'Workspace scoping',
+    description: 'Separate streams with workspace headers for multi-team or environment-specific monitoring.',
     icon: Lock,
   },
 ]
@@ -139,7 +136,7 @@ const featureCards = [
 const useCases = [
   {
     title: 'Agent orchestration',
-    body: 'Track planner, coder, reviewer, and tool activity by topic path and current status.',
+    body: 'Track planner, coder, reviewer, and tool runs by topic path and run ID.',
     icon: Sparkles,
   },
   {
@@ -149,12 +146,12 @@ const useCases = [
   },
   {
     title: 'Cron + ops tasks',
-    body: 'Monitor scheduled jobs, backup checks, and health routines with simple busy/idle updates.',
+    body: 'Monitor scheduled jobs, backup checks, and health routines with simple start/stop/error events.',
     icon: ShieldCheck,
   },
   {
     title: 'App message streams',
-    body: 'Use log events only for lightweight app timelines or internal team notifications.',
+    body: 'Use event streams for lightweight app timelines or internal team notifications.',
     icon: Terminal,
   },
 ]
@@ -169,27 +166,34 @@ const faqItems = [
     a: 'Yes. The model is generic: jobs, services, pipelines, cron tasks, and simple message feeds all fit the same path-based event pattern.',
   },
   {
-    q: 'What is the difference between logs and status mode?',
-    a: 'Logs mode shows the event timeline. Status mode derives the latest state per entity so operators can answer “what is happening now?” quickly.',
+    q: 'How does the dashboard stay readable under high event volume?',
+    a: 'Tailwatch combines path hierarchy, filtering, and state summaries so operators can quickly isolate what matters without losing realtime context.',
   },
   {
     q: 'Can I separate environments or teams?',
-    a: 'Yes. Tailwatch supports volume scoping and hierarchical topic paths, so you can split production, staging, or team-specific feeds cleanly.',
+    a: 'Yes. Tailwatch supports workspace scoping and hierarchical topic paths, so you can split production, staging, or team-specific feeds cleanly.',
   },
 ]
 
-const curlExample = `# Key in URL (no headers required)
-curl -X POST "https://your-app.example/api/publish/calm-otter-42/team-a/project-x/task/planner?status=busy" \\
-  --data "Starting plan"
-
-# Or use a volume header
-curl -X POST "https://your-app.example/api/publish/team-a/project-x/task/planner?status=busy" \\
-  -H "x-tailwatch-volume: personal" \\
-  --data "Starting plan"`
+const curlExample = `curl -X POST http://localhost:3000/api/publish/team-a/project-x/task/planner \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "type":"start",
+    "runId":"run_123",
+    "entityId":"planner",
+    "entityType":"task",
+    "content":"Starting plan"
+  }'`
 
 function TailwatchLandingPage() {
-  const { isAuthenticated, isLoading } = useConvexAuth()
-  const { signIn, signOut } = useAuthActions()
+  const { signIn } = useAuthActions()
+  const { isAuthenticated } = useConvexAuth()
+
+  const handleDashboardNavigation = async (event: MouseEvent) => {
+    if (isAuthenticated) return
+    event.preventDefault()
+    await signIn('github', { redirectTo: '/personal' })
+  }
 
   return (
     <div className="scroll-thin relative flex min-h-[100svh] w-full min-w-0 flex-1 overflow-x-hidden md:min-h-dvh">
@@ -205,7 +209,7 @@ function TailwatchLandingPage() {
             aria-label="Primary"
             className="mx-auto flex min-h-16 w-full max-w-7xl min-w-0 flex-wrap items-center justify-between gap-3 px-4 py-2 md:h-16 md:flex-nowrap md:gap-4 md:px-6 md:py-0"
           >
-            <a href="#top" className="group flex min-w-0 shrink cursor-pointer items-center gap-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            <div className="group flex min-w-0 shrink items-center gap-3 rounded-lg">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-primary/25 bg-primary/10 text-primary">
                 <Terminal className="h-4 w-4" />
               </div>
@@ -215,74 +219,17 @@ function TailwatchLandingPage() {
                   Event Monitor
                 </span>
               </div>
-            </a>
-
-            <div className="hidden items-center gap-1 rounded-lg border border-border/60 bg-card/70 p-1 md:flex">
-              <a
-                href="#problem"
-                className="cursor-pointer rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors duration-200 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                Problem
-              </a>
-              <a
-                href="#how-it-works"
-                className="cursor-pointer rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors duration-200 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                Workflow
-              </a>
-              <a
-                href="#features"
-                className="cursor-pointer rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors duration-200 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                Features
-              </a>
-              <a
-                href="#faq"
-                className="cursor-pointer rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors duration-200 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                FAQ
-              </a>
             </div>
 
             <div className="ml-auto flex w-full min-w-0 items-center justify-end gap-2 sm:w-auto">
-              {isLoading ? (
-                <Button type="button" size="sm" variant="outline" disabled>
-                  Checking session...
-                </Button>
-              ) : isAuthenticated ? (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => void signOut()}
-                >
-                  <LogOut className="h-3.5 w-3.5" />
-                  Sign out
-                </Button>
-              ) : (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => void signIn('github')}
-                >
-                  <LogIn className="h-3.5 w-3.5" />
-                  Sign in
-                </Button>
-              )}
               <Link
-                to="/settings/devices"
-                className="hidden cursor-pointer rounded-lg border border-border/70 bg-card/70 px-3 py-2 text-xs font-semibold text-foreground transition-colors duration-200 hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:inline-flex sm:items-center sm:gap-2"
-              >
-                <Laptop className="h-3.5 w-3.5" />
-                Devices
-              </Link>
-              <Link
-                to="/settings/volumes"
+                to="/$volumeId"
+                params={{ volumeId: 'personal' }}
+                onClick={(event) => void handleDashboardNavigation(event)}
                 className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-primary/35 bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition-opacity duration-200 hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                <span className="hidden sm:inline">Manage Volumes</span>
-                <span className="sm:hidden">Volumes</span>
+                <span className="hidden sm:inline">Open Dashboard</span>
+                <span className="sm:hidden">Open</span>
                 <ArrowRight className="h-3.5 w-3.5" />
               </Link>
             </div>
@@ -309,34 +256,8 @@ function TailwatchLandingPage() {
                 </h1>
                 <p className="max-w-2xl text-base leading-7 text-muted-foreground md:text-lg">
                   Tailwatch is a lightweight realtime dashboard for hierarchical events, tasks, and messages.
-                  Publish to a URL path, stream updates instantly, and switch between a raw log feed and a current-state board.
+                  Publish to a URL path, stream updates instantly, and keep event context and current state in one place.
                 </p>
-              </div>
-
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <Link
-                  to="/$volumeId"
-                  params={{ volumeId: 'personal' }}
-                  className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-primary/35 bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition-opacity duration-200 hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  Open Logs Dashboard
-                  <ListTree className="h-4 w-4" />
-                </Link>
-                <Link
-                  to="/$volumeId/status"
-                  params={{ volumeId: 'personal' }}
-                  className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-border/70 bg-card/80 px-5 py-3 text-sm font-semibold text-foreground transition-colors duration-200 hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  Status Board
-                  <LayoutGrid className="h-4 w-4" />
-                </Link>
-                <a
-                  href="#how-it-works"
-                  className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-transparent px-3 py-3 text-sm font-medium text-muted-foreground transition-colors duration-200 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  How it works
-                  <ChevronRight className="h-4 w-4" />
-                </a>
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
@@ -372,7 +293,7 @@ function TailwatchLandingPage() {
                     </div>
                     <div className="min-w-0">
                       <p className="text-xs font-medium tracking-[0.04em] text-muted-foreground">Live feed</p>
-                      <p className="truncate text-sm font-semibold text-foreground">Volume `personal`</p>
+                      <p className="truncate text-sm font-semibold text-foreground">Workspace `default`</p>
                     </div>
                   </div>
                   <div className="inline-flex w-fit items-center gap-2 rounded-full border border-success/20 bg-success/10 px-3 py-1 text-xs font-medium text-success">
@@ -386,22 +307,22 @@ function TailwatchLandingPage() {
                     <CardHeader className="pb-2">
                       <CardTitle className="flex items-center gap-2 text-xs font-semibold tracking-[0.04em] text-primary">
                         <ListTree className="h-3.5 w-3.5" />
-                        Log Stream
+                        Event Timeline
                       </CardTitle>
-                      <CardDescription className="text-xs">Chronological events with path, status, and payload content.</CardDescription>
+                      <CardDescription className="text-xs">Chronological events with path, type, and payload content.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-2 pb-4">
                       <div className="rounded-lg border border-border/60 bg-card/60 p-2">
                         <p className="break-all text-[11px] font-semibold text-foreground">team-a/project-x/task/planner</p>
-                        <p className="text-[10px] font-medium text-warning">busy • planning in progress</p>
+                        <p className="text-[10px] font-medium text-success">start • run_123</p>
                       </div>
                       <div className="rounded-lg border border-border/60 bg-card/60 p-2">
                         <p className="break-all text-[11px] font-semibold text-foreground">team-a/project-x/task/planner</p>
-                        <p className="text-[10px] font-medium text-muted-foreground">idle • repository sync complete</p>
+                        <p className="text-[10px] font-medium text-muted-foreground">message • "Fetched repository files"</p>
                       </div>
-                      <div className="rounded-lg border border-warning/25 bg-warning/10 p-2">
+                      <div className="rounded-lg border border-destructive/25 bg-destructive/10 p-2">
                         <p className="break-all text-[11px] font-semibold text-foreground">ops/cron/nightly-backup</p>
-                        <p className="text-[10px] font-medium text-warning">busy • snapshot taking longer than expected</p>
+                        <p className="text-[10px] font-medium text-destructive">error • disk snapshot timeout</p>
                       </div>
                     </CardContent>
                   </Card>
@@ -410,22 +331,22 @@ function TailwatchLandingPage() {
                     <CardHeader className="pb-2">
                       <CardTitle className="flex items-center gap-2 text-xs font-semibold tracking-[0.04em] text-info">
                         <LayoutGrid className="h-3.5 w-3.5" />
-                        Status Board
+                        State Snapshot
                       </CardTitle>
                       <CardDescription className="text-xs">Derived state per entity for quick operator decisions.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-2 pb-4">
-                      <div className="rounded-lg border border-warning/25 bg-warning/10 p-2">
+                      <div className="rounded-lg border border-success/20 bg-success/10 p-2">
                         <p className="text-[11px] font-semibold text-foreground">planner</p>
-                        <p className="text-[10px] font-medium text-warning">busy • review pending</p>
+                        <p className="text-[10px] font-medium text-success">working • active for 00:23</p>
                       </div>
                       <div className="rounded-lg border border-warning/25 bg-warning/10 p-2">
                         <p className="text-[11px] font-semibold text-foreground">deployer</p>
                         <p className="text-[10px] font-medium text-warning">idle • last seen 2m ago</p>
                       </div>
-                      <div className="rounded-lg border border-success/20 bg-success/10 p-2">
+                      <div className="rounded-lg border border-destructive/25 bg-destructive/10 p-2">
                         <p className="text-[11px] font-semibold text-foreground">nightly-backup</p>
-                        <p className="text-[10px] font-medium text-success">idle • backup complete</p>
+                        <p className="text-[10px] font-medium text-destructive">error • snapshot timeout</p>
                       </div>
                     </CardContent>
                   </Card>
@@ -471,7 +392,7 @@ function TailwatchLandingPage() {
                 When everything emits events, nobody sees the system state.
               </h2>
               <p className="max-w-3xl text-base leading-7 text-muted-foreground">
-                Tailwatch is designed for the gap between raw logs and heavyweight observability stacks: realtime operational visibility with a path-based model that is easy to publish into.
+                Tailwatch is designed for the gap between raw event streams and heavyweight observability stacks: realtime operational visibility with a path-based model that is easy to publish into.
               </p>
             </div>
 
@@ -554,10 +475,10 @@ function TailwatchLandingPage() {
             <div className="space-y-3">
               <p className="text-xs font-medium uppercase tracking-[0.08em] text-muted-foreground">Capabilities</p>
               <h2 className="text-balance text-3xl font-bold tracking-tight text-foreground md:text-4xl">
-                Two views, one event source, faster decisions.
+                One dashboard, one event source, faster decisions.
               </h2>
               <p className="max-w-3xl text-base leading-7 text-muted-foreground">
-                Tailwatch keeps the ingestion model simple and the operator experience flexible: inspect the raw timeline, then switch to derived state when you need to triage what matters now.
+                Tailwatch keeps ingestion simple and operator workflows practical: monitor event flow, inspect context, and triage what matters now from one screen.
               </p>
             </div>
 
@@ -639,43 +560,12 @@ function TailwatchLandingPage() {
                   Deploy Tailwatch quickly and standardize event visibility.
                 </h2>
                 <p className="max-w-2xl text-base leading-7 text-muted-foreground">
-                  Start with the logs view, switch to the status board, and keep the same publish endpoint. Tailwatch is designed to be easy to adopt and useful immediately.
+                  Open the dashboard from the top navigation and start publishing events immediately with the same endpoint model.
                 </p>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-2">
-                <Link
-                  to="/$volumeId"
-                  params={{ volumeId: 'personal' }}
-                  className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-primary/30 bg-primary px-5 py-4 text-sm font-semibold text-primary-foreground transition-opacity duration-200 hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  Open Logs Dashboard
-                  <ListTree className="h-4 w-4" />
-                </Link>
-                <Link
-                  to="/$volumeId/status"
-                  params={{ volumeId: 'personal' }}
-                  className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-border/70 bg-card/70 px-5 py-4 text-sm font-semibold text-foreground transition-colors duration-200 hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  Open Status Board
-                  <LayoutGrid className="h-4 w-4" />
-                </Link>
-                <a
-                  href="https://github.com/danalizieors/tailwatch"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-border/70 bg-background/70 px-5 py-4 text-sm font-semibold text-foreground transition-colors duration-200 hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  Source Code
-                  <ArrowRight className="h-4 w-4" />
-                </a>
-                <a
-                  href="#top"
-                  className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-transparent px-5 py-4 text-sm font-semibold text-muted-foreground transition-colors duration-200 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  Back to top
-                  <ChevronRight className="h-4 w-4" />
-                </a>
+              <div className="rounded-xl border border-border/60 bg-background/60 px-4 py-3 text-sm text-muted-foreground">
+                Single entry point: use the <span className="font-semibold text-foreground">Open Dashboard</span> button in the header.
               </div>
             </div>
           </section>
@@ -689,28 +579,7 @@ function TailwatchLandingPage() {
               <span className="text-muted-foreground/60">Realtime event monitor</span>
             </div>
             <div className="flex flex-wrap items-center gap-4">
-              <Link
-                to="/$volumeId"
-                params={{ volumeId: 'personal' }}
-                className="cursor-pointer transition-colors duration-200 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                Logs
-              </Link>
-              <Link
-                to="/$volumeId/status"
-                params={{ volumeId: 'personal' }}
-                className="cursor-pointer transition-colors duration-200 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                Status
-              </Link>
-              <a
-                href="https://github.com/danalizieors/tailwatch"
-                target="_blank"
-                rel="noreferrer"
-                className="cursor-pointer transition-colors duration-200 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                GitHub
-              </a>
+              <span>Open dashboard from the header button.</span>
             </div>
           </div>
         </footer>
