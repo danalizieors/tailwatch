@@ -265,33 +265,38 @@ export function DashboardView({ mode, volume }: DashboardViewProps) {
 
     try {
       // Toggle ON
-      // 1. If we already have a subscription on the backend, just enable it
-      if (currentDevice?.hasSubscription) {
-        await setNotificationsEnabled({ deviceKey, enabled: true })
-        setIsBellEnabled(true)
-        return
+      
+      // 1. Request permission if not already granted
+      if (window.Notification.permission !== 'granted') {
+        const granted = await NotificationManager.requestPushPermission()
+        if (!granted) {
+          alert('Notification permission was not granted. Please allow notifications to receive alerts.')
+          return
+        }
       }
 
       // 2. Ensure service worker is ready with a safety timeout
       const swReady = await Promise.race([
         navigator.serviceWorker.ready,
-        new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Timed out waiting for service worker. Try refreshing the page.')), 6000))
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Timed out waiting for service worker. Please refresh the page and try again.')), 8000))
       ])
       
-      let subscription = await swReady.pushManager.getSubscription()
-
-      // 3. Otherwise, create one
-      if (!subscription) {
-        const enabled = await NotificationManager.enableBackgroundPush()
-        if (!enabled) {
-          const err = NotificationManager.getLastPushError()
-          alert(err || 'Failed to enable notifications. Please ensure you are on HTTPS and granted permission when prompted.')
-          return
-        }
-        subscription = await swReady.pushManager.getSubscription()
+      // 3. Ensure we have a valid subscription in the browser
+      const enabled = await NotificationManager.enableBackgroundPush()
+      if (!enabled) {
+        const err = NotificationManager.getLastPushError()
+        alert(err || 'Failed to initialize browser push subscription. Ensure you are using a supported browser.')
+        return
       }
 
-      if (subscription && isAuthenticated) {
+      const subscription = await swReady.pushManager.getSubscription()
+      if (!subscription) {
+        alert('Could not retrieve push subscription from browser after initialization.')
+        return
+      }
+
+      // 4. Sync with Backend
+      if (isAuthenticated) {
         const json = subscription.toJSON()
         if (json.endpoint && json.keys?.p256dh && json.keys?.auth) {
           await updatePushSubscription({
@@ -305,15 +310,24 @@ export function DashboardView({ mode, volume }: DashboardViewProps) {
               },
             },
           })
-          setIsBellEnabled(true)
+        } else {
+          // Fallback to just enabling if subscription keys are somehow missing but we have it in browser
+          await setNotificationsEnabled({ deviceKey, enabled: true })
         }
-      } else if (subscription) {
-        setIsBellEnabled(true)
-        alert('Local notifications enabled, but you must sign in to receive alerts from the Tailwatch server.')
+      }
+
+      setIsBellEnabled(true)
+      
+      if (!isAuthenticated) {
+        alert('Browser notifications enabled! However, you must sign in to receive real-time alerts from the Tailwatch server.')
+      } else {
+        // Optional: send a quick local test if possible, or just confirm
+        console.log('Notifications fully enabled and synced.')
       }
     } catch (error) {
       console.error('Notification Setup Error:', error)
-      alert(`Notification Error: ${error instanceof Error ? error.message : 'An unexpected error occurred while setting up push notifications.'}`)
+      const msg = error instanceof Error ? error.message : 'An unexpected error occurred.'
+      alert(`Notification Setup Failed: ${msg}`)
     }
   }
 

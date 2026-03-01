@@ -81,7 +81,10 @@ export class NotificationManager {
 
     try {
       this.lastPushError = null
-      if (window.Notification.permission !== 'granted') return false
+      if (window.Notification.permission !== 'granted') {
+        this.lastPushError = 'Notification permission not granted.'
+        return false
+      }
 
       const reg = await navigator.serviceWorker.ready
       const existing = await reg.pushManager.getSubscription()
@@ -89,17 +92,21 @@ export class NotificationManager {
 
       const key = getWebPushPublicKey()
       if (!key) {
-        this.lastPushError = 'Missing VITE_WEB_PUSH_PUBLIC_KEY or VITE_VAPID_PUBLIC_KEY.'
+        this.lastPushError = 'Web Push Public Key is missing in client configuration.'
+        console.error('Missing VITE_WEB_PUSH_PUBLIC_KEY / VITE_VAPID_PUBLIC_KEY')
         return false
       }
 
+      console.log('Attempting to create new push subscription...')
       await reg.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: base64UrlToUint8Array(key),
       })
+      console.log('Push subscription created successfully.')
       return true
     } catch (error) {
-      this.lastPushError = error instanceof Error ? error.message : 'Failed to ensure push subscription.'
+      console.error('Service Worker Subscribe Error:', error)
+      this.lastPushError = error instanceof Error ? `Browser Error: ${error.message}` : 'Failed to create push subscription.'
       return false
     }
   }
