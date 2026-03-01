@@ -28,12 +28,6 @@ export function createServerEntry(entry: ServerEntry): ServerEntry {
     async fetch(request, ...args) {
       const url = new URL(request.url)
       
-      // Explicitly ignore Service Worker and other common static files 
-      // if they somehow reach here (to avoid MIME type errors)
-      if (url.pathname === '/sw.js' || url.pathname === '/manifest.webmanifest') {
-        return new Response(null, { status: 404 })
-      }
-
       const response = await entry.fetch(request, ...args)
       return withNoIndexHeader(response)
     },

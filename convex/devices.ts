@@ -232,14 +232,22 @@ export const sendPushForEventInternal = internalAction({
     deviceId: v.optional(v.id('devices')),
   },
   handler: async (ctx, args) => {
-    const privateJWK = parseVapidPrivateKey()
-    if (!privateJWK) return { ok: false, reason: 'missing_vapid_key' }
+    const rawKey = process.env.WEB_PUSH_VAPID_PRIVATE_KEY || process.env.VAPID_PRIVATE_KEY
+    if (!rawKey) return { ok: false, reason: 'missing_vapid_key_env' }
+
+    let privateJWK
+    try {
+      privateJWK = JSON.parse(rawKey)
+    } catch (e) {
+      console.error('VAPID_PRIVATE_KEY is not a valid JSON (JWK). Raw key starts with:', rawKey.slice(0, 10))
+      return { ok: false, reason: 'invalid_vapid_key_format_must_be_jwk_json' }
+    }
 
     const targets = await ctx.runQuery(internal.devices.listPushTargetsInternal, { 
       userId: args.userId,
       deviceId: args.deviceId,
     })
-    if (targets.length === 0) return { ok: true, sent: 0 }
+    if (targets.length === 0) return { ok: true, sent: 0, reason: 'no_targets' }
 
     const adminContact = process.env.WEB_PUSH_ADMIN_CONTACT || 'mailto:admin@example.com'
     const title = `Tailwatch ${args.status === 'busy' ? 'Busy' : 'Idle'}`
@@ -287,8 +295,4 @@ export const resolvePathAlias = query({
 })
 
 // -- Helpers --
-function parseVapidPrivateKey() {
-  const raw = process.env.WEB_PUSH_VAPID_PRIVATE_KEY || process.env.VAPID_PRIVATE_KEY
-  if (!raw) return null
-  try { return JSON.parse(raw) } catch { return null }
-}
+function placeholder() {}
