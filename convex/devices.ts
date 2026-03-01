@@ -1,5 +1,7 @@
 import { v } from 'convex/values'
-import { internalMutation, mutation, query, type MutationCtx, type QueryCtx } from './_generated/server'
+import { buildPushHTTPRequest } from '@pushforge/builder'
+import { internal } from './_generated/api'
+import { internalAction, internalMutation, internalQuery, mutation, query, type MutationCtx, type QueryCtx } from './_generated/server'
 import type { Doc, Id } from './_generated/dataModel'
 import { auth } from './auth'
 
@@ -8,6 +10,73 @@ const DEFAULT_INCLUDE_PATHS = ['/']
 
 type DeviceDoc = Doc<'devices'>
 type DeviceId = Id<'devices'>
+
+type PushTarget = {
+  deviceId: DeviceId
+  endpoint: string
+  expirationTime?: number
+  p256dh: string
+  auth: string
+}
+
+function normalizeAdminContact(value?: string) {
+  const next = value?.trim()
+  if (!next) return 'mailto:admin@example.com'
+  return next
+}
+
+function parseVapidPrivateKey() {
+  const raw = process.env.WEB_PUSH_VAPID_PRIVATE_KEY ?? process.env.VAPID_PRIVATE_KEY
+  if (!raw || !raw.trim()) return null
+
+  try {
+    const parsed = JSON.parse(raw) as Record<string, unknown>
+    if (
+      parsed &&
+      parsed.kty === 'EC' &&
+      parsed.crv === 'P-256' &&
+      typeof parsed.x === 'string' &&
+      typeof parsed.y === 'string' &&
+      typeof parsed.d === 'string'
+    ) {
+      return {
+        kty: parsed.kty,
+        crv: parsed.crv,
+        x: parsed.x,
+        y: parsed.y,
+        d: parsed.d,
+      }
+    }
+  } catch {
+    // Ignore parse errors and return null.
+  }
+
+  return null
+}
+
+function buildPushUrl(volume: string, path: string) {
+  const normalizedVolume = normalizeVolume(volume)
+  const base = normalizedVolume === DEFAULT_VOLUME ? '/personal' : `/${encodeURIComponent(normalizedVolume)}`
+  return `${base}?path=${encodeURIComponent(path)}`
+}
+
+function toPushTargets(rows: DeviceDoc[]): PushTarget[] {
+  const targets: PushTarget[] = []
+  for (const row of rows) {
+    if (!row.notifications) continue
+    const subscription = row.subscription
+    if (!subscription?.endpoint) continue
+    if (!subscription.keys?.p256dh || !subscription.keys?.auth) continue
+    targets.push({
+      deviceId: row._id,
+      endpoint: subscription.endpoint,
+      expirationTime: subscription.expirationTime,
+      p256dh: subscription.keys.p256dh,
+      auth: subscription.keys.auth,
+    })
+  }
+  return targets
+}
 
 function normalizeVolume(value?: string) {
   const next = value?.trim()
@@ -371,6 +440,142 @@ export const removePushSubscription = mutation({
     return {
       ok: true,
       deleted,
+    }
+  },
+})
+
+export const listPushTargetsInternal = internalQuery({
+  args: {
+    userId: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const normalizedUserId = normalizeUserId(args.userId)
+    const rows = normalizedUserId
+      ? await ctx.db
+          .query('devices')
+          .withIndex('by_user', (q) => q.eq('userId', normalizedUserId))
+          .collect()
+      : await ctx.db.query('devices').collect()
+    return toPushTargets(rows as DeviceDoc[])
+  },
+})
+
+export const clearPushSubscriptionInternal = internalMutation({
+  args: {
+    deviceId: v.id('devices'),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.deviceId, {
+      subscription: undefined,
+      notifications: false,
+      lastSeenAt: new Date().toISOString(),
+    })
+    return { ok: true }
+  },
+})
+
+export const sendPushForEventInternal = internalAction({
+  args: {
+    volume: v.string(),
+    path: v.string(),
+    status: v.union(v.literal('busy'), v.literal('idle')),
+    content: v.optional(v.string()),
+    userId: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const privateJWK = parseVapidPrivateKey()
+    if (!privateJWK) {
+      return {
+        ok: false,
+        reason: 'missing_vapid_private_key',
+      }
+    }
+
+    const targets = (await ctx.runQuery(internal.devices.listPushTargetsInternal, {
+      userId: args.userId,
+    })) as PushTarget[]
+
+    if (targets.length === 0) {
+      return {
+        ok: true,
+        total: 0,
+        sent: 0,
+        failed: 0,
+        removed: 0,
+      }
+    }
+
+    const adminContact = normalizeAdminContact(process.env.WEB_PUSH_ADMIN_CONTACT)
+    const title = `Tailwatch ${args.status === 'busy' ? 'Busy' : 'Idle'}`
+    const body = args.content?.trim()
+      ? `${args.path}: ${args.content.trim().slice(0, 220)}`
+      : `${args.path} changed status to ${args.status}.`
+    const url = buildPushUrl(args.volume, args.path)
+    const tag = `tailwatch:${args.volume}:${args.path}`.slice(0, 120)
+
+    let sent = 0
+    let failed = 0
+    let removed = 0
+
+    for (const target of targets) {
+      try {
+        const { endpoint, headers, body: requestBody } = await buildPushHTTPRequest({
+          privateJWK,
+          subscription: {
+            endpoint: target.endpoint,
+            keys: {
+              p256dh: target.p256dh,
+              auth: target.auth,
+            },
+          },
+          message: {
+            payload: {
+              title,
+              body,
+              tag,
+              url,
+            },
+            adminContact,
+            options: {
+              ttl: 300,
+              urgency: args.status === 'busy' ? 'high' : 'normal',
+              topic: tag,
+            },
+          },
+        })
+
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers,
+          body: requestBody,
+        })
+
+        if (response.status === 404 || response.status === 410) {
+          await ctx.runMutation(internal.devices.clearPushSubscriptionInternal, {
+            deviceId: target.deviceId,
+          })
+          removed += 1
+          failed += 1
+          continue
+        }
+
+        if (!response.ok) {
+          failed += 1
+          continue
+        }
+
+        sent += 1
+      } catch {
+        failed += 1
+      }
+    }
+
+    return {
+      ok: true,
+      total: targets.length,
+      sent,
+      failed,
+      removed,
     }
   },
 })

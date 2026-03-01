@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
 import { useAuthActions } from '@convex-dev/auth/react'
 import { Bell, BellOff, Laptop, Loader2, LogIn, Save, Send, Trash2 } from 'lucide-react'
@@ -21,9 +21,9 @@ function DeviceSettingsPage() {
   const { signIn } = useAuthActions()
 
   const [currentDeviceKey, setCurrentDeviceKey] = useState('')
-  const [selectedDeviceId, setSelectedDeviceId] = useState('')
-  const [nameDraft, setNameDraft] = useState('')
+  const [nameDraftsById, setNameDraftsById] = useState<Record<string, string>>({})
   const [busyAction, setBusyAction] = useState<'save' | 'toggle' | 'delete' | 'test' | null>(null)
+  const [busyDeviceId, setBusyDeviceId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
 
@@ -45,30 +45,22 @@ function DeviceSettingsPage() {
   )
 
   useEffect(() => {
-    if (!devices || devices.length === 0) {
-      setSelectedDeviceId('')
-      setNameDraft('')
-      return
-    }
+    if (!devices) return
 
-    const selected = selectedDeviceId
-      ? devices.find((device) => String(device.id) === selectedDeviceId)
-      : undefined
+    setNameDraftsById((previous) => {
+      const next: Record<string, string> = {}
+      for (const device of devices) {
+        const deviceId = String(device.id)
+        next[deviceId] = previous[deviceId] ?? device.name
+      }
+      return next
+    })
+  }, [devices])
 
-    const next = selected ?? devices[0]
-    setSelectedDeviceId(String(next.id))
-    setNameDraft(next.name)
-  }, [devices, selectedDeviceId])
-
-  const selectedDevice = useMemo(() => {
-    if (!devices || devices.length === 0) return null
-    return devices.find((device) => String(device.id) === selectedDeviceId) ?? null
-  }, [devices, selectedDeviceId])
-
-  const handleSaveDevice = async () => {
-    if (!selectedDevice) return
-
-    const nextName = nameDraft.trim()
+  const handleSaveDevice = async (device: NonNullable<typeof devices>[number]) => {
+    const deviceId = String(device.id)
+    const draft = nameDraftsById[deviceId] ?? device.name
+    const nextName = draft.trim()
     if (!nextName) {
       setError('Device name is required.')
       return
@@ -76,74 +68,85 @@ function DeviceSettingsPage() {
 
     try {
       setBusyAction('save')
+      setBusyDeviceId(deviceId)
       setError(null)
       setNotice(null)
 
       await updateDevice({
-        deviceId: selectedDevice.id,
+        deviceId: device.id,
         name: nextName,
       })
 
-      if (selectedDevice.isCurrent) {
+      if (device.isCurrent) {
         setClientDeviceName(nextName)
       }
 
-      setNotice('Device updated.')
+      setNameDraftsById((previous) => ({
+        ...previous,
+        [deviceId]: nextName,
+      }))
+
+      setNotice(`Device "${nextName}" updated.`)
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : 'Failed to update device')
     } finally {
       setBusyAction(null)
+      setBusyDeviceId(null)
     }
   }
 
-  const handleToggleNotifications = async () => {
-    if (!selectedDevice) return
-
+  const handleToggleNotifications = async (device: NonNullable<typeof devices>[number]) => {
+    const deviceId = String(device.id)
     try {
       setBusyAction('toggle')
+      setBusyDeviceId(deviceId)
       setError(null)
       setNotice(null)
 
       await updateDevice({
-        deviceId: selectedDevice.id,
-        enabled: !selectedDevice.enabled,
+        deviceId: device.id,
+        enabled: !device.enabled,
       })
 
-      setNotice(selectedDevice.enabled ? 'Notifications disabled for this device.' : 'Notifications enabled for this device.')
+      setNotice(device.enabled ? `Notifications disabled for "${device.name}".` : `Notifications enabled for "${device.name}".`)
     } catch (toggleError) {
       setError(toggleError instanceof Error ? toggleError.message : 'Failed to update notification state')
     } finally {
       setBusyAction(null)
+      setBusyDeviceId(null)
     }
   }
 
-  const handleDeleteDevice = async () => {
-    if (!selectedDevice || selectedDevice.isCurrent) return
+  const handleDeleteDevice = async (device: NonNullable<typeof devices>[number]) => {
+    if (device.isCurrent) return
 
-    if (!window.confirm(`Delete device "${selectedDevice.name}"?`)) {
+    if (!window.confirm(`Delete device "${device.name}"?`)) {
       return
     }
 
     try {
       setBusyAction('delete')
+      setBusyDeviceId(String(device.id))
       setError(null)
       setNotice(null)
 
       await deleteDevice({
-        deviceId: selectedDevice.id,
+        deviceId: device.id,
       })
 
-      setNotice(`Deleted device "${selectedDevice.name}".`)
+      setNotice(`Deleted device "${device.name}".`)
     } catch (deleteError) {
       setError(deleteError instanceof Error ? deleteError.message : 'Failed to delete device')
     } finally {
       setBusyAction(null)
+      setBusyDeviceId(null)
     }
   }
 
-  const handleTestNotification = async () => {
+  const handleTestNotification = async (device: NonNullable<typeof devices>[number]) => {
     try {
       setBusyAction('test')
+      setBusyDeviceId(String(device.id))
       setError(null)
       setNotice(null)
 
@@ -165,9 +168,7 @@ function DeviceSettingsPage() {
       }
 
       const title = 'Tailwatch Test Notification'
-      const body = selectedDevice
-        ? `Test notification for ${selectedDevice.name}`
-        : 'Test notification from device manager'
+      const body = `Test notification for ${device.name}`
 
       const registration = await navigator.serviceWorker.getRegistration()
       if (registration) {
@@ -192,6 +193,7 @@ function DeviceSettingsPage() {
       setError(testError instanceof Error ? testError.message : 'Failed to send test notification')
     } finally {
       setBusyAction(null)
+      setBusyDeviceId(null)
     }
   }
 
@@ -261,115 +263,112 @@ function DeviceSettingsPage() {
             </div>
           ) : null}
 
-          <div className="space-y-2 rounded-lg border border-border/60 bg-background/50 p-3">
-            <Label htmlFor="device-select">Select device</Label>
-            {devices === undefined ? (
-              <div className="flex h-9 items-center text-xs text-muted-foreground">
-                <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
-                Loading devices...
-              </div>
-            ) : devices.length === 0 ? (
-              <div className="text-xs text-muted-foreground">No devices registered yet.</div>
-            ) : (
-              <select
-                id="device-select"
-                value={selectedDeviceId}
-                onChange={(event) => setSelectedDeviceId(event.target.value)}
-                className="h-9 w-full rounded-md border bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                disabled={busyAction !== null}
-              >
-                {devices.map((device) => (
-                  <option key={String(device.id)} value={String(device.id)}>
-                    {device.name}
-                    {device.isCurrent ? ' (this device)' : ''}
-                  </option>
-                ))}
-              </select>
-            )}
-          </div>
-
-          {selectedDevice ? (
-            <div className="space-y-3 rounded-lg border border-border/60 bg-background/50 p-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <p className="text-sm font-semibold">{selectedDevice.name}</p>
-                {selectedDevice.isCurrent ? <Badge variant="success">Current Device</Badge> : null}
-                <Badge variant={selectedDevice.enabled ? 'success' : 'outline'}>
-                  {selectedDevice.enabled ? 'Notifications Enabled' : 'Notifications Disabled'}
-                </Badge>
-              </div>
-
-              <div className="space-y-1">
-                <Label>Device key</Label>
-                <div className="rounded-md border border-border/60 bg-background px-3 py-2 font-mono text-xs break-all">
-                  {selectedDevice.deviceKey}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="device-name">Device name</Label>
-                <div className="flex flex-col gap-2 sm:flex-row">
-                  <Input
-                    id="device-name"
-                    value={nameDraft}
-                    onChange={(event) => setNameDraft(event.target.value)}
-                    disabled={busyAction !== null}
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => void handleSaveDevice()}
-                    disabled={busyAction !== null}
-                    className="gap-1.5"
-                  >
-                    {busyAction === 'save' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-                    Save
-                  </Button>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => void handleToggleNotifications()}
-                  disabled={busyAction !== null}
-                  className="gap-1.5"
-                >
-                  {busyAction === 'toggle' ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : selectedDevice.enabled ? (
-                    <BellOff className="h-3.5 w-3.5" />
-                  ) : (
-                    <Bell className="h-3.5 w-3.5" />
-                  )}
-                  {selectedDevice.enabled ? 'Disable notifications' : 'Enable notifications'}
-                </Button>
-
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => void handleTestNotification()}
-                  disabled={busyAction !== null}
-                  className="gap-1.5"
-                >
-                  {busyAction === 'test' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
-                  Test notification
-                </Button>
-
-                <Button
-                  type="button"
-                  variant="destructive"
-                  onClick={() => void handleDeleteDevice()}
-                  disabled={busyAction !== null || selectedDevice.isCurrent}
-                  className="gap-1.5"
-                  title={selectedDevice.isCurrent ? 'Current device cannot be deleted' : 'Delete this device'}
-                >
-                  {busyAction === 'delete' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-                  Delete device
-                </Button>
-              </div>
+          {devices === undefined ? (
+            <div className="flex h-9 items-center text-xs text-muted-foreground">
+              <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+              Loading devices...
             </div>
-          ) : null}
+          ) : devices.length === 0 ? (
+            <div className="rounded-lg border border-border/60 bg-background/50 p-3 text-xs text-muted-foreground">
+              No devices registered yet.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {devices.map((device) => {
+                const deviceId = String(device.id)
+                const nameDraft = nameDraftsById[deviceId] ?? device.name
+                const isBusyDevice = busyDeviceId === deviceId
+
+                return (
+                  <div key={deviceId} className="space-y-3 rounded-lg border border-border/60 bg-background/50 p-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-semibold">{device.name}</p>
+                      {device.isCurrent ? <Badge variant="success">Current Device</Badge> : null}
+                      <Badge variant={device.enabled ? 'success' : 'outline'}>
+                        {device.enabled ? 'Notifications Enabled' : 'Notifications Disabled'}
+                      </Badge>
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label>Device key</Label>
+                      <div className="rounded-md border border-border/60 bg-background px-3 py-2 font-mono text-xs break-all">
+                        {device.deviceKey}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor={`device-name-${deviceId}`}>Device name</Label>
+                      <div className="flex flex-col gap-2 sm:flex-row">
+                        <Input
+                          id={`device-name-${deviceId}`}
+                          value={nameDraft}
+                          onChange={(event) =>
+                            setNameDraftsById((previous) => ({
+                              ...previous,
+                              [deviceId]: event.target.value,
+                            }))
+                          }
+                          disabled={busyAction !== null}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => void handleSaveDevice(device)}
+                          disabled={busyAction !== null}
+                          className="gap-1.5"
+                        >
+                          {busyAction === 'save' && isBusyDevice ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                          Save
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => void handleToggleNotifications(device)}
+                        disabled={busyAction !== null}
+                        className="gap-1.5"
+                      >
+                        {busyAction === 'toggle' && isBusyDevice ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : device.enabled ? (
+                          <BellOff className="h-3.5 w-3.5" />
+                        ) : (
+                          <Bell className="h-3.5 w-3.5" />
+                        )}
+                        {device.enabled ? 'Disable notifications' : 'Enable notifications'}
+                      </Button>
+
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => void handleTestNotification(device)}
+                        disabled={busyAction !== null}
+                        className="gap-1.5"
+                      >
+                        {busyAction === 'test' && isBusyDevice ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                        Test notification
+                      </Button>
+
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        onClick={() => void handleDeleteDevice(device)}
+                        disabled={busyAction !== null || device.isCurrent}
+                        className="gap-1.5"
+                        title={device.isCurrent ? 'Current device cannot be deleted' : 'Delete this device'}
+                      >
+                        {busyAction === 'delete' && isBusyDevice ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                        Delete device
+                      </Button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
 
         </CardContent>
       </Card>

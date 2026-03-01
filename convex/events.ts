@@ -1,5 +1,6 @@
 import { adjectives, nouns } from 'human-id'
 import { v } from 'convex/values'
+import { internal } from './_generated/api'
 import { mutation, query } from './_generated/server'
 import { auth } from './auth'
 
@@ -136,6 +137,30 @@ async function publishResolved(
     status,
     content: input.content,
   })
+
+  try {
+    const ownerUserId =
+      typeof volumeDoc.userId === 'string' && volumeDoc.userId.trim().length > 0
+        ? volumeDoc.userId.trim()
+        : undefined
+    const payload: {
+      volume: string
+      path: string
+      status: 'busy' | 'idle'
+      content?: string
+      userId?: string
+    } = {
+      volume: volumeName,
+      path: finalPath,
+      status,
+      content: input.content,
+    }
+    if (ownerUserId) payload.userId = ownerUserId
+
+    await ctx.scheduler.runAfter(0, internal.devices.sendPushForEventInternal, payload)
+  } catch (error) {
+    console.warn('Failed to schedule push notification delivery', error)
+  }
 
   return {
     id: String(insertedId),

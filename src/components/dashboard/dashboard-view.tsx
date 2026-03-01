@@ -1,5 +1,5 @@
 import { useDeferredValue, useState, useEffect, useMemo } from 'react'
-import { useMutation, useQuery } from 'convex/react'
+import { useConvexAuth, useMutation, useQuery } from 'convex/react'
 import {
   Activity,
   Bell,
@@ -50,9 +50,12 @@ export function DashboardView({ mode, volume }: DashboardViewProps) {
   const [volumePublishKey, setVolumePublishKey] = useState<string | null>(null)
   const [volumeOptions, setVolumeOptions] = useState<string[]>(['personal'])
   const [isHydratingFilter, setIsHydratingFilter] = useState(true)
+  const { isAuthenticated } = useConvexAuth()
   const convexApi = api as any
   const publish = useMutation(convexApi.events.publish)
   const publishByKey = useMutation(convexApi.events.publishByKey)
+  const upsertPushSubscription = useMutation(convexApi.devices.upsertPushSubscription)
+  const removePushSubscription = useMutation(convexApi.devices.removePushSubscription)
   const managedVolumes = useQuery(convexApi.volumes.listManagedVolumes, {}) as
     | Array<{ name: string; isDefault?: boolean; key?: { value?: string } }>
     | undefined
@@ -156,6 +159,31 @@ export function DashboardView({ mode, volume }: DashboardViewProps) {
     }
   }, [copiedCurlVariant])
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return
+
+    let cancelled = false
+    const syncBellState = async () => {
+      try {
+        const registration = await navigator.serviceWorker.ready
+        const subscription = await registration.pushManager.getSubscription()
+        if (!cancelled) {
+          setIsBellEnabled(Boolean(subscription))
+        }
+      } catch {
+        if (!cancelled) {
+          setIsBellEnabled(false)
+        }
+      }
+    }
+
+    void syncBellState()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   const toggleSound = () => {
     if (isSoundEnabled) {
       NotificationManager.disableSound()
@@ -207,12 +235,71 @@ export function DashboardView({ mode, volume }: DashboardViewProps) {
       }
     }
     if (isBellEnabled) {
+      let endpoint: string | undefined
+      try {
+        const registration = await navigator.serviceWorker.ready
+        const existing = await registration.pushManager.getSubscription()
+        endpoint = existing?.endpoint
+      } catch {
+        endpoint = undefined
+      }
+
       await NotificationManager.disableBackgroundPush()
+      if (isAuthenticated) {
+        try {
+          await removePushSubscription(
+            endpoint
+              ? {
+                  endpoint,
+                }
+              : {
+                  deviceKey: NotificationManager.getDeviceKey(),
+                },
+          )
+        } catch {
+          // Local browser state is already disabled; backend cleanup can be retried.
+        }
+      }
       setIsBellEnabled(false)
       return
     }
 
     const enabled = await NotificationManager.enableBackgroundPush()
+    if (enabled && 'serviceWorker' in navigator) {
+      try {
+        const registration = await navigator.serviceWorker.ready
+        const subscription = await registration.pushManager.getSubscription()
+        const json = subscription?.toJSON()
+        const endpoint = json?.endpoint
+        const p256dh = json?.keys?.p256dh
+        const auth = json?.keys?.auth
+
+        if (!endpoint || !p256dh || !auth) {
+          throw new Error('Push subscription was created without required keys.')
+        }
+
+        if (isAuthenticated) {
+          await upsertPushSubscription({
+            endpoint,
+            expirationTime: json?.expirationTime ?? undefined,
+            p256dh,
+            auth,
+            deviceKey: NotificationManager.getDeviceKey(),
+            deviceName: NotificationManager.getDeviceName(),
+            enabled: true,
+          })
+        } else if (typeof window !== 'undefined') {
+          alert('Push permission is enabled in this browser, but sign-in is required to register this device for Tailwatch event notifications.')
+        }
+      } catch (error) {
+        setIsBellEnabled(false)
+        if (typeof window !== 'undefined') {
+          alert(error instanceof Error ? error.message : 'Push subscription setup failed.')
+        }
+        return
+      }
+    }
+
     setIsBellEnabled(enabled)
     if (!enabled && typeof window !== 'undefined' && window.Notification.permission === 'granted') {
       alert(NotificationManager.getLastPushError() ?? 'Unable to enable background push. Verify backend VAPID configuration and try again.')
