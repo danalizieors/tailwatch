@@ -3,8 +3,6 @@ import { useEffect } from 'react'
 import { HeadContent, Outlet, Scripts, createRootRoute } from '@tanstack/react-router'
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 import appCss from '~/styles/app.css?url'
-// @ts-ignore
-import { registerSW } from 'virtual:pwa-register'
 import { ConvexAuthProvider } from '@convex-dev/auth/react'
 import { ConvexReactClient } from 'convex/react'
 import { DeviceRegistrationBootstrap } from '~/components/device/device-registration-bootstrap'
@@ -40,22 +38,28 @@ function RootDocument() {
   useEffect(() => {
     console.info(`[Tailwatch] build ${import.meta.env.VITE_APP_COMMIT_SHA || 'unknown'}`)
 
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
       if (!window.isSecureContext) {
-        console.warn('[Tailwatch] PWA registration skipped: Not a secure context')
-      } else {
-        const updateSW = registerSW({
-          onNeedRefresh() {
-            console.info('[Tailwatch] Service worker needs refresh')
-          },
-          onOfflineReady() {
-            console.info('[Tailwatch] App ready for offline use')
-          },
-          onRegisterError(error: any) {
-            console.error('[Tailwatch] SW registration error', error)
-          },
-        })
+        console.warn('[Tailwatch] Service Worker registration skipped: Not a secure context')
+        return
       }
+
+      // Manual registration with classic type for better browser/environment compatibility
+      navigator.serviceWorker
+        .register('/sw.js', {
+          type: 'classic',
+          scope: '/',
+        })
+        .then((registration) => {
+          console.log('SW Registered successfully:', registration)
+        })
+        .catch((error) => {
+          console.error('SW registration error:', error)
+          // Alert specifically for insecure or 404 errors during transition
+          if (error.name !== 'AbortError') {
+            alert(`Service Worker registration failed: ${error.message || error}`)
+          }
+        })
     }
   }, [])
 

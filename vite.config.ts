@@ -40,11 +40,15 @@ export default defineConfig(({ mode }) => {
         strategies: 'injectManifest',
         srcDir: 'src',
         filename: 'sw.ts',
+        outDir: 'dist/client',
         registerType: 'autoUpdate',
         injectRegister: false,
+        injectManifest: {
+          rollupFormat: 'iife',
+        },
         devOptions: {
           enabled: true,
-          type: 'module',
+          type: 'classic',
         },
         manifest: {
           id: '/',

@@ -6,7 +6,8 @@ export type {}
 declare const self: ServiceWorkerGlobalScope & { __WB_MANIFEST: any }
 
 // @ts-ignore: __WB_MANIFEST is injected by VitePWA
-precacheAndRoute(self.__WB_MANIFEST || [])
+const manifest = self.__WB_MANIFEST || []
+precacheAndRoute(manifest)
 cleanupOutdatedCaches()
 clientsClaim()
 
@@ -48,22 +49,30 @@ function readPushPayload(event: PushEvent) {
       }
     }
   } catch (_error) {
-    // Ignore
+    // Fallback to text
+    const text = event.data.text()
+    if (text) {
+      return { ...fallback, body: text }
+    }
   }
 
   return fallback
 }
 
 async function handlePush(event: PushEvent) {
-  const payload = readPushPayload(event)
-  await self.registration.showNotification(payload.title, {
-    body: payload.body,
-    tag: payload.tag,
-    renotify: true,
-    icon: '/pwa-192x192.png',
-    badge: '/pwa-192x192.png',
-    data: { url: payload.url },
-  } as NotificationOptions)
+  try {
+    const payload = readPushPayload(event)
+    await self.registration.showNotification(payload.title, {
+      body: payload.body,
+      tag: payload.tag,
+      renotify: true,
+      icon: '/pwa-192x192.png',
+      badge: '/pwa-192x192.png',
+      data: { url: payload.url },
+    } as NotificationOptions)
+  } catch (error) {
+    console.error('[SW] Push handle error:', error)
+  }
 }
 
 async function openTailwatch(event: NotificationEvent) {
@@ -99,3 +108,5 @@ async function openTailwatch(event: NotificationEvent) {
     await self.clients.openWindow(requestedUrl)
   }
 }
+
+console.log('[Tailwatch] Service Worker initialized.')
