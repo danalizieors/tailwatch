@@ -5,7 +5,7 @@ import { getClientDeviceKey, getClientDeviceName } from '~/lib/device-identity'
 
 export function DeviceRegistrationBootstrap() {
   const { isLoading, isAuthenticated } = useConvexAuth()
-  const ensureDefaultDevice = useMutation(api.devices.ensureDefaultDevice)
+  const registerDevice = useMutation(api.devices.registerDevice)
   const hasRegisteredRef = useRef(false)
 
   useEffect(() => {
@@ -20,14 +20,14 @@ export function DeviceRegistrationBootstrap() {
     if (hasRegisteredRef.current) return
     hasRegisteredRef.current = true
 
-    void ensureDefaultDevice({
+    void registerDevice({
       deviceKey: getClientDeviceKey(),
       name: getClientDeviceName(),
     }).catch((error) => {
       hasRegisteredRef.current = false
       console.warn('Failed to register current device after login', error)
     })
-  }, [isAuthenticated, isLoading, ensureDefaultDevice])
+  }, [isAuthenticated, isLoading, registerDevice])
 
   return null
 }

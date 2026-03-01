@@ -51,14 +51,23 @@ export function DashboardView({ mode, volume }: DashboardViewProps) {
   const [volumeOptions, setVolumeOptions] = useState<string[]>(['personal'])
   const [isHydratingFilter, setIsHydratingFilter] = useState(true)
   const { isAuthenticated } = useConvexAuth()
-  const convexApi = api as any
-  const publish = useMutation(convexApi.events.publish)
-  const publishByKey = useMutation(convexApi.events.publishByKey)
-  const upsertPushSubscription = useMutation(convexApi.devices.upsertPushSubscription)
-  const removePushSubscription = useMutation(convexApi.devices.removePushSubscription)
-  const managedVolumes = useQuery(convexApi.volumes.listManagedVolumes, {}) as
+  const publish = useMutation(api.events.publish)
+  const publishByKey = useMutation(api.events.publishByKey)
+  const updatePushSubscription = useMutation(api.devices.updatePushSubscription)
+  const setNotificationsEnabled = useMutation(api.devices.setNotificationsEnabled)
+  const managedVolumes = useQuery(api.volumes.listManagedVolumes, {}) as
     | Array<{ name: string; isDefault?: boolean; key?: { value?: string } }>
     | undefined
+
+  const currentDeviceKey = useMemo(() => NotificationManager.getDeviceKey(), [])
+  const devices = useQuery(api.devices.listDevices, isAuthenticated ? { currentDeviceKey } : 'skip')
+  const currentDevice = devices?.find((d) => d.isCurrent)
+
+  useEffect(() => {
+    if (currentDevice !== undefined) {
+      setIsBellEnabled(currentDevice.notifications)
+    }
+  }, [currentDevice])
 
   const deferredSearch = useDeferredValue(search)
 
@@ -168,13 +177,16 @@ export function DashboardView({ mode, volume }: DashboardViewProps) {
       try {
         const registration = await navigator.serviceWorker.ready
         const subscription = await registration.pushManager.getSubscription()
-        if (!cancelled) {
-          setIsBellEnabled(Boolean(subscription))
+        if (!cancelled && subscription) {
+          // If we have a subscription in the browser, but we don't have currentDevice info yet,
+          // we can assume it's enabled if we're not authenticated, or wait for Convex.
+          // For now, let's only trust Convex if authenticated.
+          if (!isAuthenticated) {
+            setIsBellEnabled(true)
+          }
         }
       } catch {
-        if (!cancelled) {
-          setIsBellEnabled(false)
-        }
+        // Ignore errors
       }
     }
 
@@ -182,7 +194,7 @@ export function DashboardView({ mode, volume }: DashboardViewProps) {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [isAuthenticated])
 
   const toggleSound = () => {
     if (isSoundEnabled) {
@@ -234,75 +246,58 @@ export function DashboardView({ mode, volume }: DashboardViewProps) {
         return
       }
     }
-    if (isBellEnabled) {
-      let endpoint: string | undefined
-      try {
-        const registration = await navigator.serviceWorker.ready
-        const existing = await registration.pushManager.getSubscription()
-        endpoint = existing?.endpoint
-      } catch {
-        endpoint = undefined
-      }
 
-      await NotificationManager.disableBackgroundPush()
+    const deviceKey = NotificationManager.getDeviceKey()
+
+    if (isBellEnabled) {
       if (isAuthenticated) {
-        try {
-          await removePushSubscription(
-            endpoint
-              ? {
-                  endpoint,
-                }
-              : {
-                  deviceKey: NotificationManager.getDeviceKey(),
-                },
-          )
-        } catch {
-          // Local browser state is already disabled; backend cleanup can be retried.
-        }
+        await setNotificationsEnabled({ deviceKey, enabled: false })
       }
       setIsBellEnabled(false)
       return
     }
 
-    const enabled = await NotificationManager.enableBackgroundPush()
-    if (enabled && 'serviceWorker' in navigator) {
-      try {
-        const registration = await navigator.serviceWorker.ready
-        const subscription = await registration.pushManager.getSubscription()
-        const json = subscription?.toJSON()
-        const endpoint = json?.endpoint
-        const p256dh = json?.keys?.p256dh
-        const auth = json?.keys?.auth
-
-        if (!endpoint || !p256dh || !auth) {
-          throw new Error('Push subscription was created without required keys.')
-        }
-
-        if (isAuthenticated) {
-          await upsertPushSubscription({
-            endpoint,
-            expirationTime: json?.expirationTime ?? undefined,
-            p256dh,
-            auth,
-            deviceKey: NotificationManager.getDeviceKey(),
-            deviceName: NotificationManager.getDeviceName(),
-            enabled: true,
-          })
-        } else if (typeof window !== 'undefined') {
-          alert('Push permission is enabled in this browser, but sign-in is required to register this device for Tailwatch event notifications.')
-        }
-      } catch (error) {
-        setIsBellEnabled(false)
-        if (typeof window !== 'undefined') {
-          alert(error instanceof Error ? error.message : 'Push subscription setup failed.')
-        }
-        return
-      }
+    // Toggle ON
+    // 1. If we already have a subscription on the backend, just enable it
+    if (currentDevice?.hasSubscription) {
+      await setNotificationsEnabled({ deviceKey, enabled: true })
+      setIsBellEnabled(true)
+      return
     }
 
-    setIsBellEnabled(enabled)
-    if (!enabled && typeof window !== 'undefined' && window.Notification.permission === 'granted') {
-      alert(NotificationManager.getLastPushError() ?? 'Unable to enable background push. Verify backend VAPID configuration and try again.')
+    // 2. If we have one in the browser, but not backend, sync it
+    const registration = await navigator.serviceWorker.ready
+    let subscription = await registration.pushManager.getSubscription()
+
+    // 3. Otherwise, create one
+    if (!subscription) {
+      const enabled = await NotificationManager.enableBackgroundPush()
+      if (!enabled) {
+        alert(NotificationManager.getLastPushError() ?? 'Failed to enable notifications')
+        return
+      }
+      subscription = await registration.pushManager.getSubscription()
+    }
+
+    if (subscription && isAuthenticated) {
+      const json = subscription.toJSON()
+      if (json.endpoint && json.keys?.p256dh && json.keys?.auth) {
+        await updatePushSubscription({
+          deviceKey,
+          subscription: {
+            endpoint: json.endpoint,
+            expirationTime: json.expirationTime ?? undefined,
+            keys: {
+              p256dh: json.keys.p256dh,
+              auth: json.keys.auth,
+            },
+          },
+        })
+        setIsBellEnabled(true)
+      }
+    } else if (subscription) {
+      setIsBellEnabled(true)
+      alert('Notifications enabled in browser, but sign-in is required to receive Tailwatch alerts.')
     }
   }
 
