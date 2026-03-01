@@ -75,6 +75,16 @@ export const sendPushForEventInternal = internalAction({
     const tag = `tailwatch:${args.volume}:${args.path}`
     const url = `/${args.volume}?path=${encodeURIComponent(args.path)}`
 
+    // Ensure adminContact is mailto: or https:
+    let finalAdminContact = adminContact
+    if (!finalAdminContact.startsWith('mailto:') && !finalAdminContact.startsWith('https:')) {
+      if (finalAdminContact.includes('@')) {
+        finalAdminContact = `mailto:${finalAdminContact}`
+      } else {
+        finalAdminContact = `https://${finalAdminContact}`
+      }
+    }
+
     let sent = 0
     for (const target of targets) {
       try {
@@ -86,20 +96,26 @@ export const sendPushForEventInternal = internalAction({
           },
           message: {
             payload: { title, body, tag, url },
-            adminContact,
-            options: { ttl: 300, urgency: args.status === 'busy' ? 'high' : 'normal', topic: tag },
+            adminContact: finalAdminContact,
+            options: { 
+              ttl: 300, 
+              urgency: args.status === 'busy' ? 'high' : 'normal',
+              // Temporarily remove topic to avoid Firefox/Autopush restrictions
+            },
           },
         })
 
+        const serviceName = endpoint.split('/')[2] ?? endpoint
+        console.log(`Sending push to ${serviceName}`)
         const res = await fetch(endpoint, { method: 'POST', headers, body: requestBody })
         if (res.status === 404 || res.status === 410) {
-          console.log(`Push subscription expired for device ${target.deviceId}, clearing.`)
+          console.log(`Push subscription expired for device ${target.deviceId} (${serviceName})`)
           await ctx.runMutation(internal.devices.clearPushSubscriptionInternal, { deviceId: target.deviceId })
         } else if (res.ok) {
           sent++
         } else {
-          const errorText = await res.text()
-          console.error(`Push service responded with status ${res.status}: ${errorText}`)
+          const errorText = await res.text().catch(() => 'no error body')
+          console.error(`Push service (${serviceName}) responded with status ${res.status}: ${errorText}`)
         }
       } catch (e) {
         console.error('Push delivery failed with error:', e)
