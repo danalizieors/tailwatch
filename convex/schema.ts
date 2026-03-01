@@ -32,14 +32,17 @@ export default defineSchema({
     lastSeenAt: v.optional(v.string()),
     notifications: v.boolean(),
     subscription: v.optional(
-      v.object({
-        endpoint: v.string(),
-        expirationTime: v.optional(v.number()),
-        keys: v.object({
-          p256dh: v.string(),
-          auth: v.string(),
+      v.union(
+        v.object({
+          endpoint: v.string(),
+          expirationTime: v.optional(v.number()),
+          keys: v.object({
+            p256dh: v.string(),
+            auth: v.string(),
+          }),
         }),
-      }),
+        v.null(),
+      ),
     ),
   })
     .index('by_user', ['userId'])

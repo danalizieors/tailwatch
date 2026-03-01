@@ -6,6 +6,7 @@ import { getClientDeviceKey, getClientDeviceName } from '~/lib/device-identity'
 export function DeviceRegistrationBootstrap() {
   const { isLoading, isAuthenticated } = useConvexAuth()
   const registerDevice = useMutation(api.devices.registerDevice)
+  const ensurePersonalVolume = useMutation(api.volumes.ensurePersonalVolume)
   const hasRegisteredRef = useRef(false)
 
   useEffect(() => {
@@ -20,14 +21,18 @@ export function DeviceRegistrationBootstrap() {
     if (hasRegisteredRef.current) return
     hasRegisteredRef.current = true
 
-    void registerDevice({
-      deviceKey: getClientDeviceKey(),
-      name: getClientDeviceName(),
-    }).catch((error) => {
+    // Fire-and-forget background registration and setup
+    void Promise.all([
+      registerDevice({
+        deviceKey: getClientDeviceKey(),
+        name: getClientDeviceName(),
+      }),
+      ensurePersonalVolume(),
+    ]).catch((error) => {
       hasRegisteredRef.current = false
-      console.warn('Failed to register current device after login', error)
+      console.warn('Failed to bootstrap device registration or personal volume', error)
     })
-  }, [isAuthenticated, isLoading, registerDevice])
+  }, [isAuthenticated, isLoading, registerDevice, ensurePersonalVolume])
 
   return null
 }

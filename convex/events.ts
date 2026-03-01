@@ -63,16 +63,26 @@ async function generateUniqueVolumeKey(ctx: any) {
   throw new Error('Failed to generate a unique volume key')
 }
 
-async function ensureVolumeExists(ctx: any, volumeName: string) {
-  const existing = await ctx.db
+async function ensureVolumeExists(ctx: any, volumeName: string, userId?: string) {
+  // 1. Try to find a volume owned by the user
+  if (userId) {
+    const existing = await ctx.db
+      .query('volumes')
+      .withIndex('by_user_and_name', (q: any) => q.eq('userId', userId).eq('name', volumeName))
+      .first()
+    if (existing) return existing
+  }
+
+  // 2. Try to find a global volume
+  const existingGlobal = await ctx.db
     .query('volumes')
     .withIndex('by_user_and_name', (q: any) => q.eq('userId', undefined).eq('name', volumeName))
     .first()
-  if (existing) return existing
+  if (existingGlobal) return existingGlobal
 
   const key = await generateUniqueVolumeKey(ctx)
   const volumeId = await ctx.db.insert('volumes', {
-    userId: undefined,
+    userId,
     name: volumeName,
     key,
     keyEnabled: true,
@@ -101,6 +111,7 @@ async function ensurePathExists(ctx: any, volumeId: string, path: string) {
 async function publishResolved(
   ctx: any,
   input: {
+    userId?: string
     volume?: string
     volumeId?: string
     path: string
@@ -124,7 +135,7 @@ async function publishResolved(
     volumeName = String(input.volume ?? found.name ?? DEFAULT_VOLUME)
   } else {
     volumeName = normalizeVolume(input.volume)
-    volumeDoc = await ensureVolumeExists(ctx, volumeName)
+    volumeDoc = await ensureVolumeExists(ctx, volumeName, input.userId)
   }
 
   const pathDoc = await ensurePathExists(ctx, String(volumeDoc._id), finalPath)
@@ -187,7 +198,11 @@ export const publish = mutation({
     content: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    return publishResolved(ctx, args)
+    const userId = await auth.getUserId(ctx)
+    return publishResolved(ctx, {
+      ...args,
+      userId: userId ?? undefined,
+    })
   },
 })
 

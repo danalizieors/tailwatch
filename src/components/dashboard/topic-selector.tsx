@@ -20,6 +20,7 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic, placeholder 
   const dropdownRef = useRef<HTMLDivElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const shouldFocusRef = useRef(false)
 
   // Flatten the tree for easy searching
   const allTopics = useMemo(() => {
@@ -85,13 +86,20 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic, placeholder 
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  useEffect(() => {
+    if (shouldFocusRef.current) {
+      inputRef.current?.focus()
+      shouldFocusRef.current = false
+    }
+  }, [selectedTopic, isOpen])
+
   const handleKeyDown = (e: KeyboardEvent) => {
     if (!isOpen) {
       if (e.key === 'ArrowDown') setIsOpen(true)
       if (e.key === 'Backspace' && query === '' && selectedTopic) {
         e.preventDefault()
         const parentPath = selectedTopic.split('/').slice(0, -1).join('/')
-        onSelectTopic(parentPath || undefined)
+        handleSelectTopic(parentPath || undefined)
       }
       return
     }
@@ -109,19 +117,15 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic, placeholder 
         e.preventDefault()
         if (activeIndex >= 0 && activeIndex < filteredTopics.length) {
           const topic = filteredTopics[activeIndex]
-          onSelectTopic(topic.path)
+          handleSelectTopic(topic.path)
           setQuery('')
-          const hasChildren = allTopics.some(t => 
-            t.path.startsWith(topic.path + '/') && 
-            t.path.split('/').length === topic.path.split('/').length + 1
-          )
-          setIsOpen(hasChildren)
+          setIsOpen(true)
         } else {
           const customPath = normalizeCustomTopicPath(query)
           if (customPath) {
-            onSelectTopic(customPath)
+            handleSelectTopic(customPath)
             setQuery('')
-            setIsOpen(false)
+            setIsOpen(true)
           }
         }
         break
@@ -133,7 +137,7 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic, placeholder 
         if (query === '' && selectedTopic) {
           e.preventDefault()
           const parentPath = selectedTopic.split('/').slice(0, -1).join('/')
-          onSelectTopic(parentPath || undefined)
+          handleSelectTopic(parentPath || undefined)
           setIsOpen(true)
         }
         break
@@ -141,6 +145,12 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic, placeholder 
         setIsOpen(false)
         break
     }
+  }
+
+  const handleSelectTopic = (topic?: string) => {
+    shouldFocusRef.current = true
+    setIsOpen(true)
+    onSelectTopic(topic)
   }
 
   return (
@@ -151,7 +161,10 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic, placeholder 
           isOpen ? "border-primary/50 ring-2 ring-primary/10 bg-background shadow-sm" : "border-border/60 hover:border-border",
           className?.includes('!bg-transparent') && !isOpen && "bg-transparent border-transparent"
         )}
-        onClick={() => inputRef.current?.focus()}
+        onClick={() => {
+          shouldFocusRef.current = true
+          inputRef.current?.focus()
+        }}
       >
         <Search className="h-3.5 w-3.5 text-muted-foreground/60 mr-1 md:mr-1.5 shrink-0" />
         
@@ -159,7 +172,7 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic, placeholder 
         <div className="no-scrollbar flex min-w-0 shrink max-w-[55%] items-center sm:max-w-[70%] md:max-w-[80%]">
            <PathDisplay 
              path={selectedTopic || ''} 
-             onClickSegment={onSelectTopic} 
+             onClickSegment={handleSelectTopic} 
              segmentClassName="text-[10px] md:text-[11px]"
            />
         </div>
@@ -187,7 +200,12 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic, placeholder 
             onClick={(e) => {
               e.stopPropagation()
               setQuery('')
-              if (!query) onSelectTopic(undefined)
+              if (!query) {
+                shouldFocusRef.current = true
+                onSelectTopic(undefined)
+              } else {
+                inputRef.current?.focus()
+              }
             }}
             className="ml-1 md:ml-2 text-muted-foreground/40 hover:text-destructive p-1 shrink-0"
           >
@@ -210,9 +228,9 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic, placeholder 
                 onClick={(e) => {
                   e.preventDefault()
                   e.stopPropagation()
-                  onSelectTopic(normalizedQueryPath)
+                  handleSelectTopic(normalizedQueryPath)
                   setQuery('')
-                  setIsOpen(false)
+                  setIsOpen(true)
                 }}
                 onMouseEnter={() => setActiveIndex(-1)}
               >
@@ -245,13 +263,9 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic, placeholder 
                   onClick={(e) => {
                     e.preventDefault()
                     e.stopPropagation()
-                    onSelectTopic(topic.path)
+                    handleSelectTopic(topic.path)
                     setQuery('')
-                    const hasChildren = allTopics.some(t => 
-                      t.path.startsWith(topic.path + '/') && 
-                      t.path.split('/').length === topic.path.split('/').length + 1
-                    )
-                    setIsOpen(hasChildren)
+                    setIsOpen(true)
                   }}
                   onMouseEnter={() => setActiveIndex(index)}
                 >

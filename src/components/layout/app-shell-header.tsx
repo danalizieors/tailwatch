@@ -1,6 +1,7 @@
 import { useAuthActions } from '@convex-dev/auth/react'
 import { useConvexAuth, useQuery } from 'convex/react'
 import { useMemo, type ComponentType, type ReactNode } from 'react'
+import { Link, useNavigate } from '@tanstack/react-router'
 import { Activity, HardDrive, Laptop, LogIn, LogOut, Terminal } from 'lucide-react'
 import { api } from '../../../convex/_generated/api'
 import { Button } from '~/components/ui/button'
@@ -15,6 +16,7 @@ interface AppShellHeaderProps {
   showVolumeSelector?: boolean
   onVolumeChange?: (volume: string) => void
   topRight?: ReactNode
+  actions?: ReactNode
   eventsTopRow?: ReactNode
   bottomRight?: ReactNode
   belowFilter?: ReactNode
@@ -39,12 +41,14 @@ export function AppShellHeader({
   showVolumeSelector = false,
   onVolumeChange,
   topRight,
+  actions,
   eventsTopRow,
   bottomRight,
   belowFilter,
 }: AppShellHeaderProps) {
   const { isAuthenticated, isLoading } = useConvexAuth()
   const { signIn, signOut } = useAuthActions()
+  const navigate = useNavigate()
   const user = useQuery((api as any).users.currentUser, isAuthenticated ? {} : 'skip') as
     | {
         name?: string | null
@@ -70,24 +74,25 @@ export function AppShellHeader({
 
   return (
     <header className="z-50 shrink-0 border-b border-border/40 bg-background/90 px-3 py-2 backdrop-blur-md md:px-8">
-      <div className="flex min-w-0 items-center gap-2">
-        <a href="/" className="group inline-flex items-center gap-2 rounded-lg px-1 py-1">
+      <div className="flex flex-wrap items-center gap-3 md:flex-nowrap md:gap-4">
+        <Link to="/" className="group inline-flex shrink-0 items-center gap-2 rounded-lg px-1 py-1">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-primary/25 bg-primary/10 text-primary">
             <Terminal className="h-4 w-4" />
           </div>
           <div className="leading-none">
             <p className="text-sm font-black uppercase tracking-wide text-foreground">Tailwatch</p>
           </div>
-        </a>
+        </Link>
 
-        <nav className="no-scrollbar ml-1 flex min-w-0 flex-1 items-center overflow-x-auto rounded-lg border border-primary/15 bg-primary/5 p-1">
+        {/* Navigation */}
+        <nav className="no-scrollbar flex min-w-0 flex-1 items-center overflow-x-auto rounded-lg border border-primary/15 bg-primary/5 p-1">
           {navItems.map((item) => {
             const Icon = item.icon
             const active = current === item.id
             return (
-              <a
+              <Link
                 key={item.id}
-                href={item.href}
+                to={item.href as any}
                 className={cn(
                   'inline-flex shrink-0 items-center gap-1.5 rounded-md border border-transparent px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider',
                   active
@@ -97,7 +102,7 @@ export function AppShellHeader({
               >
                 <Icon className="h-3.5 w-3.5" />
                 {item.label}
-              </a>
+              </Link>
             )
           })}
         </nav>
@@ -130,7 +135,10 @@ export function AppShellHeader({
                   </div>
                   <button
                     type="button"
-                    onClick={() => void signOut()}
+                    onClick={async () => {
+                      await signOut()
+                      void navigate({ to: '/', replace: true })
+                    }}
                     className="mt-1 flex w-full items-center gap-1.5 rounded px-2 py-1.5 text-left text-xs font-semibold text-foreground hover:bg-muted/80"
                   >
                     <LogOut className="h-3.5 w-3.5" />
@@ -156,29 +164,36 @@ export function AppShellHeader({
 
       {current === 'events' && eventsTopRow ? <div className="mt-2">{eventsTopRow}</div> : null}
 
-      {current === 'events' && (showVolumeSelector || belowFilter || bottomRight) ? (
-        <div className="no-scrollbar mt-2 flex items-center gap-2 overflow-x-auto">
-          {showVolumeSelector ? (
-            <div className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-card/70 px-2 py-1">
-              <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/80">Volume</span>
-              <select
-                value={normalizedVolume}
-                onChange={(event) => onVolumeChange?.(event.target.value)}
-                className="h-7 rounded-md border border-border/60 bg-background px-2 text-[11px] font-semibold text-foreground"
-                title="Switch active volume"
-              >
-                {volumeChoices.map((name) => (
-                  <option key={name} value={name}>
-                    {name === 'personal' ? 'personal (default)' : name}
-                  </option>
-                ))}
-              </select>
+      {current === 'events' && (showVolumeSelector || belowFilter || actions || bottomRight) ? (
+        <div className="mt-2 flex items-center gap-2">
+          <div className="no-scrollbar flex items-center gap-2 overflow-x-auto min-w-0">
+            {showVolumeSelector ? (
+              <div className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-card/70 px-2 py-1 shrink-0">
+                <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/80">Volume</span>
+                <select
+                  value={normalizedVolume}
+                  onChange={(event) => onVolumeChange?.(event.target.value)}
+                  className="h-7 rounded-md border border-border/60 bg-background px-2 text-[11px] font-semibold text-foreground"
+                  title="Switch active volume"
+                >
+                  {volumeChoices.map((name) => (
+                    <option key={name} value={name}>
+                      {name === 'personal' ? 'personal (default)' : name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : null}
+
+            {belowFilter}
+          </div>
+
+          {(actions || bottomRight) ? (
+            <div className="flex-1 flex items-center justify-end gap-2 min-w-0">
+              {actions}
+              {bottomRight}
             </div>
           ) : null}
-
-          {belowFilter}
-
-          {bottomRight ? <div className="min-w-[14rem] flex-1">{bottomRight}</div> : null}
         </div>
       ) : null}
     </header>

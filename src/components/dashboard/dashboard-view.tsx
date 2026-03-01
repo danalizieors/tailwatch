@@ -436,66 +436,6 @@ export function DashboardView({ mode, volume }: DashboardViewProps) {
     </div>
   )
 
-  const eventsHeaderRow = (
-    <div className="flex flex-col gap-2 rounded-lg border border-border/40 bg-card/50 px-2.5 py-2 sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex items-center gap-2">
-        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/20">
-          {mode === 'logs' ? <Hash className="h-4 w-4" /> : <LayoutGrid className="h-4 w-4" />}
-        </div>
-        <h2 className="text-sm font-bold text-foreground/90 uppercase tracking-tight">
-          {mode === 'logs' ? 'Event Log' : 'Path Registry'}
-        </h2>
-        <span className="text-[10px] font-bold text-muted-foreground/60 bg-muted/20 px-1.5 py-0.5 rounded-md ml-1 border border-border/10">
-          {mode === 'logs' ? `${filteredEvents.length} ENTRIES` : `${data?.entities.length ?? 0} TRACKED`}
-        </span>
-      </div>
-
-      <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
-        <Button
-          size="sm"
-          variant="outline"
-          className="h-8 rounded-lg border-primary/20 bg-primary/5 px-2.5 text-[9px] font-black uppercase tracking-widest text-primary gap-1.5 hover:bg-primary/10 sm:px-3"
-          onClick={markAllSeen}
-        >
-          <CheckCircle2 className="h-3 w-3" />
-          <span className="hidden sm:inline">Acknowledge</span>
-          <span className="sm:hidden">Ack</span>
-        </Button>
-        {randomBurstControl}
-
-        {mode === 'logs' ? (
-          <>
-            <div className="group relative order-last basis-full sm:order-none sm:basis-auto sm:flex-none sm:min-w-[11rem]">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/60 group-focus-within:text-primary transition-colors" />
-              <input
-                className="h-8 w-full sm:w-40 lg:w-56 rounded-lg border border-border/40 bg-background/30 pl-8 pr-4 text-[11px] focus:ring-1 focus:ring-primary/40 focus:border-primary/40 outline-none transition-all placeholder:text-muted-foreground/50 font-bold uppercase tracking-tight"
-                placeholder="Filter entries..."
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-              />
-            </div>
-
-            <div className="flex h-8 shrink-0 items-center gap-2 rounded-lg border border-border/40 bg-background/30 px-2.5 shadow-xs">
-              <Filter className="h-3.5 w-3.5 text-muted-foreground/60" />
-              <select
-                className="bg-transparent text-[10px] font-bold uppercase tracking-tight outline-none cursor-pointer text-foreground/70"
-                value={statusFilter}
-                onChange={(event) => setStatusFilter(event.target.value as EventStatus | 'all')}
-              >
-                {EVENT_STATUS_OPTIONS.map((value) => (
-                  <option key={value} value={value} className="bg-background text-foreground uppercase">
-                    {value === 'all' ? 'All Statuses' : value}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </>
-        ) : null}
-
-      </div>
-    </div>
-  )
-
   const dashboardContent = (
     <div className="flex h-[100svh] min-h-[100svh] w-full flex-col overflow-hidden text-foreground md:h-dvh md:min-h-dvh">
       <AppShellHeader
@@ -505,22 +445,81 @@ export function DashboardView({ mode, volume }: DashboardViewProps) {
         showVolumeSelector
         onVolumeChange={switchVolume}
         topRight={headerTopRight}
-        eventsTopRow={eventsHeaderRow}
+        actions={
+          <TopicSelector
+            tree={data?.topicTree ?? []}
+            selectedTopic={selectedTopic}
+            onSelectTopic={(topic) => setSelectedTopic(normalizeTopicPath(topic))}
+            className="!bg-transparent"
+          />
+        }
+        eventsTopRow={
+          <div className="flex flex-col gap-2 rounded-lg border border-border/40 bg-card/50 px-2.5 py-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/20">
+                {mode === 'logs' ? <Hash className="h-4 w-4" /> : <LayoutGrid className="h-4 w-4" />}
+              </div>
+              <h2 className="text-sm font-bold text-foreground/90 uppercase tracking-tight">
+                {mode === 'logs' ? 'Event Log' : 'Path Registry'}
+              </h2>
+              <span className="text-[10px] font-bold text-muted-foreground/60 bg-muted/20 px-1.5 py-0.5 rounded-md ml-1 border border-border/10">
+                {mode === 'logs' ? `${filteredEvents.length} ENTRIES` : `${data?.entities.length ?? 0} TRACKED`}
+              </span>
+            </div>
+
+            <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 rounded-lg border-primary/20 bg-primary/5 px-2.5 text-[9px] font-black uppercase tracking-widest text-primary gap-1.5 hover:bg-primary/10 sm:px-3"
+                onClick={markAllSeen}
+              >
+                <CheckCircle2 className="h-3 w-3" />
+                <span className="hidden sm:inline">Acknowledge</span>
+                <span className="sm:hidden">Ack</span>
+              </Button>
+              {randomBurstControl}
+
+              {mode === 'logs' ? (
+                <>
+                  <div className="group relative order-last basis-full sm:order-none sm:basis-auto sm:flex-none sm:min-w-[11rem]">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/60 group-focus-within:text-primary transition-colors" />
+                    <input
+                      className="h-8 w-full sm:w-40 lg:w-56 rounded-lg border border-border/40 bg-background/30 pl-8 pr-4 text-[11px] focus:ring-1 focus:ring-primary/40 focus:border-primary/40 outline-none transition-all placeholder:text-muted-foreground/50 font-bold uppercase tracking-tight"
+                      placeholder="Filter entries..."
+                      value={search}
+                      onChange={(event) => setSearch(event.target.value)}
+                    />
+                  </div>
+
+                  <div className="flex h-8 shrink-0 items-center gap-2 rounded-lg border border-border/40 bg-background/30 px-2.5 shadow-xs">
+                    <Filter className="h-3.5 w-3.5 text-muted-foreground/60" />
+                    <select
+                      className="bg-transparent text-[10px] font-bold uppercase tracking-tight outline-none cursor-pointer text-foreground/70"
+                      value={statusFilter}
+                      onChange={(event) => setStatusFilter(event.target.value as EventStatus | 'all')}
+                    >
+                      {EVENT_STATUS_OPTIONS.map((value) => (
+                        <option key={value} value={value} className="bg-background text-foreground uppercase">
+                          {value === 'all' ? 'All Statuses' : value}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+              ) : null}
+
+            </div>
+          </div>
+        }
         bottomRight={
-          data ? (
-            <div className="flex min-w-0 items-center gap-2">
-              <TopicSelector
-                tree={data.topicTree}
-                selectedTopic={selectedTopic}
-                onSelectTopic={(topic) => setSelectedTopic(normalizeTopicPath(topic))}
-              />
-              <div className="shrink-0 overflow-x-auto">
-                <div className="min-w-max rounded-lg border border-border/40 bg-card/50">
-                  <StatCards stats={data.stats} />
-                </div>
+          <div className="flex min-w-0 items-center gap-2">
+            <div className="shrink-0 overflow-x-auto">
+              <div className="min-w-max rounded-lg border border-border/40 bg-card/50">
+                {data && <StatCards stats={data.stats} />}
               </div>
             </div>
-          ) : null
+          </div>
         }
         belowFilter={modeSwitchButtons}
       />

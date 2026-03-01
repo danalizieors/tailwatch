@@ -14,6 +14,7 @@ import {
   LayoutGrid,
   ListTree,
   Lock,
+  LogIn,
   Server,
   ShieldCheck,
   Sparkles,
@@ -187,12 +188,27 @@ const curlExample = `curl -X POST http://localhost:3000/api/publish/team-a/proje
 
 function TailwatchLandingPage() {
   const { signIn } = useAuthActions()
-  const { isAuthenticated } = useConvexAuth()
+  const { isAuthenticated, isLoading } = useConvexAuth()
 
   const handleDashboardNavigation = async (event: MouseEvent) => {
-    if (isAuthenticated) return
+    // If we're still loading the auth state, don't do anything yet or block navigation
+    if (isLoading) {
+      event.preventDefault()
+      return
+    }
+
+    // If already authenticated, let the Link handle the navigation normally
+    if (isAuthenticated) {
+      return
+    }
+
+    // Otherwise, prevent navigation and start the sign-in flow
     event.preventDefault()
-    await signIn('github', { redirectTo: '/personal' })
+    try {
+      await signIn('github', { redirectTo: '/personal' })
+    } catch (error) {
+      console.error('Failed to initiate sign-in', error)
+    }
   }
 
   return (
@@ -228,9 +244,19 @@ function TailwatchLandingPage() {
                 onClick={(event) => void handleDashboardNavigation(event)}
                 className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-primary/35 bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition-opacity duration-200 hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                <span className="hidden sm:inline">Open Dashboard</span>
-                <span className="sm:hidden">Open</span>
-                <ArrowRight className="h-3.5 w-3.5" />
+                {!isLoading && !isAuthenticated ? (
+                  <>
+                    <span className="hidden sm:inline">Sign in with GitHub</span>
+                    <span className="sm:hidden">Sign in</span>
+                    <LogIn className="h-3.5 w-3.5" />
+                  </>
+                ) : (
+                  <>
+                    <span className="hidden sm:inline">Open Dashboard</span>
+                    <span className="sm:hidden">Open</span>
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </>
+                )}
               </Link>
             </div>
           </nav>

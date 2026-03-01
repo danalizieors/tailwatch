@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { DashboardView } from '~/components/dashboard/dashboard-view'
+import { AuthenticatedDashboard } from '~/components/dashboard/authenticated-dashboard'
 
 export const Route = createFileRoute('/$volumeId')({
   component: VolumeDashboardPage,
@@ -7,5 +8,9 @@ export const Route = createFileRoute('/$volumeId')({
 
 function VolumeDashboardPage() {
   const { volumeId } = Route.useParams()
-  return <DashboardView mode="logs" volume={volumeId} />
+  return (
+    <AuthenticatedDashboard>
+      <DashboardView mode="logs" volume={volumeId} />
+    </AuthenticatedDashboard>
+  )
 }
