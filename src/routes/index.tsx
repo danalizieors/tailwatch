@@ -1,7 +1,10 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
+import { useAuthActions } from '@convex-dev/auth/react'
+import { useConvexAuth } from 'convex/react'
 import {
   Activity,
   ArrowRight,
+  Laptop,
   Bell,
   ChevronRight,
   CircleAlert,
@@ -17,8 +20,11 @@ import {
   Terminal,
   Webhook,
   Zap,
+  LogIn,
+  LogOut,
 } from 'lucide-react'
 import { Badge } from '~/components/ui/badge'
+import { Button } from '~/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/card'
 
 export const Route = createFileRoute('/')({
@@ -77,7 +83,7 @@ const workflowSteps = [
   {
     step: '01',
     title: 'Publish to a path',
-    description: 'Post events to `/api/publish/<topic>` where the URL path becomes the hierarchy Tailwatch tracks.',
+    description: 'POST to /api/publish with topic path segments so Tailwatch can keep hierarchy and state in sync.',
     icon: Webhook,
   },
   {
@@ -172,15 +178,19 @@ const faqItems = [
   },
 ]
 
-const curlExample = `curl -X POST http://localhost:3000/api/publish/team-a/project-x/task/planner \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "time":"2026-02-28T21:00:00.000Z",
-    "status":"busy",
-    "content":"Starting plan"
-  }'`
+const curlExample = `# Key in URL (no headers required)
+curl -X POST "https://your-app.example/api/publish/calm-otter-42/team-a/project-x/task/planner?status=busy" \\
+  --data "Starting plan"
+
+# Or use a volume header
+curl -X POST "https://your-app.example/api/publish/team-a/project-x/task/planner?status=busy" \\
+  -H "x-tailwatch-volume: personal" \\
+  --data "Starting plan"`
 
 function TailwatchLandingPage() {
+  const { isAuthenticated, isLoading } = useConvexAuth()
+  const { signIn, signOut } = useAuthActions()
+
   return (
     <div className="scroll-thin relative flex min-h-[100svh] w-full min-w-0 flex-1 overflow-x-hidden md:min-h-dvh">
       <div className="pointer-events-none absolute inset-0">
@@ -235,21 +245,44 @@ function TailwatchLandingPage() {
             </div>
 
             <div className="ml-auto flex w-full min-w-0 items-center justify-end gap-2 sm:w-auto">
+              {isLoading ? (
+                <Button type="button" size="sm" variant="outline" disabled>
+                  Checking session...
+                </Button>
+              ) : isAuthenticated ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => void signOut()}
+                >
+                  <LogOut className="h-3.5 w-3.5" />
+                  Sign out
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => void signIn('github')}
+                >
+                  <LogIn className="h-3.5 w-3.5" />
+                  Sign in
+                </Button>
+              )}
               <Link
-                to="/$volumeId/status"
-                params={{ volumeId: 'personal' }}
+                to="/settings/devices"
                 className="hidden cursor-pointer rounded-lg border border-border/70 bg-card/70 px-3 py-2 text-xs font-semibold text-foreground transition-colors duration-200 hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:inline-flex sm:items-center sm:gap-2"
               >
-                <LayoutGrid className="h-3.5 w-3.5" />
-                Status Board
+                <Laptop className="h-3.5 w-3.5" />
+                Devices
               </Link>
               <Link
-                to="/$volumeId"
-                params={{ volumeId: 'personal' }}
+                to="/settings/volumes"
                 className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-primary/35 bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition-opacity duration-200 hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                <span className="hidden sm:inline">Open Dashboard</span>
-                <span className="sm:hidden">Open</span>
+                <span className="hidden sm:inline">Manage Volumes</span>
+                <span className="sm:hidden">Volumes</span>
                 <ArrowRight className="h-3.5 w-3.5" />
               </Link>
             </div>

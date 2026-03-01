@@ -1,42 +1,37 @@
-import { v } from 'convex/values'
 import { adjectives, nouns } from 'human-id'
-import { mutation, query } from './_generated/server'
-import { getAuthenticatedContext } from './functions'
+import { v } from 'convex/values'
+import { auth } from './auth'
+import type { Doc, Id } from './_generated/dataModel'
+import { mutation, query, type MutationCtx, type QueryCtx } from './_generated/server'
 
 const DEFAULT_VOLUME_NAME = 'personal'
 const MAX_VOLUME_NAME_LENGTH = 120
 
-const KEY_ADJECTIVES = adjectives
-const KEY_NOUNS = nouns
-
-type VolumeDoc = {
-  _id: any
-  userId?: string
-  name: string
-  key?: string
-  keyEnabled?: boolean
-}
+type VolumeDoc = Doc<'volumes'>
+type VolumeId = Id<'volumes'>
 
 function normalizeUserId(value: unknown): string | undefined {
   if (typeof value !== 'string') return undefined
   const next = value.trim()
-  return next ? next : undefined
+  return next.length > 0 ? next : undefined
 }
 
-function isOwnedByUser(ownerUserId: string | undefined, userId: string | undefined) {
-  if (userId) return ownerUserId === userId
-  return !ownerUserId
+async function getCurrentUserId(ctx: QueryCtx | MutationCtx) {
+  const userId = await auth.getUserId(ctx)
+  return normalizeUserId(userId)
+}
+
+function isOwnedByUser(volume: VolumeDoc, userId: string | undefined) {
+  return normalizeUserId(volume.userId) === userId
 }
 
 function normalizeVolumeName(value: string) {
   const next = value.trim()
-  if (!next) throw new Error('Volume name is required')
+  if (next.length === 0) throw new Error('Volume name is required')
   if (next.length > MAX_VOLUME_NAME_LENGTH) {
     throw new Error(`Volume name must be ${MAX_VOLUME_NAME_LENGTH} characters or fewer`)
   }
-  if (next.includes('/')) {
-    throw new Error('Volume name cannot contain "/"')
-  }
+  if (next.includes('/')) throw new Error('Volume name cannot contain "/"')
   return next
 }
 
@@ -56,135 +51,105 @@ function singularizeNoun(value: string) {
 }
 
 function generateHumanReadableKey() {
-  const adjective = pickRandomItem(KEY_ADJECTIVES)
-  const noun = singularizeNoun(pickRandomItem(KEY_NOUNS))
+  const adjective = pickRandomItem(adjectives)
+  const noun = singularizeNoun(pickRandomItem(nouns))
   const number = 10 + Math.floor(Math.random() * 90)
   return `${adjective}-${noun}-${number}`
 }
 
-async function generateUniqueVolumeKey(ctx: any) {
+async function generateUniqueVolumeKey(ctx: QueryCtx | MutationCtx) {
   for (let attempt = 0; attempt < 64; attempt += 1) {
-    const value = generateHumanReadableKey()
+    const candidate = generateHumanReadableKey()
     const existing = await ctx.db
       .query('volumes')
-      .withIndex('by_key', (q: any) => q.eq('key', value))
+      .withIndex('by_key', (q) => q.eq('key', candidate))
       .first()
-    if (!existing) return value
+    if (!existing) return candidate
   }
-  throw new Error('Failed to generate a unique key')
+  throw new Error('Failed to generate a unique API key')
 }
 
-async function createOwnedVolume(ctx: any, userId: string | undefined, name: string) {
+async function findOwnedVolumeByName(ctx: QueryCtx | MutationCtx, userId: string | undefined, name: string) {
+  const rows = await ctx.db
+    .query('volumes')
+    .withIndex('by_user_and_name', (q) => q.eq('userId', userId).eq('name', name))
+    .collect()
+  return (rows[0] as VolumeDoc | undefined) ?? null
+}
+
+async function listOwnedVolumes(ctx: QueryCtx | MutationCtx, userId: string | undefined) {
+  return (await ctx.db
+    .query('volumes')
+    .withIndex('by_user', (q) => q.eq('userId', userId))
+    .collect()) as VolumeDoc[]
+}
+
+async function createOwnedVolume(ctx: MutationCtx, userId: string | undefined, name: string) {
   const key = await generateUniqueVolumeKey(ctx)
-  const insertedId = await ctx.db.insert('volumes', {
+  const volumeId = await ctx.db.insert('volumes', {
     userId,
     name,
     key,
     keyEnabled: true,
   })
-
-  return (await ctx.db.get(insertedId)) as VolumeDoc | null
+  const created = await ctx.db.get(volumeId)
+  if (!created) throw new Error('Failed to create volume')
+  return created as VolumeDoc
 }
 
-async function ensureVolumeHasKey(ctx: any, volume: VolumeDoc) {
-  const existingKey = typeof volume.key === 'string' ? volume.key.trim() : ''
-  if (existingKey) return volume
-
-  const key = await generateUniqueVolumeKey(ctx)
-  await ctx.db.patch(volume._id, {
-    key,
-    keyEnabled: true,
-  })
-  const updated = (await ctx.db.get(volume._id)) as VolumeDoc | null
-  if (!updated) {
-    return {
-      ...volume,
-      key,
-      keyEnabled: true,
-    }
-  }
-  return updated
-}
-
-async function listOwnedVolumes(ctx: any, userId: string | undefined) {
-  return (await ctx.db
-    .query('volumes')
-    .withIndex('by_user', (q: any) => q.eq('userId', userId))
-    .collect()) as VolumeDoc[]
-}
-
-async function findOwnedVolumeByName(ctx: any, userId: string | undefined, name: string) {
-  const rows = (await ctx.db
-    .query('volumes')
-    .withIndex('by_user_and_name', (q: any) => q.eq('userId', userId).eq('name', name))
-    .collect()) as VolumeDoc[]
-  return rows[0] ?? null
-}
-
-async function ensurePersonalVolumeForUser(ctx: any, userId: string | undefined) {
-  if (!userId) return null
-
+async function ensurePersonalVolumeForUser(ctx: MutationCtx, userId: string | undefined) {
   const existing = await findOwnedVolumeByName(ctx, userId, DEFAULT_VOLUME_NAME)
-  if (existing) {
-    return ensureVolumeHasKey(ctx, existing)
-  }
-
+  if (existing) return existing
   return createOwnedVolume(ctx, userId, DEFAULT_VOLUME_NAME)
 }
 
-async function assertVolumeOwnership(ctx: any, volumeId: any, userId: string | undefined) {
-  const volume = (await ctx.db.get(volumeId)) as VolumeDoc | null
+async function assertVolumeOwnership(ctx: MutationCtx, volumeId: VolumeId, userId: string | undefined) {
+  const volume = await ctx.db.get(volumeId)
   if (!volume) throw new Error('Volume not found')
-  if (!isOwnedByUser(volume.userId, userId)) throw new Error('Unauthorized volume access')
-  return volume
-}
-
-function mapVolumeKey(row: VolumeDoc) {
-  const volumeId = String(row._id)
-  return {
-    id: volumeId,
-    volumeId,
-    value: typeof row.key === 'string' ? row.key : '',
-    enabled: row.keyEnabled !== false,
-  }
+  if (!isOwnedByUser(volume as VolumeDoc, userId)) throw new Error('Unauthorized volume access')
+  return volume as VolumeDoc
 }
 
 function mapVolume(row: VolumeDoc) {
+  const keyValue = typeof row.key === 'string' ? row.key.trim() : ''
+  const keyEnabled = row.keyEnabled !== false && keyValue.length > 0
+
   return {
-    id: String(row._id),
+    id: row._id,
     name: row.name,
     isDefault: row.name === DEFAULT_VOLUME_NAME,
-    key: mapVolumeKey(row),
+    key: {
+      id: `${row._id}:key`,
+      volumeId: row._id,
+      value: keyValue,
+      enabled: keyEnabled,
+    },
   }
 }
-
-export const ensurePersonalVolume = mutation({
-  args: {},
-  handler: async (ctx) => {
-    const authCtx = await getAuthenticatedContext(ctx)
-    const userId = normalizeUserId(authCtx.userId ? String(authCtx.userId) : undefined)
-    const volume = await ensurePersonalVolumeForUser(ctx, userId)
-    if (!volume) return null
-    return mapVolume(volume)
-  },
-})
 
 export const listManagedVolumes = query({
   args: {},
   handler: async (ctx) => {
-    const authCtx = await getAuthenticatedContext(ctx)
-    const userId = normalizeUserId(authCtx.userId ? String(authCtx.userId) : undefined)
-
+    const userId = await getCurrentUserId(ctx)
     const volumes = await listOwnedVolumes(ctx, userId)
 
     return volumes
       .slice()
-      .sort((a, b) => {
-        if (a.name === DEFAULT_VOLUME_NAME && b.name !== DEFAULT_VOLUME_NAME) return -1
-        if (a.name !== DEFAULT_VOLUME_NAME && b.name === DEFAULT_VOLUME_NAME) return 1
-        return a.name.localeCompare(b.name)
+      .sort((left, right) => {
+        if (left.name === DEFAULT_VOLUME_NAME && right.name !== DEFAULT_VOLUME_NAME) return -1
+        if (left.name !== DEFAULT_VOLUME_NAME && right.name === DEFAULT_VOLUME_NAME) return 1
+        return left.name.localeCompare(right.name)
       })
       .map(mapVolume)
+  },
+})
+
+export const ensurePersonalVolume = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getCurrentUserId(ctx)
+    const volume = await ensurePersonalVolumeForUser(ctx, userId)
+    return mapVolume(volume)
   },
 })
 
@@ -193,20 +158,15 @@ export const createVolume = mutation({
     name: v.string(),
   },
   handler: async (ctx, args) => {
-    const authCtx = await getAuthenticatedContext(ctx)
-    const userId = normalizeUserId(authCtx.userId ? String(authCtx.userId) : undefined)
+    const userId = await getCurrentUserId(ctx)
     await ensurePersonalVolumeForUser(ctx, userId)
 
     const name = normalizeVolumeName(args.name)
-    const existing = await findOwnedVolumeByName(ctx, userId, name)
-    if (existing) {
-      throw new Error('Volume name already exists')
-    }
+    const duplicate = await findOwnedVolumeByName(ctx, userId, name)
+    if (duplicate) throw new Error('Volume name already exists')
 
-    const inserted = await createOwnedVolume(ctx, userId, name)
-    if (!inserted) throw new Error('Failed to create volume')
-
-    return mapVolume(inserted)
+    const created = await createOwnedVolume(ctx, userId, name)
+    return mapVolume(created)
   },
 })
 
@@ -216,8 +176,7 @@ export const renameVolume = mutation({
     name: v.string(),
   },
   handler: async (ctx, args) => {
-    const authCtx = await getAuthenticatedContext(ctx)
-    const userId = normalizeUserId(authCtx.userId ? String(authCtx.userId) : undefined)
+    const userId = await getCurrentUserId(ctx)
     await ensurePersonalVolumeForUser(ctx, userId)
 
     const volume = await assertVolumeOwnership(ctx, args.volumeId, userId)
@@ -233,10 +192,10 @@ export const renameVolume = mutation({
     }
 
     await ctx.db.patch(args.volumeId, { name: nextName })
-    const updated = (await ctx.db.get(args.volumeId)) as VolumeDoc | null
-    if (!updated) throw new Error('Volume not found after update')
+    const updated = await ctx.db.get(args.volumeId)
+    if (!updated) throw new Error('Volume not found after rename')
 
-    return mapVolume(updated)
+    return mapVolume(updated as VolumeDoc)
   },
 })
 
@@ -246,26 +205,32 @@ export const updateVolumeKey = mutation({
     enabled: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const authCtx = await getAuthenticatedContext(ctx)
-    const userId = normalizeUserId(authCtx.userId ? String(authCtx.userId) : undefined)
+    const userId = await getCurrentUserId(ctx)
     await ensurePersonalVolumeForUser(ctx, userId)
 
-    await assertVolumeOwnership(ctx, args.volumeId, userId)
+    const volume = await assertVolumeOwnership(ctx, args.volumeId, userId)
+    const patch: Partial<VolumeDoc> = {}
 
-    const patch: Record<string, unknown> = {}
-    if (typeof args.enabled === 'boolean') {
-      patch.keyEnabled = args.enabled
+    if (args.enabled === false) {
+      patch.key = undefined
+      patch.keyEnabled = false
+    }
+
+    if (args.enabled === true) {
+      const hasKey = typeof volume.key === 'string' && volume.key.trim().length > 0
+      patch.keyEnabled = true
+      if (!hasKey) {
+        patch.key = await generateUniqueVolumeKey(ctx)
+      }
     }
 
     if (Object.keys(patch).length > 0) {
       await ctx.db.patch(args.volumeId, patch)
     }
 
-    const current = (await ctx.db.get(args.volumeId)) as VolumeDoc | null
-    if (!current) throw new Error('Volume not found after key update')
-
-    const updated = await ensureVolumeHasKey(ctx, current)
-    return mapVolumeKey(updated)
+    const updated = await ctx.db.get(args.volumeId)
+    if (!updated) throw new Error('Volume not found after key update')
+    return mapVolume(updated as VolumeDoc).key
   },
 })
 
@@ -274,20 +239,82 @@ export const rotateVolumeKey = mutation({
     volumeId: v.id('volumes'),
   },
   handler: async (ctx, args) => {
-    const authCtx = await getAuthenticatedContext(ctx)
-    const userId = normalizeUserId(authCtx.userId ? String(authCtx.userId) : undefined)
+    const userId = await getCurrentUserId(ctx)
     await ensurePersonalVolumeForUser(ctx, userId)
 
     await assertVolumeOwnership(ctx, args.volumeId, userId)
 
-    const value = await generateUniqueVolumeKey(ctx)
+    const nextKey = await generateUniqueVolumeKey(ctx)
     await ctx.db.patch(args.volumeId, {
-      key: value,
+      key: nextKey,
       keyEnabled: true,
     })
 
-    const updated = (await ctx.db.get(args.volumeId)) as VolumeDoc | null
-    if (!updated) throw new Error('Volume not found after rotation')
-    return mapVolumeKey(updated)
+    const updated = await ctx.db.get(args.volumeId)
+    if (!updated) throw new Error('Volume not found after key rotation')
+    return mapVolume(updated as VolumeDoc).key
+  },
+})
+
+export const disableVolumeKey = mutation({
+  args: {
+    volumeId: v.id('volumes'),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getCurrentUserId(ctx)
+    await ensurePersonalVolumeForUser(ctx, userId)
+
+    await assertVolumeOwnership(ctx, args.volumeId, userId)
+
+    await ctx.db.patch(args.volumeId, {
+      key: undefined,
+      keyEnabled: false,
+    })
+
+    const updated = await ctx.db.get(args.volumeId)
+    if (!updated) throw new Error('Volume not found after key disable')
+    return mapVolume(updated as VolumeDoc).key
+  },
+})
+
+export const deleteVolume = mutation({
+  args: {
+    volumeId: v.id('volumes'),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getCurrentUserId(ctx)
+    await ensurePersonalVolumeForUser(ctx, userId)
+
+    const volume = await assertVolumeOwnership(ctx, args.volumeId, userId)
+    if (volume.name === DEFAULT_VOLUME_NAME) {
+      throw new Error('The personal volume cannot be deleted')
+    }
+
+    const paths = await ctx.db
+      .query('paths')
+      .withIndex('by_volumeId', (q) => q.eq('volumeId', String(args.volumeId)))
+      .collect()
+
+    let deletedEvents = 0
+    for (const path of paths) {
+      const events = await ctx.db
+        .query('events')
+        .withIndex('by_pathId', (q) => q.eq('pathId', String(path._id)))
+        .collect()
+      deletedEvents += events.length
+
+      for (const event of events) {
+        await ctx.db.delete(event._id)
+      }
+      await ctx.db.delete(path._id)
+    }
+
+    await ctx.db.delete(args.volumeId)
+
+    return {
+      deleted: true,
+      deletedPaths: paths.length,
+      deletedEvents,
+    }
   },
 })

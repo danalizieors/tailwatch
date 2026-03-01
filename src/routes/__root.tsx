@@ -5,6 +5,7 @@ import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 import appCss from '~/styles/app.css?url'
 import { ConvexAuthProvider } from '@convex-dev/auth/react'
 import { ConvexReactClient } from 'convex/react'
+import { DeviceRegistrationBootstrap } from '~/components/device/device-registration-bootstrap'
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string)
 
@@ -56,6 +57,7 @@ function RootDocument() {
       </head>
       <body className="antialiased selection:bg-primary/30 min-h-dvh w-full min-w-0 overflow-x-hidden bg-background text-foreground flex">
         <ConvexAuthProvider client={convex}>
+          <DeviceRegistrationBootstrap />
           <Outlet />
         </ConvexAuthProvider>
         {typeof document !== 'undefined' ? <TanStackRouterDevtools position="bottom-right" /> : null}

@@ -1,316 +1,377 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { createFileRoute } from '@tanstack/react-router'
-import { Bell, BellOff, ChevronLeft, Loader2, Plus, RefreshCw, Save, Smartphone } from 'lucide-react'
-import { z } from 'zod'
+import { useEffect, useMemo, useState } from 'react'
+import { Link, createFileRoute } from '@tanstack/react-router'
+import { useAuthActions } from '@convex-dev/auth/react'
+import { Bell, BellOff, Laptop, Loader2, LogIn, Save, Send, Trash2 } from 'lucide-react'
+import { useConvexAuth, useMutation, useQuery } from 'convex/react'
+import { api } from '../../../convex/_generated/api'
 import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/card'
-import { createDevice, fetchDevices, updateDevice, type DeviceRecord } from '~/lib/client-api'
-import { getClientDeviceKey, NotificationManager } from '~/lib/notifications'
-import { cn } from '~/lib/utils'
-
-const searchSchema = z.object({
-  volume: z.string().optional(),
-})
-
-type DeviceDraft = {
-  name: string
-}
+import { Input } from '~/components/ui/input'
+import { Label } from '~/components/ui/label'
+import { getClientDeviceKey, setClientDeviceName } from '~/lib/device-identity'
 
 export const Route = createFileRoute('/settings/devices')({
-  validateSearch: (search) => searchSchema.parse(search),
-  component: NotificationDevicesPage,
+  component: DeviceSettingsPage,
 })
 
-function NotificationDevicesPage() {
-  const { volume } = Route.useSearch()
-  const volumeKey = volume?.trim() || 'personal'
-  const currentDeviceKey = getClientDeviceKey()
+function DeviceSettingsPage() {
+  const { isLoading: authLoading, isAuthenticated } = useConvexAuth()
+  const { signIn } = useAuthActions()
 
-  const [devices, setDevices] = useState<DeviceRecord[]>([])
-  const [drafts, setDrafts] = useState<Record<string, DeviceDraft>>({})
-  const [isLoading, setIsLoading] = useState(true)
-  const [isRefreshing, setIsRefreshing] = useState(false)
-  const [isCreating, setIsCreating] = useState(false)
-  const [busyDeviceId, setBusyDeviceId] = useState<string | null>(null)
+  const [currentDeviceKey, setCurrentDeviceKey] = useState('')
+  const [selectedDeviceId, setSelectedDeviceId] = useState('')
+  const [nameDraft, setNameDraft] = useState('')
+  const [busyAction, setBusyAction] = useState<'save' | 'toggle' | 'delete' | 'test' | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
 
-  const [newDeviceName, setNewDeviceName] = useState('')
+  const updateDevice = useMutation(api.devices.updateDevice)
+  const deleteDevice = useMutation(api.devices.deleteDevice)
 
-  const loadDevices = useCallback(
-    async (silent = false) => {
-      try {
-        setError(null)
-        if (silent) {
-          setIsRefreshing(true)
-        } else {
-          setIsLoading(true)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    setCurrentDeviceKey(getClientDeviceKey())
+  }, [])
+
+  const devices = useQuery(
+    api.devices.listDevices,
+    isAuthenticated && currentDeviceKey
+      ? {
+          currentDeviceKey,
         }
-
-        const next = await fetchDevices(currentDeviceKey)
-        setDevices(next)
-        setDrafts((prev) => {
-          const nextDrafts: Record<string, DeviceDraft> = { ...prev }
-          for (const device of next) {
-            if (!nextDrafts[device.id]) {
-              nextDrafts[device.id] = {
-                name: device.name,
-              }
-            }
-          }
-          return nextDrafts
-        })
-      } catch (loadError) {
-        setError(loadError instanceof Error ? loadError.message : 'Failed to load devices')
-      } finally {
-        setIsLoading(false)
-        setIsRefreshing(false)
-      }
-    },
-    [volumeKey, currentDeviceKey],
+      : 'skip',
   )
 
   useEffect(() => {
-    void loadDevices(false)
-  }, [loadDevices])
+    if (!devices || devices.length === 0) {
+      setSelectedDeviceId('')
+      setNameDraft('')
+      return
+    }
 
-  const headerLinks = useMemo(() => {
-    const links = [
-      { href: `/${encodeURIComponent(volumeKey)}`, label: 'Back to logs' },
-      { href: volumeKey === 'personal' ? '/status' : `/${encodeURIComponent(volumeKey)}/status`, label: 'Back to status' },
-      { href: volumeKey === 'personal' ? '/settings/volumes' : `/settings/volumes?volume=${encodeURIComponent(volumeKey)}`, label: 'Volume settings' },
-    ]
-    return links
-  }, [volumeKey])
+    const selected = selectedDeviceId
+      ? devices.find((device) => String(device.id) === selectedDeviceId)
+      : undefined
 
-  const onDraftChange = (deviceId: string, patch: Partial<DeviceDraft>) => {
-    setDrafts((prev) => ({
-      ...prev,
-      [deviceId]: {
-        name: patch.name ?? prev[deviceId]?.name ?? '',
-      },
-    }))
+    const next = selected ?? devices[0]
+    setSelectedDeviceId(String(next.id))
+    setNameDraft(next.name)
+  }, [devices, selectedDeviceId])
+
+  const selectedDevice = useMemo(() => {
+    if (!devices || devices.length === 0) return null
+    return devices.find((device) => String(device.id) === selectedDeviceId) ?? null
+  }, [devices, selectedDeviceId])
+
+  const handleSaveDevice = async () => {
+    if (!selectedDevice) return
+
+    const nextName = nameDraft.trim()
+    if (!nextName) {
+      setError('Device name is required.')
+      return
+    }
+
+    try {
+      setBusyAction('save')
+      setError(null)
+      setNotice(null)
+
+      await updateDevice({
+        deviceId: selectedDevice.id,
+        name: nextName,
+      })
+
+      if (selectedDevice.isCurrent) {
+        setClientDeviceName(nextName)
+      }
+
+      setNotice('Device updated.')
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : 'Failed to update device')
+    } finally {
+      setBusyAction(null)
+    }
   }
 
-  const handleToggleDevice = async (device: DeviceRecord) => {
-    try {
-      setNotice(null)
-      setError(null)
-      setBusyDeviceId(device.id)
+  const handleToggleNotifications = async () => {
+    if (!selectedDevice) return
 
-      const isCurrent = device.deviceKey === currentDeviceKey
-      if (isCurrent) {
-        if (device.enabled) {
-          await NotificationManager.disableBackgroundPush()
-        } else {
-          const enabled = await NotificationManager.enableBackgroundPush()
-          if (!enabled) {
-            throw new Error(NotificationManager.getLastPushError() ?? 'Failed to enable push for this device')
-          }
-        }
+    try {
+      setBusyAction('toggle')
+      setError(null)
+      setNotice(null)
+
+      await updateDevice({
+        deviceId: selectedDevice.id,
+        enabled: !selectedDevice.enabled,
+      })
+
+      setNotice(selectedDevice.enabled ? 'Notifications disabled for this device.' : 'Notifications enabled for this device.')
+    } catch (toggleError) {
+      setError(toggleError instanceof Error ? toggleError.message : 'Failed to update notification state')
+    } finally {
+      setBusyAction(null)
+    }
+  }
+
+  const handleDeleteDevice = async () => {
+    if (!selectedDevice || selectedDevice.isCurrent) return
+
+    if (!window.confirm(`Delete device "${selectedDevice.name}"?`)) {
+      return
+    }
+
+    try {
+      setBusyAction('delete')
+      setError(null)
+      setNotice(null)
+
+      await deleteDevice({
+        deviceId: selectedDevice.id,
+      })
+
+      setNotice(`Deleted device "${selectedDevice.name}".`)
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : 'Failed to delete device')
+    } finally {
+      setBusyAction(null)
+    }
+  }
+
+  const handleTestNotification = async () => {
+    try {
+      setBusyAction('test')
+      setError(null)
+      setNotice(null)
+
+      if (typeof window === 'undefined' || typeof navigator === 'undefined') {
+        throw new Error('Notifications are only available in the browser')
+      }
+
+      if (!('Notification' in window)) {
+        throw new Error('This browser does not support notifications')
+      }
+
+      let permission = window.Notification.permission
+      if (permission === 'default') {
+        permission = await window.Notification.requestPermission()
+      }
+
+      if (permission !== 'granted') {
+        throw new Error('Notification permission not granted')
+      }
+
+      const title = 'Tailwatch Test Notification'
+      const body = selectedDevice
+        ? `Test notification for ${selectedDevice.name}`
+        : 'Test notification from device manager'
+
+      const registration = await navigator.serviceWorker.getRegistration()
+      if (registration) {
+        await registration.showNotification(title, {
+          body,
+          tag: 'tailwatch-test-notification',
+          icon: '/pwa-192x192.png',
+          badge: '/pwa-192x192.png',
+          data: {
+            url: '/settings/devices',
+          },
+        })
       } else {
-        await updateDevice({
-          deviceId: device.id,
-          enabled: !device.enabled,
+        new window.Notification(title, {
+          body,
+          tag: 'tailwatch-test-notification',
         })
       }
 
-      setNotice(isCurrent ? 'Notification state updated for this device.' : 'Device notification state updated.')
-      await loadDevices(true)
-    } catch (toggleError) {
-      setError(toggleError instanceof Error ? toggleError.message : 'Failed to toggle device notifications')
+      setNotice('Test notification sent.')
+    } catch (testError) {
+      setError(testError instanceof Error ? testError.message : 'Failed to send test notification')
     } finally {
-      setBusyDeviceId(null)
+      setBusyAction(null)
     }
   }
 
-  const handleSaveDevice = async (device: DeviceRecord) => {
-    const draft = drafts[device.id]
-    if (!draft) return
-
-    try {
-      setNotice(null)
-      setError(null)
-      setBusyDeviceId(device.id)
-
-      await updateDevice({
-        deviceId: device.id,
-        deviceKey: device.deviceKey,
-        name: draft.name.trim() || device.name,
-      })
-
-      setNotice('Device details saved.')
-      await loadDevices(true)
-    } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : 'Failed to save device')
-    } finally {
-      setBusyDeviceId(null)
-    }
+  if (authLoading) {
+    return (
+      <main className="mx-auto flex min-h-[100svh] w-full max-w-4xl items-center px-4 py-10 md:min-h-dvh md:px-8">
+        <Card className="w-full border-border/70 bg-card/85 backdrop-blur">
+          <CardContent className="flex items-center gap-2 p-4 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Loading authentication state...
+          </CardContent>
+        </Card>
+      </main>
+    )
   }
 
-  const handleCreateDevice = async () => {
-    try {
-      setNotice(null)
-      setError(null)
-      setIsCreating(true)
-
-      await createDevice({
-        name: newDeviceName.trim() || undefined,
-      })
-
-      setNewDeviceName('')
-      setNotice('Device profile created.')
-      await loadDevices(true)
-    } catch (createError) {
-      setError(createError instanceof Error ? createError.message : 'Failed to create device')
-    } finally {
-      setIsCreating(false)
-    }
+  if (!isAuthenticated) {
+    return (
+      <main className="mx-auto flex min-h-[100svh] w-full max-w-4xl items-center px-4 py-10 md:min-h-dvh md:px-8">
+        <Card className="w-full border-border/70 bg-card/85 backdrop-blur">
+          <CardHeader>
+            <CardTitle className="text-base font-black uppercase tracking-wider">Device Manager</CardTitle>
+            <CardDescription>Sign in to view and manage your registered devices.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Button type="button" className="gap-1.5" onClick={() => void signIn('github')}>
+              <LogIn className="h-3.5 w-3.5" />
+              Sign in with GitHub
+            </Button>
+            <Link to="/" className="text-xs font-medium text-muted-foreground underline-offset-4 hover:underline">
+              Back to home
+            </Link>
+          </CardContent>
+        </Card>
+      </main>
+    )
   }
 
   return (
-    <main className="mx-auto flex min-h-[100svh] w-full max-w-5xl flex-col gap-4 px-3 py-4 md:px-8 md:py-8">
-      <Card className="border-border/60 bg-card/80 backdrop-blur">
-        <CardHeader className="gap-3">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="space-y-1">
-              <CardTitle className="text-lg font-black uppercase tracking-wider">Devices</CardTitle>
-              <CardDescription>
-                Manage global notification devices. Volumes only group paths; notification toggle is per device.
-              </CardDescription>
-            </div>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              className="gap-2"
-              onClick={() => void loadDevices(true)}
-              disabled={isLoading || isRefreshing}
-            >
-              <RefreshCw className={cn('h-3.5 w-3.5', isRefreshing && 'animate-spin')} />
-              Refresh
-            </Button>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {headerLinks.map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                className="inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
-              >
-                <ChevronLeft className="h-3.5 w-3.5" />
-                {link.label}
-              </a>
-            ))}
-          </div>
+    <main className="mx-auto flex min-h-[100svh] w-full max-w-4xl flex-col gap-4 px-4 py-6 md:min-h-dvh md:px-8 md:py-10">
+      <Card className="border-border/70 bg-card/85 backdrop-blur">
+        <CardHeader className="space-y-2">
+          <CardTitle className="flex items-center gap-2 text-base font-black uppercase tracking-wider">
+            <Laptop className="h-4 w-4 text-primary" />
+            Device Manager
+          </CardTitle>
+          <CardDescription>
+            Devices are identified by a per-browser device key and registered automatically after login.
+          </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {notice ? (
-            <div className="rounded-lg border border-success/30 bg-success/10 px-3 py-2 text-xs font-medium text-success">
-              {notice}
-            </div>
-          ) : null}
 
+        <CardContent className="space-y-4">
           {error ? (
-            <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs font-medium text-destructive">
+            <div className="rounded-md border border-destructive/35 bg-destructive/10 px-3 py-2 text-xs font-medium text-destructive">
               {error}
             </div>
           ) : null}
 
-          <div className="rounded-lg border border-border/50 bg-background/40 p-3">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Add device profile</p>
-            <div className="grid gap-2 md:grid-cols-[1fr_auto]">
-              <input
-                value={newDeviceName}
-                onChange={(event) => setNewDeviceName(event.target.value)}
-                className="h-9 rounded-md border border-border/60 bg-background px-3 text-sm"
-                placeholder="Device name"
-              />
-              <Button className="gap-1.5" onClick={() => void handleCreateDevice()} disabled={isCreating}>
-                {isCreating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
-                Add
-              </Button>
+          {notice ? (
+            <div className="rounded-md border border-success/35 bg-success/10 px-3 py-2 text-xs font-medium text-success">
+              {notice}
             </div>
+          ) : null}
+
+          <div className="space-y-2 rounded-lg border border-border/60 bg-background/50 p-3">
+            <Label htmlFor="device-select">Select device</Label>
+            {devices === undefined ? (
+              <div className="flex h-9 items-center text-xs text-muted-foreground">
+                <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                Loading devices...
+              </div>
+            ) : devices.length === 0 ? (
+              <div className="text-xs text-muted-foreground">No devices registered yet.</div>
+            ) : (
+              <select
+                id="device-select"
+                value={selectedDeviceId}
+                onChange={(event) => setSelectedDeviceId(event.target.value)}
+                className="h-9 w-full rounded-md border bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                disabled={busyAction !== null}
+              >
+                {devices.map((device) => (
+                  <option key={String(device.id)} value={String(device.id)}>
+                    {device.name}
+                    {device.isCurrent ? ' (this device)' : ''}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
-          {isLoading ? (
-            <div className="flex items-center gap-2 rounded-lg border border-border/50 bg-background/40 px-3 py-3 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Loading devices...
-            </div>
-          ) : devices.length === 0 ? (
-            <div className="rounded-lg border border-border/50 bg-background/40 px-3 py-4 text-sm text-muted-foreground">
-              No devices found yet.
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {devices.map((device) => {
-                const draft = drafts[device.id] ?? {
-                  name: device.name,
-                }
-                const isCurrent = device.deviceKey === currentDeviceKey
-                const isBusy = busyDeviceId === device.id
+          {selectedDevice ? (
+            <div className="space-y-3 rounded-lg border border-border/60 bg-background/50 p-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-sm font-semibold">{selectedDevice.name}</p>
+                {selectedDevice.isCurrent ? <Badge variant="success">Current Device</Badge> : null}
+                <Badge variant={selectedDevice.enabled ? 'success' : 'outline'}>
+                  {selectedDevice.enabled ? 'Notifications Enabled' : 'Notifications Disabled'}
+                </Badge>
+              </div>
 
-                return (
-                  <div
-                    key={device.id}
-                    className="space-y-3 rounded-lg border border-border/60 bg-background/50 p-3"
+              <div className="space-y-1">
+                <Label>Device key</Label>
+                <div className="rounded-md border border-border/60 bg-background px-3 py-2 font-mono text-xs break-all">
+                  {selectedDevice.deviceKey}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="device-name">Device name</Label>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Input
+                    id="device-name"
+                    value={nameDraft}
+                    onChange={(event) => setNameDraft(event.target.value)}
+                    disabled={busyAction !== null}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => void handleSaveDevice()}
+                    disabled={busyAction !== null}
+                    className="gap-1.5"
                   >
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <Smartphone className="h-4 w-4 text-primary" />
-                        <p className="text-sm font-semibold text-foreground">{device.name}</p>
-                        {isCurrent ? <Badge variant="success">This browser</Badge> : null}
-                        <Badge variant={device.enabled ? 'success' : 'outline'}>{device.enabled ? 'Notifications On' : 'Notifications Off'}</Badge>
-                      </div>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        className="gap-1.5"
-                        onClick={() => void handleToggleDevice(device)}
-                        disabled={isBusy}
-                      >
-                        {isBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : device.enabled ? <BellOff className="h-3.5 w-3.5" /> : <Bell className="h-3.5 w-3.5" />}
-                        {device.enabled ? 'Disable' : 'Enable'}
-                      </Button>
-                    </div>
+                    {busyAction === 'save' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                    Save
+                  </Button>
+                </div>
+              </div>
 
-                    <div className="grid gap-2 md:grid-cols-[1fr_auto]">
-                      <input
-                        value={draft.name}
-                        onChange={(event) => onDraftChange(device.id, { name: event.target.value })}
-                        className="h-9 rounded-md border border-border/60 bg-background px-3 text-sm"
-                        placeholder="Device name"
-                      />
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="gap-1.5"
-                        onClick={() => void handleSaveDevice(device)}
-                        disabled={isBusy}
-                      >
-                        <Save className="h-3.5 w-3.5" />
-                        Save
-                      </Button>
-                    </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => void handleToggleNotifications()}
+                  disabled={busyAction !== null}
+                  className="gap-1.5"
+                >
+                  {busyAction === 'toggle' ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : selectedDevice.enabled ? (
+                    <BellOff className="h-3.5 w-3.5" />
+                  ) : (
+                    <Bell className="h-3.5 w-3.5" />
+                  )}
+                  {selectedDevice.enabled ? 'Disable notifications' : 'Enable notifications'}
+                </Button>
 
-                    <div className="text-xs text-muted-foreground">
-                      {device.endpoint ? shortEndpoint(device.endpoint) : 'No push subscription yet'}
-                    </div>
-                  </div>
-                )
-              })}
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => void handleTestNotification()}
+                  disabled={busyAction !== null}
+                  className="gap-1.5"
+                >
+                  {busyAction === 'test' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                  Test notification
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={() => void handleDeleteDevice()}
+                  disabled={busyAction !== null || selectedDevice.isCurrent}
+                  className="gap-1.5"
+                  title={selectedDevice.isCurrent ? 'Current device cannot be deleted' : 'Delete this device'}
+                >
+                  {busyAction === 'delete' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                  Delete device
+                </Button>
+              </div>
             </div>
-          )}
+          ) : null}
+
+          <div className="pt-1">
+            <Link to="/settings/volumes" className="text-xs font-medium text-muted-foreground underline-offset-4 hover:underline">
+              Go to volume manager
+            </Link>
+          </div>
         </CardContent>
       </Card>
     </main>
   )
-}
-
-function shortEndpoint(endpoint: string) {
-  if (endpoint.length <= 84) return endpoint
-  return `${endpoint.slice(0, 52)}...${endpoint.slice(-24)}`
 }

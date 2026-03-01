@@ -1,10 +1,15 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { DashboardView } from '~/components/dashboard/dashboard-view'
+import { EndpointsRemoved } from '~/components/server/endpoints-removed'
 
 export const Route = createFileRoute('/status')({
   component: StatusDashboardPage,
 })
 
 function StatusDashboardPage() {
-  return <DashboardView mode="status" volume="personal" />
+  return (
+    <EndpointsRemoved
+      title="Status board removed"
+      description="Status data used API endpoints that are no longer available."
+    />
+  )
 }
