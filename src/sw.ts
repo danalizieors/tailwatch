@@ -1,7 +1,12 @@
 /// <reference lib="webworker" />
+import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching'
 
 export type {}
-declare const self: ServiceWorkerGlobalScope
+declare const self: ServiceWorkerGlobalScope & { __WB_MANIFEST: any }
+
+// @ts-ignore: __WB_MANIFEST is injected by VitePWA
+precacheAndRoute(self.__WB_MANIFEST || [])
+cleanupOutdatedCaches()
 
 self.addEventListener('install', () => {
   void self.skipWaiting()

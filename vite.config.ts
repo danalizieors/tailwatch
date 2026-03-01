@@ -37,8 +37,15 @@ export default defineConfig(({ mode }) => {
       viteReact(),
       tailwindcss(),
       VitePWA({
+        strategies: 'injectManifest',
+        srcDir: 'src',
+        filename: 'sw.ts',
         registerType: 'autoUpdate',
         injectRegister: false,
+        devOptions: {
+          enabled: true,
+          type: 'module',
+        },
         manifest: {
           id: '/',
           name: 'Tailwatch',
