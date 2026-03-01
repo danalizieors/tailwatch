@@ -25,8 +25,16 @@ export type ServerEntry = { fetch: RequestHandler<Register> }
 
 export function createServerEntry(entry: ServerEntry): ServerEntry {
   return {
-    async fetch(...args) {
-      const response = await entry.fetch(...args)
+    async fetch(request, ...args) {
+      const url = new URL(request.url)
+      
+      // Explicitly ignore Service Worker and other common static files 
+      // if they somehow reach here (to avoid MIME type errors)
+      if (url.pathname === '/sw.js' || url.pathname === '/manifest.webmanifest') {
+        return new Response(null, { status: 404 })
+      }
+
+      const response = await entry.fetch(request, ...args)
       return withNoIndexHeader(response)
     },
   }
