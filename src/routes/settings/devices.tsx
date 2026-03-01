@@ -29,6 +29,7 @@ function DeviceSettingsPage() {
 
   const updateDevice = useMutation(api.devices.updateDevice)
   const deleteDevice = useMutation(api.devices.deleteDevice)
+  const sendTestPush = useMutation(api.devices.sendTestPush)
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -150,45 +151,13 @@ function DeviceSettingsPage() {
       setError(null)
       setNotice(null)
 
-      if (typeof window === 'undefined' || typeof navigator === 'undefined') {
-        throw new Error('Notifications are only available in the browser')
+      if (!device.enabled || !device.hasSubscription) {
+        throw new Error('Notifications must be enabled on the target device first')
       }
 
-      if (!('Notification' in window)) {
-        throw new Error('This browser does not support notifications')
-      }
+      await sendTestPush({ deviceId: device.id })
 
-      let permission = window.Notification.permission
-      if (permission === 'default') {
-        permission = await window.Notification.requestPermission()
-      }
-
-      if (permission !== 'granted') {
-        throw new Error('Notification permission not granted')
-      }
-
-      const title = 'Tailwatch Test Notification'
-      const body = `Test notification for ${device.name}`
-
-      const registration = await navigator.serviceWorker.getRegistration()
-      if (registration) {
-        await registration.showNotification(title, {
-          body,
-          tag: 'tailwatch-test-notification',
-          icon: '/pwa-192x192.png',
-          badge: '/pwa-192x192.png',
-          data: {
-            url: '/settings/devices',
-          },
-        })
-      } else {
-        new window.Notification(title, {
-          body,
-          tag: 'tailwatch-test-notification',
-        })
-      }
-
-      setNotice('Test notification sent.')
+      setNotice(`Test notification sent to "${device.name}".`)
     } catch (testError) {
       setError(testError instanceof Error ? testError.message : 'Failed to send test notification')
     } finally {

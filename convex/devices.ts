@@ -161,14 +161,48 @@ export const deleteDevice = mutation({
   },
 })
 
+/**
+ * Sends a test push notification to a specific device.
+ */
+export const sendTestPush = mutation({
+  args: { deviceId: v.id('devices') },
+  handler: async (ctx, args) => {
+    const userId = await requireUserId(ctx)
+    const device = await ctx.db.get(args.deviceId)
+    if (!device || device.userId !== userId) throw new Error('Unauthorized')
+
+    if (!device.subscription || !device.notifications) {
+      throw new Error('Notifications are not enabled for this device')
+    }
+
+    await ctx.scheduler.runAfter(0, internal.devices.sendPushForEventInternal, {
+      volume: 'test',
+      path: 'internal/test',
+      status: 'idle',
+      content: `Test notification for ${device.name}`,
+      userId,
+      deviceId: args.deviceId,
+    })
+  },
+})
+
 // -- Internal API for Push Delivery --
 
 export const listPushTargetsInternal = internalQuery({
-  args: { userId: v.optional(v.string()) },
+  args: { 
+    userId: v.optional(v.string()),
+    deviceId: v.optional(v.id('devices')),
+  },
   handler: async (ctx, args) => {
-    const rows = args.userId 
-      ? await ctx.db.query('devices').withIndex('by_user', q => q.eq('userId', args.userId!)).collect()
-      : await ctx.db.query('devices').collect()
+    let rows
+    if (args.deviceId) {
+      const device = await ctx.db.get(args.deviceId)
+      rows = device ? [device] : []
+    } else if (args.userId) {
+      rows = await ctx.db.query('devices').withIndex('by_user', q => q.eq('userId', args.userId!)).collect()
+    } else {
+      rows = await ctx.db.query('devices').collect()
+    }
     
     return rows
       .filter(r => r.notifications && r.subscription)
@@ -195,12 +229,16 @@ export const sendPushForEventInternal = internalAction({
     status: v.union(v.literal('busy'), v.literal('idle')),
     content: v.optional(v.string()),
     userId: v.optional(v.string()),
+    deviceId: v.optional(v.id('devices')),
   },
   handler: async (ctx, args) => {
     const privateJWK = parseVapidPrivateKey()
     if (!privateJWK) return { ok: false, reason: 'missing_vapid_key' }
 
-    const targets = await ctx.runQuery(internal.devices.listPushTargetsInternal, { userId: args.userId })
+    const targets = await ctx.runQuery(internal.devices.listPushTargetsInternal, { 
+      userId: args.userId,
+      deviceId: args.deviceId,
+    })
     if (targets.length === 0) return { ok: true, sent: 0 }
 
     const adminContact = process.env.WEB_PUSH_ADMIN_CONTACT || 'mailto:admin@example.com'
