@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
 import { useAuthActions } from '@convex-dev/auth/react'
 import { Bell, BellOff, Laptop, Loader2, LogIn, Save, Send, Trash2 } from 'lucide-react'
-import { useConvexAuth, useMutation, useQuery } from 'convex/react'
+import { useAction, useConvexAuth, useMutation, useQuery } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
 import { AppShellHeader } from '~/components/layout/app-shell-header'
 import { Badge } from '~/components/ui/badge'
@@ -29,7 +29,7 @@ function DeviceSettingsPage() {
 
   const updateDevice = useMutation(api.devices.updateDevice)
   const deleteDevice = useMutation(api.devices.deleteDevice)
-  const sendTestPush = useMutation(api.devices.sendTestPush)
+  const sendTestPush = useAction(api.push.sendTestPush)
 
   useEffect(() => {
     if (typeof window === 'undefined') return

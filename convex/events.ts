@@ -168,7 +168,7 @@ async function publishResolved(
     }
     if (ownerUserId) payload.userId = ownerUserId
 
-    await ctx.scheduler.runAfter(0, internal.devices.sendPushForEventInternal, payload)
+    await ctx.scheduler.runAfter(0, internal.push.sendPushForEventInternal, payload)
   } catch (error) {
     console.warn('Failed to schedule push notification delivery', error)
   }

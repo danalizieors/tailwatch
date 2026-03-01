@@ -1,10 +1,6 @@
 import { v } from 'convex/values'
-import { buildPushHTTPRequest } from '@pushforge/builder'
-import { internal } from './_generated/api'
-import { internalAction, internalMutation, internalQuery, mutation, query } from './_generated/server'
+import { internalMutation, internalQuery, mutation, query } from './_generated/server'
 import { auth } from './auth'
-
-const DEFAULT_VOLUME = 'personal'
 
 async function requireUserId(ctx: any) {
   const userId = await auth.getUserId(ctx)
@@ -12,12 +8,6 @@ async function requireUserId(ctx: any) {
   return userId
 }
 
-// -- Public API --
-
-/**
- * Ensures a device exists for the current user.
- * Called on app bootstrap or login.
- */
 export const registerDevice = mutation({
   args: { 
     deviceKey: v.string(), 
@@ -49,10 +39,6 @@ export const registerDevice = mutation({
   },
 })
 
-/**
- * Saves a push subscription to a device and enables notifications.
- * Called when the user first enables notifications.
- */
 export const updatePushSubscription = mutation({
   args: {
     deviceKey: v.string(),
@@ -81,10 +67,6 @@ export const updatePushSubscription = mutation({
   },
 })
 
-/**
- * Toggles notifications for a device without changing the subscription.
- * Called when the user toggles the bell icon (if subscription already exists).
- */
 export const setNotificationsEnabled = mutation({
   args: { 
     deviceKey: v.string(), 
@@ -105,9 +87,6 @@ export const setNotificationsEnabled = mutation({
   },
 })
 
-/**
- * Updates a device by ID. Used in settings page.
- */
 export const updateDevice = mutation({
   args: {
     deviceId: v.id('devices'),
@@ -161,32 +140,12 @@ export const deleteDevice = mutation({
   },
 })
 
-/**
- * Sends a test push notification to a specific device.
- */
-export const sendTestPush = mutation({
+export const getDeviceInternal = internalQuery({
   args: { deviceId: v.id('devices') },
   handler: async (ctx, args) => {
-    const userId = await requireUserId(ctx)
-    const device = await ctx.db.get(args.deviceId)
-    if (!device || device.userId !== userId) throw new Error('Unauthorized')
-
-    if (!device.subscription || !device.notifications) {
-      throw new Error('Notifications are not enabled for this device')
-    }
-
-    await ctx.scheduler.runAfter(0, internal.devices.sendPushForEventInternal, {
-      volume: 'test',
-      path: 'internal/test',
-      status: 'idle',
-      content: `Test notification for ${device.name}`,
-      userId,
-      deviceId: args.deviceId,
-    })
-  },
+    return await ctx.db.get(args.deviceId)
+  }
 })
-
-// -- Internal API for Push Delivery --
 
 export const listPushTargetsInternal = internalQuery({
   args: { 
@@ -221,78 +180,3 @@ export const clearPushSubscriptionInternal = internalMutation({
     await ctx.db.patch(args.deviceId, { subscription: undefined, notifications: false })
   }
 })
-
-export const sendPushForEventInternal = internalAction({
-  args: {
-    volume: v.string(),
-    path: v.string(),
-    status: v.union(v.literal('busy'), v.literal('idle')),
-    content: v.optional(v.string()),
-    userId: v.optional(v.string()),
-    deviceId: v.optional(v.id('devices')),
-  },
-  handler: async (ctx, args) => {
-    const rawKey = process.env.WEB_PUSH_VAPID_PRIVATE_KEY || process.env.VAPID_PRIVATE_KEY
-    if (!rawKey) return { ok: false, reason: 'missing_vapid_key_env' }
-
-    let privateJWK
-    try {
-      privateJWK = JSON.parse(rawKey)
-    } catch (e) {
-      console.error('VAPID_PRIVATE_KEY is not a valid JSON (JWK). Raw key starts with:', rawKey.slice(0, 10))
-      return { ok: false, reason: 'invalid_vapid_key_format_must_be_jwk_json' }
-    }
-
-    const targets = await ctx.runQuery(internal.devices.listPushTargetsInternal, { 
-      userId: args.userId,
-      deviceId: args.deviceId,
-    })
-    if (targets.length === 0) return { ok: true, sent: 0, reason: 'no_targets' }
-
-    const adminContact = process.env.WEB_PUSH_ADMIN_CONTACT || 'mailto:admin@example.com'
-    const title = `Tailwatch ${args.status === 'busy' ? 'Busy' : 'Idle'}`
-    const body = args.content?.trim() ? `${args.path}: ${args.content}` : `${args.path} is ${args.status}`
-    const tag = `tailwatch:${args.volume}:${args.path}`
-    const url = `/${args.volume === DEFAULT_VOLUME ? 'personal' : args.volume}?path=${encodeURIComponent(args.path)}`
-
-    let sent = 0
-    for (const target of targets) {
-      try {
-        const { endpoint, headers, body: requestBody } = await buildPushHTTPRequest({
-          privateJWK,
-          subscription: {
-            endpoint: target.endpoint,
-            keys: { p256dh: target.p256dh, auth: target.auth },
-          },
-          message: {
-            payload: { title, body, tag, url },
-            adminContact,
-            options: { ttl: 300, urgency: args.status === 'busy' ? 'high' : 'normal', topic: tag },
-          },
-        })
-
-        const res = await fetch(endpoint, { method: 'POST', headers, body: requestBody })
-        if (res.status === 404 || res.status === 410) {
-          await ctx.runMutation(internal.devices.clearPushSubscriptionInternal, { deviceId: target.deviceId })
-        } else if (res.ok) {
-          sent++
-        }
-      } catch (e) { console.error('Push failed', e) }
-    }
-    return { ok: true, sent }
-  }
-})
-
-// -- Path Alias Helpers (kept for compatibility) --
-export const ensurePathAlias = mutation({
-  args: { volume: v.optional(v.string()), path: v.string() },
-  handler: async (_, args) => ({ path: args.path.replace(/^\/+|\/+$/g, ''), volume: args.volume ?? DEFAULT_VOLUME })
-})
-
-export const resolvePathAlias = query({
-  args: { volume: v.optional(v.string()), aliasId: v.string() },
-  handler: async (_, args) => ({ found: true, path: args.aliasId.replace(/^\/+|\/+$/g, ''), volume: args.volume ?? DEFAULT_VOLUME })
-})
-
-// -- Helpers --
-function placeholder() {}
