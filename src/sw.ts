@@ -1,5 +1,6 @@
 /// <reference lib="webworker" />
 import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching'
+import { clientsClaim } from 'workbox-core'
 
 export type {}
 declare const self: ServiceWorkerGlobalScope & { __WB_MANIFEST: any }
@@ -7,6 +8,7 @@ declare const self: ServiceWorkerGlobalScope & { __WB_MANIFEST: any }
 // @ts-ignore: __WB_MANIFEST is injected by VitePWA
 precacheAndRoute(self.__WB_MANIFEST || [])
 cleanupOutdatedCaches()
+clientsClaim()
 
 self.addEventListener('install', () => {
   void self.skipWaiting()
@@ -46,16 +48,7 @@ function readPushPayload(event: PushEvent) {
       }
     }
   } catch (_error) {
-    // Ignore and fall through to text parsing.
-  }
-
-  try {
-    const text = event.data.text()
-    if (typeof text === 'string' && text.trim()) {
-      return { ...fallback, body: text.trim() }
-    }
-  } catch (_error) {
-    // Ignore and use fallback body.
+    // Ignore
   }
 
   return fallback
@@ -94,7 +87,7 @@ async function openTailwatch(event: NotificationEvent) {
         try {
           await client.navigate(requestedUrl)
         } catch (_error) {
-          // Ignore navigation errors and still focus existing client.
+          // Ignore
         }
       }
       await client.focus()
