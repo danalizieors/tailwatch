@@ -3,6 +3,7 @@ import { useEffect } from 'react'
 import { HeadContent, Outlet, Scripts, createRootRoute } from '@tanstack/react-router'
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 import appCss from '~/styles/app.css?url'
+import swUrl from '../sw?worker&url'
 import { ConvexAuthProvider } from '@convex-dev/auth/react'
 import { ConvexReactClient } from 'convex/react'
 import { DeviceRegistrationBootstrap } from '~/components/device/device-registration-bootstrap'
@@ -38,16 +39,18 @@ function RootDocument() {
   useEffect(() => {
     console.info(`[Tailwatch] build ${import.meta.env.VITE_APP_COMMIT_SHA || 'unknown'}`)
 
-    if (!('serviceWorker' in navigator)) return
-
-    void navigator.serviceWorker
-      .register('/tailwatch-sw.js')
-      .then((registration) => {
-        console.log('SW Registered:', registration)
-      })
-      .catch((error) => {
-        console.error('SW registration error', error)
-      })
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+      navigator.serviceWorker
+        .register(swUrl, {
+          type: 'module',
+        })
+        .then((registration) => {
+          console.log('SW Registered:', registration)
+        })
+        .catch((error) => {
+          console.error('SW registration error', error)
+        })
+    }
   }, [])
 
   return (

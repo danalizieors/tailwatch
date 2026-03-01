@@ -1,21 +1,26 @@
-self.addEventListener('install', (event) => {
-  event.waitUntil(self.skipWaiting())
+/// <reference lib="webworker" />
+
+export type {}
+declare const self: ServiceWorkerGlobalScope
+
+self.addEventListener('install', () => {
+  void self.skipWaiting()
 })
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(self.clients.claim())
 })
 
-self.addEventListener('push', (event) => {
+self.addEventListener('push', (event: PushEvent) => {
   event.waitUntil(handlePush(event))
 })
 
-self.addEventListener('notificationclick', (event) => {
+self.addEventListener('notificationclick', (event: NotificationEvent) => {
   event.notification.close()
   event.waitUntil(openTailwatch(event))
 })
 
-function readPushPayload(event) {
+function readPushPayload(event: PushEvent) {
   const fallback = {
     title: 'Tailwatch',
     body: 'New event received.',
@@ -51,7 +56,7 @@ function readPushPayload(event) {
   return fallback
 }
 
-async function handlePush(event) {
+async function handlePush(event: PushEvent) {
   const payload = readPushPayload(event)
   await self.registration.showNotification(payload.title, {
     body: payload.body,
@@ -60,10 +65,10 @@ async function handlePush(event) {
     icon: '/pwa-192x192.png',
     badge: '/pwa-192x192.png',
     data: { url: payload.url },
-  })
+  } as NotificationOptions)
 }
 
-async function openTailwatch(event) {
+async function openTailwatch(event: NotificationEvent) {
   const requestedUrl =
     event &&
     event.notification &&
@@ -79,7 +84,7 @@ async function openTailwatch(event) {
   })
 
   for (const client of windows) {
-    if ('focus' in client) {
+    if ('focus' in client && client.type === 'window') {
       if ('navigate' in client) {
         try {
           await client.navigate(requestedUrl)
