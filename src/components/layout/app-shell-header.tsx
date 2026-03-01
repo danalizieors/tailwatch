@@ -1,8 +1,8 @@
 import { useAuthActions } from '@convex-dev/auth/react'
 import { useConvexAuth, useQuery } from 'convex/react'
-import { useMemo, type ComponentType, type ReactNode } from 'react'
+import { useMemo, useState, type ComponentType, type ReactNode } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { Activity, HardDrive, Laptop, LogIn, LogOut, Terminal } from 'lucide-react'
+import { Activity, HardDrive, Laptop, LogIn, LogOut, Menu, Terminal, X } from 'lucide-react'
 import { api } from '../../../convex/_generated/api'
 import { Button } from '~/components/ui/button'
 import { cn } from '~/lib/utils'
@@ -49,6 +49,8 @@ export function AppShellHeader({
   const { isAuthenticated, isLoading } = useConvexAuth()
   const { signIn, signOut } = useAuthActions()
   const navigate = useNavigate()
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
+
   const user = useQuery((api as any).users.currentUser, isAuthenticated ? {} : 'skip') as
     | {
         name?: string | null
@@ -74,7 +76,7 @@ export function AppShellHeader({
 
   return (
     <header className="z-50 shrink-0 border-b border-border/40 bg-background/90 px-3 py-2 backdrop-blur-md md:px-8">
-      <div className="flex flex-wrap items-center gap-3 md:flex-nowrap md:gap-4">
+      <div className="flex items-center justify-between gap-2 md:gap-4">
         <Link to="/" className="group inline-flex shrink-0 items-center gap-2 rounded-lg px-1 py-1">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-primary/25 bg-primary/10 text-primary">
             <Terminal className="h-4 w-4" />
@@ -84,8 +86,8 @@ export function AppShellHeader({
           </div>
         </Link>
 
-        {/* Navigation */}
-        <nav className="no-scrollbar flex min-w-0 flex-1 items-center overflow-x-auto rounded-lg border border-primary/15 bg-primary/5 p-1">
+        {/* Desktop Navigation */}
+        <nav className="no-scrollbar hidden flex-1 items-center overflow-x-auto rounded-lg border border-primary/15 bg-primary/5 p-1 md:flex">
           {navItems.map((item) => {
             const Icon = item.icon
             const active = current === item.id
@@ -108,13 +110,16 @@ export function AppShellHeader({
         </nav>
 
         <div className="ml-auto flex shrink-0 items-center gap-2">
-          {topRight}
+          <div className="hidden items-center gap-2 md:flex">
+            {topRight}
+          </div>
+          
           {isLoading ? (
-            <Button type="button" size="sm" variant="outline" disabled>
+            <Button type="button" size="sm" variant="outline" disabled className="hidden sm:flex">
               Checking session...
             </Button>
           ) : isAuthenticated ? (
-            <div className="flex items-center gap-2">
+            <div className="hidden items-center gap-2 md:flex">
               <details className="group relative">
                 <summary className="list-none cursor-pointer rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
                   <div
@@ -153,19 +158,108 @@ export function AppShellHeader({
               size="sm"
               variant="outline"
               onClick={() => void signIn('github', { redirectTo: currentPathForRedirect() })}
-              className="gap-1.5"
+              className="hidden gap-1.5 md:flex"
             >
               <LogIn className="h-3.5 w-3.5" />
               Sign in
             </Button>
           )}
+
+          {/* Hamburger Toggle */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 md:hidden"
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+          >
+            {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </Button>
         </div>
       </div>
+
+      {/* Mobile Menu */}
+      {isMenuOpen && (
+        <div className="mt-2 flex flex-col gap-3 rounded-xl border border-primary/15 bg-primary/5 p-3 animate-in fade-in slide-in-from-top-2 md:hidden shadow-xl backdrop-blur-lg">
+          {isAuthenticated && user && (
+            <div className="flex items-center gap-3 border-b border-border/40 pb-3 px-1">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border/70 bg-muted/40">
+                {user.image ? (
+                  <img src={user.image} alt={displayName} className="h-full w-full object-cover" />
+                ) : (
+                  <span className="text-sm font-bold">{avatarInitial}</span>
+                )}
+              </div>
+              <div className="flex flex-col min-w-0">
+                <p className="truncate text-sm font-bold text-foreground">{displayName}</p>
+                {user.email ? <p className="truncate text-xs text-muted-foreground">{user.email}</p> : null}
+              </div>
+            </div>
+          )}
+
+          <div className="flex flex-col gap-1">
+            {navItems.map((item) => {
+              const Icon = item.icon
+              const active = current === item.id
+              return (
+                <Link
+                  key={item.id}
+                  to={item.href as any}
+                  onClick={() => setIsMenuOpen(false)}
+                  className={cn(
+                    'flex items-center gap-3 rounded-lg px-3 py-2.5 text-xs font-bold uppercase tracking-wider transition-colors',
+                    active
+                      ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20'
+                      : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
+                  {item.label}
+                </Link>
+              )
+            })}
+          </div>
+          
+          <div className="flex items-center justify-between border-t border-border/40 pt-3 px-1 mt-1">
+            <div className="flex items-center gap-3">
+              {topRight}
+            </div>
+            
+            {isAuthenticated ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 h-9"
+                onClick={async () => {
+                  setIsMenuOpen(false)
+                  await signOut()
+                  void navigate({ to: '/', replace: true })
+                }}
+              >
+                <LogOut className="h-4 w-4" />
+                <span>Sign out</span>
+              </Button>
+            ) : !isLoading && (
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => {
+                  setIsMenuOpen(false)
+                  void signIn('github', { redirectTo: currentPathForRedirect() })
+                }}
+                className="gap-2 h-9 px-4"
+              >
+                <LogIn className="h-4 w-4" />
+                <span>Sign in</span>
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
 
       {current === 'events' && eventsTopRow ? <div className="mt-2">{eventsTopRow}</div> : null}
 
       {current === 'events' && (showVolumeSelector || belowFilter || actions || bottomRight) ? (
-        <div className="mt-2 flex items-center gap-2">
+        <div className="mt-2 flex flex-col gap-2 md:flex-row md:items-center">
           <div className="no-scrollbar flex items-center gap-2 overflow-x-auto min-w-0">
             {showVolumeSelector ? (
               <div className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-card/70 px-2 py-1 shrink-0">
@@ -189,7 +283,7 @@ export function AppShellHeader({
           </div>
 
           {(actions || bottomRight) ? (
-            <div className="flex-1 flex items-center justify-end gap-2 min-w-0">
+            <div className="flex flex-col gap-2 md:flex-1 md:flex-row md:items-center md:justify-end min-w-0">
               {actions}
               {bottomRight}
             </div>

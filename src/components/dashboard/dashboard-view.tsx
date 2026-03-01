@@ -6,6 +6,7 @@ import {
   BellOff,
   Check,
   CheckCircle2,
+  ChevronDown,
   Copy,
   Filter,
   Hash,
@@ -45,6 +46,7 @@ export function DashboardView({ mode, volume }: DashboardViewProps) {
   const [isBellEnabled, setIsBellEnabled] = useState(false)
   const [isDebugMode, setIsDebugMode] = useState(false)
   const [isGeneratingRandomEvents, setIsGeneratingRandomEvents] = useState(false)
+  const [isCurlCardExpanded, setIsCurlCardExpanded] = useState(false)
   const [generatorMessage, setGeneratorMessage] = useState<string | null>(null)
   const [copiedCurlVariant, setCopiedCurlVariant] = useState<'header' | 'url' | null>(null)
   const [volumePublishKey, setVolumePublishKey] = useState<string | null>(null)
@@ -454,61 +456,69 @@ export function DashboardView({ mode, volume }: DashboardViewProps) {
           />
         }
         eventsTopRow={
-          <div className="flex flex-col gap-2 rounded-lg border border-border/40 bg-card/50 px-2.5 py-2 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/20">
-                {mode === 'logs' ? <Hash className="h-4 w-4" /> : <LayoutGrid className="h-4 w-4" />}
+          <div className="flex flex-col gap-3 rounded-lg border border-border/40 bg-card/50 px-2.5 py-2.5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center justify-between gap-2 sm:justify-start">
+              <div className="flex items-center gap-2">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/20">
+                  {mode === 'logs' ? <Hash className="h-4 w-4" /> : <LayoutGrid className="h-4 w-4" />}
+                </div>
+                <h2 className="text-xs font-bold text-foreground/90 uppercase tracking-tight sm:text-sm">
+                  {mode === 'logs' ? 'Event Log' : 'Path Registry'}
+                </h2>
+                <span className="text-[10px] font-bold text-muted-foreground/60 bg-muted/20 px-1.5 py-0.5 rounded-md border border-border/10">
+                  {mode === 'logs' ? `${filteredEvents.length}` : `${data?.entities.length ?? 0}`}
+                </span>
               </div>
-              <h2 className="text-sm font-bold text-foreground/90 uppercase tracking-tight">
-                {mode === 'logs' ? 'Event Log' : 'Path Registry'}
-              </h2>
-              <span className="text-[10px] font-bold text-muted-foreground/60 bg-muted/20 px-1.5 py-0.5 rounded-md ml-1 border border-border/10">
-                {mode === 'logs' ? `${filteredEvents.length} ENTRIES` : `${data?.entities.length ?? 0} TRACKED`}
-              </span>
+
+              <div className="flex items-center gap-2 sm:hidden">
+                {randomBurstControl}
+              </div>
             </div>
 
-            <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-8 rounded-lg border-primary/20 bg-primary/5 px-2.5 text-[9px] font-black uppercase tracking-widest text-primary gap-1.5 hover:bg-primary/10 sm:px-3"
-                onClick={markAllSeen}
-              >
-                <CheckCircle2 className="h-3 w-3" />
-                <span className="hidden sm:inline">Acknowledge</span>
-                <span className="sm:hidden">Ack</span>
-              </Button>
-              {randomBurstControl}
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
+              <div className="flex items-center gap-2 order-2 sm:order-none">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 flex-1 rounded-lg border-primary/20 bg-primary/5 px-2.5 text-[9px] font-black uppercase tracking-widest text-primary gap-1.5 hover:bg-primary/10 sm:flex-none sm:px-3"
+                  onClick={markAllSeen}
+                >
+                  <CheckCircle2 className="h-3 w-3" />
+                  <span>Acknowledge</span>
+                </Button>
+                <div className="hidden sm:flex">
+                  {randomBurstControl}
+                </div>
+              </div>
 
               {mode === 'logs' ? (
-                <>
-                  <div className="group relative order-last basis-full sm:order-none sm:basis-auto sm:flex-none sm:min-w-[11rem]">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <div className="group relative w-full sm:w-auto">
                     <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/60 group-focus-within:text-primary transition-colors" />
                     <input
-                      className="h-8 w-full sm:w-40 lg:w-56 rounded-lg border border-border/40 bg-background/30 pl-8 pr-4 text-[11px] focus:ring-1 focus:ring-primary/40 focus:border-primary/40 outline-none transition-all placeholder:text-muted-foreground/50 font-bold uppercase tracking-tight"
-                      placeholder="Filter entries..."
+                      className="h-8 w-full sm:w-32 lg:w-48 rounded-lg border border-border/40 bg-background/30 pl-8 pr-4 text-[11px] focus:ring-1 focus:ring-primary/40 focus:border-primary/40 outline-none transition-all placeholder:text-muted-foreground/50 font-bold uppercase tracking-tight"
+                      placeholder="Search..."
                       value={search}
                       onChange={(event) => setSearch(event.target.value)}
                     />
                   </div>
 
-                  <div className="flex h-8 shrink-0 items-center gap-2 rounded-lg border border-border/40 bg-background/30 px-2.5 shadow-xs">
+                  <div className="flex h-8 w-full shrink-0 items-center gap-2 rounded-lg border border-border/40 bg-background/30 px-2.5 shadow-xs sm:w-auto">
                     <Filter className="h-3.5 w-3.5 text-muted-foreground/60" />
                     <select
-                      className="bg-transparent text-[10px] font-bold uppercase tracking-tight outline-none cursor-pointer text-foreground/70"
+                      className="flex-1 bg-transparent text-[10px] font-bold uppercase tracking-tight outline-none cursor-pointer text-foreground/70 sm:flex-none"
                       value={statusFilter}
                       onChange={(event) => setStatusFilter(event.target.value as EventStatus | 'all')}
                     >
                       {EVENT_STATUS_OPTIONS.map((value) => (
                         <option key={value} value={value} className="bg-background text-foreground uppercase">
-                          {value === 'all' ? 'All Statuses' : value}
+                          {value === 'all' ? 'All' : value}
                         </option>
                       ))}
                     </select>
                   </div>
-                </>
+                </div>
               ) : null}
-
             </div>
           </div>
         }
@@ -538,70 +548,88 @@ export function DashboardView({ mode, volume }: DashboardViewProps) {
 
           <Card className="border-primary/20 bg-primary/5 backdrop-blur shadow-sm overflow-hidden shrink-0">
             <CardContent className="p-3 md:p-4 space-y-2">
-              <div className="flex flex-wrap items-center justify-between gap-2">
+              <div 
+                className="flex cursor-pointer items-center justify-between gap-2 md:cursor-default"
+                onClick={() => {
+                  if (typeof window !== 'undefined' && window.innerWidth < 768) {
+                    setIsCurlCardExpanded(!isCurlCardExpanded)
+                  }
+                }}
+              >
                 <div className="min-w-0">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-primary/90">Publish With Curl</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-primary/90">Publish With Curl</p>
+                    <div className="md:hidden">
+                      <ChevronDown className={cn("h-3 w-3 text-muted-foreground transition-transform", isCurlCardExpanded && "rotate-180")} />
+                    </div>
+                  </div>
                   <p className="text-xs text-muted-foreground">
                     {!curlFilterPath
-                      ? 'Select a path filter to generate a curl command for that path.'
+                      ? 'Select a filter to see commands.'
                       : !volumePublishKey
-                        ? 'No publish alias found for this volume.'
-                        : `Posts to filtered path: ${curlFilterPath}`
+                        ? 'No publish alias found.'
+                        : `Posts to: ${curlFilterPath}`
                     }
                   </p>
-                  {volumePublishKey ? (
-                    <p className="text-[10px] text-muted-foreground/80">
-                      Using volume alias: <span className="font-mono">{volumePublishKey}</span>
-                    </p>
-                  ) : null}
                 </div>
-                <span className="text-[10px] font-medium text-muted-foreground">Two options</span>
+                <span className="hidden text-[10px] font-medium text-muted-foreground sm:inline">Two options</span>
               </div>
-              {curlCommands ? (
-                <div className="space-y-2">
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Header alias</p>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-7 gap-1.5 text-[10px] font-bold uppercase tracking-wider"
-                        onClick={() => {
-                          void navigator.clipboard.writeText(curlCommands.header)
-                          setCopiedCurlVariant('header')
-                        }}
-                      >
-                        {copiedCurlVariant === 'header' ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-                        {copiedCurlVariant === 'header' ? 'Copied' : 'Copy'}
-                      </Button>
-                    </div>
-                    <pre className="w-full overflow-x-auto rounded-lg border border-border/60 bg-card/80 p-2.5 text-[10px] leading-5 text-foreground md:text-[11px]">
-                      <code>{curlCommands.header}</code>
-                    </pre>
-                  </div>
 
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Key in URL</p>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-7 gap-1.5 text-[10px] font-bold uppercase tracking-wider"
-                        onClick={() => {
-                          void navigator.clipboard.writeText(curlCommands.url)
-                          setCopiedCurlVariant('url')
-                        }}
-                      >
-                        {copiedCurlVariant === 'url' ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-                        {copiedCurlVariant === 'url' ? 'Copied' : 'Copy'}
-                      </Button>
+              <div className={cn("space-y-2 md:block", !isCurlCardExpanded && "hidden")}>
+                {volumePublishKey ? (
+                  <p className="text-[10px] text-muted-foreground/80">
+                    Using volume alias: <span className="font-mono">{volumePublishKey}</span>
+                  </p>
+                ) : null}
+                
+                {curlCommands ? (
+                  <div className="space-y-2 pt-1">
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Header alias</p>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 gap-1.5 text-[10px] font-bold uppercase tracking-wider"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            void navigator.clipboard.writeText(curlCommands.header)
+                            setCopiedCurlVariant('header')
+                          }}
+                        >
+                          {copiedCurlVariant === 'header' ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                          {copiedCurlVariant === 'header' ? 'Copied' : 'Copy'}
+                        </Button>
+                      </div>
+                      <pre className="w-full overflow-x-auto rounded-lg border border-border/60 bg-card/80 p-2.5 text-[10px] leading-5 text-foreground md:text-[11px]">
+                        <code>{curlCommands.header}</code>
+                      </pre>
                     </div>
-                    <pre className="w-full overflow-x-auto rounded-lg border border-border/60 bg-card/80 p-2.5 text-[10px] leading-5 text-foreground md:text-[11px]">
-                      <code>{curlCommands.url}</code>
-                    </pre>
+
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Key in URL</p>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 gap-1.5 text-[10px] font-bold uppercase tracking-wider"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            void navigator.clipboard.writeText(curlCommands.url)
+                            setCopiedCurlVariant('url')
+                          }}
+                        >
+                          {copiedCurlVariant === 'url' ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                          {copiedCurlVariant === 'url' ? 'Copied' : 'Copy'}
+                        </Button>
+                      </div>
+                      <pre className="w-full overflow-x-auto rounded-lg border border-border/60 bg-card/80 p-2.5 text-[10px] leading-5 text-foreground md:text-[11px]">
+                        <code>{curlCommands.url}</code>
+                      </pre>
+                    </div>
                   </div>
-                </div>
-              ) : null}
+                ) : null}
+              </div>
             </CardContent>
           </Card>
 
