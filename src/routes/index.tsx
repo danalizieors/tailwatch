@@ -220,7 +220,10 @@ function TailwatchLandingPage() {
       </div>
 
       <div className="relative z-10 w-full min-w-0">
-        <header className="sticky top-0 z-50 border-b border-border/50 bg-background/90 backdrop-blur-md">
+        <header
+          className="sticky top-0 z-50 border-b border-border/50 bg-background/90 backdrop-blur-md"
+          style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
+        >
           <nav
             aria-label="Primary"
             className="mx-auto flex min-h-16 w-full max-w-7xl min-w-0 flex-wrap items-center justify-between gap-3 px-4 py-2 md:h-16 md:flex-nowrap md:gap-4 md:px-6 md:py-0"
