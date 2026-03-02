@@ -71,7 +71,7 @@ export function StatusBoard({ rows, lastSeenAt }: StatusBoardProps) {
                     </div>
                     <div className="flex flex-col items-start gap-1 opacity-70 sm:flex-row sm:items-center sm:justify-between">
                       <span className="opacity-50 uppercase text-[9px] font-black tracking-widest" style={{ color: jewelText }}>Last Seen</span>
-                      <span style={{ color: jewelText }}>{formatRelative(row.lastSeenAt)}</span>
+                      <span className="text-[11px]" style={{ color: jewelText }}>{formatRelative(row.lastSeenAt)}</span>
                     </div>
                     
                     <div className="mt-4 pt-4 border-t border-white/5">

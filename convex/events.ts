@@ -154,21 +154,25 @@ async function publishResolved(
       typeof volumeDoc.userId === 'string' && volumeDoc.userId.trim().length > 0
         ? volumeDoc.userId.trim()
         : undefined
-    const payload: {
-      volume: string
-      path: string
-      status: 'busy' | 'idle'
-      content?: string
-      userId?: string
-    } = {
-      volume: volumeName,
-      path: finalPath,
-      status,
-      content: input.content,
-    }
-    if (ownerUserId) payload.userId = ownerUserId
+    
+    // Only schedule push if volume notifications are enabled
+    if (volumeDoc.notifications !== false) {
+      const payload: {
+        volume: string
+        path: string
+        status: 'busy' | 'idle'
+        content?: string
+        userId?: string
+      } = {
+        volume: volumeName,
+        path: finalPath,
+        status,
+        content: input.content,
+      }
+      if (ownerUserId) payload.userId = ownerUserId
 
-    await ctx.scheduler.runAfter(0, internal.push.sendPushForEventInternal, payload)
+      await ctx.scheduler.runAfter(0, internal.push.sendPushForEventInternal, payload)
+    }
   } catch (error) {
     console.warn('Failed to schedule push notification delivery', error)
   }

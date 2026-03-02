@@ -11,15 +11,7 @@ type HeaderSection = 'events' | 'volumes' | 'devices'
 
 interface AppShellHeaderProps {
   current?: HeaderSection
-  activeVolume?: string
-  volumeChoices?: string[]
-  showVolumeSelector?: boolean
-  onVolumeChange?: (volume: string) => void
   topRight?: ReactNode
-  actions?: ReactNode
-  eventsTopRow?: ReactNode
-  bottomRight?: ReactNode
-  belowFilter?: ReactNode
 }
 
 type NavItem = {
@@ -36,15 +28,7 @@ function currentPathForRedirect() {
 
 export function AppShellHeader({
   current,
-  activeVolume = 'personal',
-  volumeChoices = ['personal'],
-  showVolumeSelector = false,
-  onVolumeChange,
   topRight,
-  actions,
-  eventsTopRow,
-  bottomRight,
-  belowFilter,
 }: AppShellHeaderProps) {
   const { isAuthenticated, isLoading } = useConvexAuth()
   const { signIn, signOut } = useAuthActions()
@@ -62,17 +46,14 @@ export function AppShellHeader({
 
   const displayName = user?.name?.trim() || user?.email?.trim() || 'User'
   const avatarInitial = displayName.charAt(0).toUpperCase() || 'U'
-  const normalizedVolume = activeVolume.trim() || 'personal'
-  const logsHref = `/${encodeURIComponent(normalizedVolume)}`
-  const eventHref = logsHref
 
   const navItems: NavItem[] = useMemo(() => {
     return [
-      { id: 'events', label: 'Events', href: eventHref, icon: Activity },
+      { id: 'events', label: 'Events', href: '/personal', icon: Activity },
       { id: 'volumes', label: 'Volumes', href: '/settings/volumes', icon: HardDrive },
       { id: 'devices', label: 'Devices', href: '/settings/devices', icon: Laptop },
     ]
-  }, [eventHref])
+  }, [])
 
   return (
     <header className="z-50 shrink-0 border-b border-border/40 bg-background/90 px-3 py-2 backdrop-blur-md md:px-8">
@@ -255,41 +236,6 @@ export function AppShellHeader({
           </div>
         </div>
       )}
-
-      {current === 'events' && eventsTopRow ? <div className="mt-2">{eventsTopRow}</div> : null}
-
-      {current === 'events' && (showVolumeSelector || belowFilter || actions || bottomRight) ? (
-        <div className="mt-2 flex flex-col gap-2 md:flex-row md:items-center">
-          <div className="no-scrollbar flex items-center gap-2 overflow-x-auto min-w-0">
-            {showVolumeSelector ? (
-              <div className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-card/70 px-2 py-1 shrink-0">
-                <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/80">Volume</span>
-                <select
-                  value={normalizedVolume}
-                  onChange={(event) => onVolumeChange?.(event.target.value)}
-                  className="h-7 rounded-md border border-border/60 bg-background px-2 text-[11px] font-semibold text-foreground"
-                  title="Switch active volume"
-                >
-                  {volumeChoices.map((name) => (
-                    <option key={name} value={name}>
-                      {name === 'personal' ? 'personal (default)' : name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            ) : null}
-
-            {belowFilter}
-          </div>
-
-          {(actions || bottomRight) ? (
-            <div className="flex flex-col gap-2 md:flex-1 md:flex-row md:items-center md:justify-end min-w-0">
-              {actions}
-              {bottomRight}
-            </div>
-          ) : null}
-        </div>
-      ) : null}
     </header>
   )
 }

@@ -19,6 +19,9 @@ export function useDashboardData({ mode, volume, topicPrefix, pollMs = 4000 }: U
   // Track the most recent event time seen during this session.
   const lastKnownTsRef = useRef<number>(0)
   const hasInitialLoadRef = useRef(false)
+  
+  // Store previous data to avoid flickering when arguments change
+  const previousDataRef = useRef<DashboardSnapshot | undefined>(undefined)
 
   useEffect(() => {
     // Load from localStorage on mount (client-only)
@@ -57,6 +60,10 @@ export function useDashboardData({ mode, volume, topicPrefix, pollMs = 4000 }: U
     | undefined
 
   const data = mode === 'status' ? statusData : logsData
+  
+  if (data !== undefined) {
+    previousDataRef.current = data
+  }
 
   useEffect(() => {
     if (!data) return
@@ -99,9 +106,9 @@ export function useDashboardData({ mode, volume, topicPrefix, pollMs = 4000 }: U
   }
 
   return {
-    data,
+    data: data ?? previousDataRef.current,
     error,
-    isLoading: data === undefined,
+    isLoading: data === undefined && previousDataRef.current === undefined,
     isRefreshing,
     refresh,
     markAllSeen,

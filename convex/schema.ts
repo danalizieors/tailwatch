@@ -9,6 +9,7 @@ export default defineSchema({
     name: v.string(),
     key: v.optional(v.string()),
     keyEnabled: v.optional(v.boolean()),
+    notifications: v.optional(v.boolean()),
   })
     .index('by_user', ['userId'])
     .index('by_user_and_name', ['userId', 'name'])
@@ -28,6 +29,8 @@ export default defineSchema({
   devices: defineTable({
     userId: v.string(),
     name: v.string(),
+    os: v.optional(v.string()),
+    browser: v.optional(v.string()),
     deviceKey: v.string(),
     lastSeenAt: v.optional(v.string()),
     notifications: v.boolean(),
@@ -47,4 +50,4 @@ export default defineSchema({
   })
     .index('by_user', ['userId'])
     .index('by_user_and_deviceKey', ['userId', 'deviceKey']),
-})
+}, {schemaValidation: false})

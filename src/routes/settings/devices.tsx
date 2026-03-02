@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
 import { useAuthActions } from '@convex-dev/auth/react'
-import { Bell, BellOff, Laptop, Loader2, LogIn, Save, Send, Trash2 } from 'lucide-react'
+import { Bell, BellOff, Laptop, Loader2, LogIn, Save, Send, Trash2, Globe, Compass, Terminal, Command, Layout, Monitor, Key } from 'lucide-react'
 import { useAction, useConvexAuth, useMutation, useQuery } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
 import { AppShellHeader } from '~/components/layout/app-shell-header'
@@ -11,10 +11,26 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/com
 import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label'
 import { getClientDeviceKey, setClientDeviceName } from '~/lib/device-identity'
+import { cn, getPathColor } from '~/lib/utils'
+import { formatRelative } from '~/lib/format'
 
 export const Route = createFileRoute('/settings/devices')({
   component: DeviceSettingsPage,
 })
+
+function getOSIcon(os?: string) {
+  const name = os?.toLowerCase() || ''
+  if (name.includes('win')) return Layout
+  if (name.includes('mac') || name.includes('ios') || name.includes('iphone') || name.includes('ipad')) return Command
+  if (name.includes('linux') || name.includes('android')) return Terminal
+  return Monitor
+}
+
+function getBrowserIcon(browser?: string) {
+  const name = browser?.toLowerCase() || ''
+  if (name.includes('safari')) return Compass
+  return Globe
+}
 
 function DeviceSettingsPage() {
   const { isLoading: authLoading, isAuthenticated } = useConvexAuth()
@@ -22,8 +38,7 @@ function DeviceSettingsPage() {
 
   const [currentDeviceKey, setCurrentDeviceKey] = useState('')
   const [nameDraftsById, setNameDraftsById] = useState<Record<string, string>>({})
-  const [busyAction, setBusyAction] = useState<'save' | 'toggle' | 'delete' | 'test' | null>(null)
-  const [busyDeviceId, setBusyDeviceId] = useState<string | null>(null)
+  const [busyAction, setBusyAction] = useState<{ type: string; id: string } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
 
@@ -58,7 +73,7 @@ function DeviceSettingsPage() {
     })
   }, [devices])
 
-  const handleSaveDevice = async (device: NonNullable<typeof devices>[number]) => {
+  const handleSaveDevice = async (device: any) => {
     const deviceId = String(device.id)
     const draft = nameDraftsById[deviceId] ?? device.name
     const nextName = draft.trim()
@@ -68,8 +83,7 @@ function DeviceSettingsPage() {
     }
 
     try {
-      setBusyAction('save')
-      setBusyDeviceId(deviceId)
+      setBusyAction({ type: 'save', id: deviceId })
       setError(null)
       setNotice(null)
 
@@ -82,25 +96,18 @@ function DeviceSettingsPage() {
         setClientDeviceName(nextName)
       }
 
-      setNameDraftsById((previous) => ({
-        ...previous,
-        [deviceId]: nextName,
-      }))
-
       setNotice(`Device "${nextName}" updated.`)
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : 'Failed to update device')
     } finally {
       setBusyAction(null)
-      setBusyDeviceId(null)
     }
   }
 
-  const handleToggleNotifications = async (device: NonNullable<typeof devices>[number]) => {
+  const handleToggleNotifications = async (device: any) => {
     const deviceId = String(device.id)
     try {
-      setBusyAction('toggle')
-      setBusyDeviceId(deviceId)
+      setBusyAction({ type: 'toggle', id: deviceId })
       setError(null)
       setNotice(null)
 
@@ -114,11 +121,10 @@ function DeviceSettingsPage() {
       setError(toggleError instanceof Error ? toggleError.message : 'Failed to update notification state')
     } finally {
       setBusyAction(null)
-      setBusyDeviceId(null)
     }
   }
 
-  const handleDeleteDevice = async (device: NonNullable<typeof devices>[number]) => {
+  const handleDeleteDevice = async (device: any) => {
     if (device.isCurrent) return
 
     if (!window.confirm(`Delete device "${device.name}"?`)) {
@@ -126,8 +132,7 @@ function DeviceSettingsPage() {
     }
 
     try {
-      setBusyAction('delete')
-      setBusyDeviceId(String(device.id))
+      setBusyAction({ type: 'delete', id: String(device.id) })
       setError(null)
       setNotice(null)
 
@@ -140,14 +145,13 @@ function DeviceSettingsPage() {
       setError(deleteError instanceof Error ? deleteError.message : 'Failed to delete device')
     } finally {
       setBusyAction(null)
-      setBusyDeviceId(null)
     }
   }
 
-  const handleTestNotification = async (device: NonNullable<typeof devices>[number]) => {
+  const handleTestNotification = async (device: any) => {
+    const deviceId = String(device.id)
     try {
-      setBusyAction('test')
-      setBusyDeviceId(String(device.id))
+      setBusyAction({ type: 'test', id: deviceId })
       setError(null)
       setNotice(null)
 
@@ -162,7 +166,6 @@ function DeviceSettingsPage() {
       setError(testError instanceof Error ? testError.message : 'Failed to send test notification')
     } finally {
       setBusyAction(null)
-      setBusyDeviceId(null)
     }
   }
 
@@ -204,143 +207,180 @@ function DeviceSettingsPage() {
     )
   }
 
+  const sortedDevices = useMemo(() => {
+    return [...(devices ?? [])].sort((a, b) => {
+      if (a.isCurrent) return -1
+      if (b.isCurrent) return 1
+      return (b.lastSeenAt ?? '').localeCompare(a.lastSeenAt ?? '')
+    })
+  }, [devices])
+
   return (
-    <div className="flex min-h-[100svh] w-full flex-col md:min-h-dvh">
+    <div className="flex min-h-[100svh] w-full flex-col md:min-h-dvh bg-background">
       <AppShellHeader current="devices" />
-      <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-4 px-4 py-6 md:px-8 md:py-10">
-        <Card className="border-border/70 bg-card/85 backdrop-blur">
-        <CardHeader className="space-y-2">
-          <CardTitle className="flex items-center gap-2 text-base font-black uppercase tracking-wider">
-            <Laptop className="h-4 w-4 text-primary" />
-            Device Manager
-          </CardTitle>
-          <CardDescription>
-            Devices are identified by a per-browser device key and registered automatically after login.
-          </CardDescription>
-        </CardHeader>
+      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-4 py-6 md:px-8 md:py-10">
+        
+        <div className="space-y-1">
+          <h1 className="flex items-center gap-2 text-2xl font-black uppercase tracking-tight text-foreground">
+            <Laptop className="h-6 w-6 text-primary" />
+            Device Management
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Monitor and configure push notification targets for your account.
+          </p>
+        </div>
 
-        <CardContent className="space-y-4">
-          {error ? (
-            <div className="rounded-md border border-destructive/35 bg-destructive/10 px-3 py-2 text-xs font-medium text-destructive">
-              {error}
-            </div>
-          ) : null}
+        {error ? (
+          <div className="rounded-xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-xs font-medium text-destructive animate-in fade-in slide-in-from-top-1">
+            {error}
+          </div>
+        ) : null}
 
-          {notice ? (
-            <div className="rounded-md border border-success/35 bg-success/10 px-3 py-2 text-xs font-medium text-success">
-              {notice}
-            </div>
-          ) : null}
+        {notice ? (
+          <div className="rounded-xl border border-success/20 bg-success/10 px-4 py-3 text-xs font-medium text-success animate-in fade-in slide-in-from-top-1">
+            {notice}
+          </div>
+        ) : null}
 
+        {/* Device List */}
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           {devices === undefined ? (
-            <div className="flex h-9 items-center text-xs text-muted-foreground">
-              <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
-              Loading devices...
-            </div>
+            Array.from({ length: 3 }).map((_, i) => (
+              <Card key={i} className="animate-pulse border-border/40 bg-card/30 h-64" />
+            ))
           ) : devices.length === 0 ? (
-            <div className="rounded-lg border border-border/60 bg-background/50 p-3 text-xs text-muted-foreground">
-              No devices registered yet.
+            <div className="col-span-full flex flex-col items-center justify-center py-20 rounded-2xl border border-dashed border-border/60 bg-muted/10 text-muted-foreground">
+              <Monitor className="h-8 w-8 mb-2 opacity-20" />
+              <p className="text-xs font-medium uppercase tracking-widest">No devices registered</p>
             </div>
           ) : (
-            <div className="space-y-3">
-              {devices.map((device) => {
-                const deviceId = String(device.id)
-                const nameDraft = nameDraftsById[deviceId] ?? device.name
-                const isBusyDevice = busyDeviceId === deviceId
+            sortedDevices.map((device: any) => {
+              const deviceId = String(device.id)
+              const nameDraft = nameDraftsById[deviceId] ?? device.name
+              const isBusy = busyAction?.id === deviceId
+              const color = getPathColor(device.name + deviceId)
+              const OSIcon = getOSIcon(device.os)
+              const BrowserIcon = getBrowserIcon(device.browser)
 
-                return (
-                  <div key={deviceId} className="space-y-3 rounded-lg border border-border/60 bg-background/50 p-3">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="text-sm font-semibold">{device.name}</p>
-                      {device.isCurrent ? <Badge variant="success">Current Device</Badge> : null}
-                      <Badge variant={device.enabled ? 'success' : 'outline'}>
-                        {device.enabled ? 'Notifications Enabled' : 'Notifications Disabled'}
-                      </Badge>
-                    </div>
-
-                    <div className="space-y-1">
-                      <Label>Device key</Label>
-                      <div className="rounded-md border border-border/60 bg-background px-3 py-2 font-mono text-xs break-all">
-                        {device.deviceKey}
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor={`device-name-${deviceId}`}>Device name</Label>
-                      <div className="flex flex-col gap-2 sm:flex-row">
-                        <Input
-                          id={`device-name-${deviceId}`}
-                          value={nameDraft}
-                          onChange={(event) =>
-                            setNameDraftsById((previous) => ({
-                              ...previous,
-                              [deviceId]: event.target.value,
-                            }))
-                          }
-                          disabled={busyAction !== null}
+              return (
+                <Card 
+                  key={deviceId} 
+                  className={cn(
+                    "group flex flex-col overflow-hidden border-border/40 bg-card/30 transition-all hover:bg-card/50",
+                    isBusy && "opacity-60"
+                  )}
+                >
+                  <CardHeader className="p-4 pb-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        <div 
+                          className="h-8 w-1 rounded-full shrink-0"
+                          style={{ backgroundColor: color }}
                         />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => void handleSaveDevice(device)}
-                          disabled={busyAction !== null}
-                          className="gap-1.5"
-                        >
-                          {busyAction === 'save' && isBusyDevice ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-                          Save
-                        </Button>
+                        <div className="flex flex-col min-w-0">
+                          <CardTitle className="text-sm font-black uppercase tracking-tight text-foreground truncate">
+                            {device.name}
+                          </CardTitle>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <div className="flex items-center gap-1 shrink-0">
+                              <OSIcon className="h-3 w-3 text-muted-foreground/40" title={device.os} />
+                              <BrowserIcon className="h-3 w-3 text-muted-foreground/40" title={device.browser} />
+                            </div>
+                            {device.isCurrent ? (
+                              <Badge variant="success" className="text-[8px] h-4 font-black uppercase tracking-tighter px-1">You</Badge>
+                            ) : (
+                              <span className="text-[9px] font-bold text-muted-foreground/40 whitespace-nowrap">
+                                seen {device.lastSeenAt ? formatRelative(device.lastSeenAt) : 'never'}
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2">
+                      
                       <Button
-                        type="button"
-                        variant="outline"
+                        size="icon"
+                        variant="ghost"
+                        className={cn(
+                          'h-8 w-8 shrink-0 rounded-xl transition-all duration-200',
+                          device.enabled 
+                            ? 'text-primary bg-primary/5 shadow-sm border border-primary/20' 
+                            : 'text-muted-foreground/20 hover:text-muted-foreground/60 hover:bg-muted/50'
+                        )}
                         onClick={() => void handleToggleNotifications(device)}
                         disabled={busyAction !== null}
-                        className="gap-1.5"
+                        title={device.enabled ? 'Mute device' : 'Unmute device'}
                       >
-                        {busyAction === 'toggle' && isBusyDevice ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        ) : device.enabled ? (
-                          <BellOff className="h-3.5 w-3.5" />
-                        ) : (
-                          <Bell className="h-3.5 w-3.5" />
-                        )}
-                        {device.enabled ? 'Disable notifications' : 'Enable notifications'}
-                      </Button>
-
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => void handleTestNotification(device)}
-                        disabled={busyAction !== null}
-                        className="gap-1.5"
-                      >
-                        {busyAction === 'test' && isBusyDevice ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
-                        Test notification
-                      </Button>
-
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        onClick={() => void handleDeleteDevice(device)}
-                        disabled={busyAction !== null || device.isCurrent}
-                        className="gap-1.5"
-                        title={device.isCurrent ? 'Current device cannot be deleted' : 'Delete this device'}
-                      >
-                        {busyAction === 'delete' && isBusyDevice ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-                        Delete device
+                         {busyAction?.type === 'toggle' && isBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : device.enabled ? <Bell className="h-3.5 w-3.5" /> : <BellOff className="h-3.5 w-3.5" />}
                       </Button>
                     </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
+                  </CardHeader>
 
-        </CardContent>
-      </Card>
+                  <CardContent className="p-4 pt-0 flex-1 flex flex-col justify-between space-y-4">
+                    <div className="space-y-3">
+                      <div className="space-y-1.5">
+                        <Label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60">Device Name</Label>
+                        <div className="flex gap-2">
+                          <Input
+                            value={nameDraft}
+                            onChange={(event) =>
+                              setNameDraftsById((previous) => ({
+                                ...previous,
+                                [deviceId]: event.target.value,
+                              }))
+                            }
+                            className="h-8 text-xs bg-background/50"
+                            disabled={busyAction !== null}
+                          />
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => void handleSaveDevice(device)}
+                            disabled={busyAction !== null || nameDraft === device.name}
+                            className="h-8 px-2 bg-background/50"
+                          >
+                            {busyAction?.type === 'save' && isBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <Label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60">Device Key</Label>
+                        <div className="rounded-lg border border-border/40 bg-background/50 px-3 py-2 font-mono text-[9px] text-muted-foreground/60 break-all leading-tight">
+                          {device.deviceKey}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-2 border-t border-border/20">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="flex-1 h-8 rounded-lg px-2 text-[10px] font-bold uppercase tracking-wider gap-1.5 hover:bg-primary/5 hover:text-primary"
+                        onClick={() => void handleTestNotification(device)}
+                        disabled={busyAction !== null || !device.enabled || !device.hasSubscription}
+                      >
+                        {busyAction?.type === 'test' && isBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3 w-3" />}
+                        Test Push
+                      </Button>
+
+                      {!device.isCurrent && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-8 w-8 rounded-lg px-0 text-muted-foreground/40 hover:bg-destructive/5 hover:text-destructive transition-all"
+                          onClick={() => void handleDeleteDevice(device)}
+                          disabled={busyAction !== null}
+                        >
+                          {busyAction?.type === 'delete' && isBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )
+            })
+          )}
+        </div>
       </main>
     </div>
   )

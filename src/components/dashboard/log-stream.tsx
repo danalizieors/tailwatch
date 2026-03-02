@@ -12,14 +12,6 @@ export function LogStream({ events, lastSeenAt }: LogStreamProps) {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <div className="flex flex-col flex-1 min-h-0 bg-card/10 border border-primary/10 rounded-2xl overflow-hidden backdrop-blur-md">
-        {/* Table Header - Desktop Only */}
-        <div className="hidden md:grid grid-cols-[100px_80px_minmax(0,1fr)_100px] gap-4 px-6 py-2.5 bg-primary/5 text-[9px] uppercase font-black tracking-[0.2em] text-muted-foreground/60 border-b border-white/5">
-          <div>Timestamp</div>
-          <div>Status</div>
-          <div>Message</div>
-          <div className="text-right">Path</div>
-        </div>
-
         <div className="scroll-thin flex-1 overflow-y-auto">
           {events.length === 0 ? (
             <div className="flex h-full min-h-[300px] items-center justify-center flex-col gap-2 text-muted-foreground">

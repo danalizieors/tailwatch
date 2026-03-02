@@ -118,6 +118,7 @@ function mapVolume(row: VolumeDoc) {
     id: row._id,
     name: row.name,
     isDefault: row.name === DEFAULT_VOLUME_NAME,
+    notifications: row.notifications !== false, // default to true
     key: {
       id: `${row._id}:key`,
       volumeId: row._id,
@@ -126,6 +127,21 @@ function mapVolume(row: VolumeDoc) {
     },
   }
 }
+
+export const setVolumeNotifications = mutation({
+  args: {
+    volumeId: v.id('volumes'),
+    enabled: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getCurrentUserId(ctx)
+    await assertVolumeOwnership(ctx, args.volumeId, userId)
+
+    await ctx.db.patch(args.volumeId, {
+      notifications: args.enabled,
+    })
+  },
+})
 
 export const listManagedVolumes = query({
   args: {},

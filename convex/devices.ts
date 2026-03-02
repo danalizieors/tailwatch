@@ -11,7 +11,9 @@ async function requireUserId(ctx: any) {
 export const registerDevice = mutation({
   args: { 
     deviceKey: v.string(), 
-    name: v.optional(v.string()) 
+    name: v.optional(v.string()),
+    os: v.optional(v.string()),
+    browser: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const userId = await requireUserId(ctx)
@@ -24,6 +26,8 @@ export const registerDevice = mutation({
     if (existing) {
       await ctx.db.patch(existing._id, {
         name: args.name ?? existing.name,
+        os: args.os ?? existing.os,
+        browser: args.browser ?? existing.browser,
         lastSeenAt: now,
       })
       return existing._id
@@ -33,6 +37,8 @@ export const registerDevice = mutation({
       userId,
       deviceKey: args.deviceKey,
       name: args.name ?? `Device ${args.deviceKey.slice(-6)}`,
+      os: args.os,
+      browser: args.browser,
       notifications: false,
       lastSeenAt: now,
     })
@@ -98,11 +104,13 @@ export const updateDevice = mutation({
     const device = await ctx.db.get(args.deviceId)
     if (!device || device.userId !== userId) throw new Error('Unauthorized')
 
-    const patch: any = { lastSeenAt: new Date().toISOString() }
+    const patch: any = {}
     if (args.name !== undefined) patch.name = args.name
     if (args.enabled !== undefined) patch.notifications = args.enabled
     
-    await ctx.db.patch(args.deviceId, patch)
+    if (Object.keys(patch).length > 0) {
+      await ctx.db.patch(args.deviceId, patch)
+    }
   }
 })
 
@@ -121,6 +129,8 @@ export const listDevices = query({
         id: row._id,
         name: row.name,
         deviceKey: row.deviceKey,
+        os: row.os,
+        browser: row.browser,
         enabled: row.notifications,
         notifications: row.notifications,
         hasSubscription: !!row.subscription,

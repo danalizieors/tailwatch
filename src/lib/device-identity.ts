@@ -8,7 +8,7 @@ function randomDeviceKey() {
   return `device_${Math.random().toString(36).slice(2, 10)}`
 }
 
-function inferBrowserName(userAgent: string) {
+export function inferBrowserName(userAgent: string) {
   const ua = userAgent.toLowerCase()
   if (ua.includes('edg/')) return 'Edge'
   if (ua.includes('opr/') || ua.includes('opera/')) return 'Opera'
@@ -18,7 +18,7 @@ function inferBrowserName(userAgent: string) {
   return 'Browser'
 }
 
-function inferPlatformName() {
+export function inferPlatformName() {
   if (typeof navigator === 'undefined') return 'Device'
 
   const userAgentDataPlatform = (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData?.platform

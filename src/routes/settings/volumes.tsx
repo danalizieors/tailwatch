@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
 import { useAuthActions } from '@convex-dev/auth/react'
-import { Ban, HardDrive, Loader2, LogIn, Plus, RotateCw, Trash2 } from 'lucide-react'
+import { Ban, Copy, Check, HardDrive, Loader2, LogIn, Plus, RotateCw, Trash2 } from 'lucide-react'
 import { useConvexAuth, useMutation, useQuery } from 'convex/react'
 import { AppShellHeader } from '~/components/layout/app-shell-header'
 import { api } from '../../../convex/_generated/api'
@@ -10,6 +10,7 @@ import { Button } from '~/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/card'
 import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label'
+import { cn, getPathColor } from '~/lib/utils'
 
 export const Route = createFileRoute('/settings/volumes')({
   component: VolumeSettingsPage,
@@ -26,11 +27,11 @@ function VolumeSettingsPage() {
   const disableVolumeKey = useMutation(api.volumes.disableVolumeKey)
   const deleteVolume = useMutation(api.volumes.deleteVolume)
 
-  const [selectedVolumeId, setSelectedVolumeId] = useState('')
   const [newVolumeName, setNewVolumeName] = useState('')
-  const [busyAction, setBusyAction] = useState<'create' | 'rotate' | 'disable' | 'delete' | null>(null)
+  const [busyAction, setBusyAction] = useState<{ type: string; id: string } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  const [copiedKey, setCopiedKey] = useState<string | null>(null)
   const hasEnsuredPersonalRef = useRef(false)
 
   useEffect(() => {
@@ -47,26 +48,6 @@ function VolumeSettingsPage() {
     })
   }, [ensurePersonalVolume, isAuthenticated])
 
-  useEffect(() => {
-    if (!volumes || volumes.length === 0) {
-      setSelectedVolumeId('')
-      return
-    }
-
-    const stillExists = selectedVolumeId
-      ? volumes.some((volume) => String(volume.id) === selectedVolumeId)
-      : false
-
-    if (!stillExists) {
-      setSelectedVolumeId(String(volumes[0].id))
-    }
-  }, [volumes, selectedVolumeId])
-
-  const selectedVolume = useMemo(() => {
-    if (!volumes || volumes.length === 0) return null
-    return volumes.find((volume) => String(volume.id) === selectedVolumeId) ?? null
-  }, [volumes, selectedVolumeId])
-
   const handleCreateVolume = async () => {
     const name = newVolumeName.trim()
     if (!name) {
@@ -75,13 +56,12 @@ function VolumeSettingsPage() {
     }
 
     try {
-      setBusyAction('create')
+      setBusyAction({ type: 'create', id: 'new' })
       setError(null)
       setNotice(null)
 
       const created = await createVolume({ name })
       setNewVolumeName('')
-      setSelectedVolumeId(String(created.id))
       setNotice(`Volume "${created.name}" created.`)
     } catch (createError) {
       setError(createError instanceof Error ? createError.message : 'Failed to create volume')
@@ -90,16 +70,14 @@ function VolumeSettingsPage() {
     }
   }
 
-  const handleRotateKey = async () => {
-    if (!selectedVolume) return
-
+  const handleRotateKey = async (volume: any) => {
     try {
-      setBusyAction('rotate')
+      setBusyAction({ type: 'rotate', id: volume.id })
       setError(null)
       setNotice(null)
 
-      const key = await rotateVolumeKey({ volumeId: selectedVolume.id })
-      setNotice(`API key rotated for "${selectedVolume.name}". New key: ${key.value}`)
+      await rotateVolumeKey({ volumeId: volume.id })
+      setNotice(`API key rotated for "${volume.name}".`)
     } catch (rotateError) {
       setError(rotateError instanceof Error ? rotateError.message : 'Failed to rotate API key')
     } finally {
@@ -107,20 +85,18 @@ function VolumeSettingsPage() {
     }
   }
 
-  const handleDisableKey = async () => {
-    if (!selectedVolume) return
-
-    if (!window.confirm(`Disable API key for volume "${selectedVolume.name}"?`)) {
+  const handleDisableKey = async (volume: any) => {
+    if (!window.confirm(`Disable API key for volume "${volume.name}"?`)) {
       return
     }
 
     try {
-      setBusyAction('disable')
+      setBusyAction({ type: 'disable', id: volume.id })
       setError(null)
       setNotice(null)
 
-      await disableVolumeKey({ volumeId: selectedVolume.id })
-      setNotice(`API key disabled for "${selectedVolume.name}".`)
+      await disableVolumeKey({ volumeId: volume.id })
+      setNotice(`API key disabled for "${volume.name}".`)
     } catch (disableError) {
       setError(disableError instanceof Error ? disableError.message : 'Failed to disable API key')
     } finally {
@@ -128,27 +104,33 @@ function VolumeSettingsPage() {
     }
   }
 
-  const handleDeleteVolume = async () => {
-    if (!selectedVolume || selectedVolume.isDefault) return
+  const handleDeleteVolume = async (volume: any) => {
+    if (volume.isDefault) return
 
-    if (!window.confirm(`Delete volume "${selectedVolume.name}"? This also deletes all paths and events in that volume.`)) {
+    if (!window.confirm(`Delete volume "${volume.name}"? This also deletes all paths and events in that volume.`)) {
       return
     }
 
     try {
-      setBusyAction('delete')
+      setBusyAction({ type: 'delete', id: volume.id })
       setError(null)
       setNotice(null)
 
-      const result = await deleteVolume({ volumeId: selectedVolume.id })
+      const result = await deleteVolume({ volumeId: volume.id })
       setNotice(
-        `Volume "${selectedVolume.name}" deleted. Removed ${result.deletedPaths} path(s) and ${result.deletedEvents} event(s).`,
+        `Volume "${volume.name}" deleted. Removed ${result.deletedPaths} path(s) and ${result.deletedEvents} event(s).`,
       )
     } catch (deleteError) {
       setError(deleteError instanceof Error ? deleteError.message : 'Failed to delete volume')
     } finally {
       setBusyAction(null)
     }
+  }
+
+  const copyToClipboard = (text: string, id: string) => {
+    void navigator.clipboard.writeText(text)
+    setCopiedKey(id)
+    setTimeout(() => setCopiedKey(null), 2000)
   }
 
   if (authLoading) {
@@ -190,134 +172,181 @@ function VolumeSettingsPage() {
   }
 
   return (
-    <div className="flex min-h-[100svh] w-full flex-col md:min-h-dvh">
+    <div className="flex min-h-[100svh] w-full flex-col md:min-h-dvh bg-background">
       <AppShellHeader current="volumes" />
-      <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-4 px-4 py-6 md:px-8 md:py-10">
-        <Card className="border-border/70 bg-card/85 backdrop-blur">
-        <CardHeader className="space-y-2">
-          <CardTitle className="flex items-center gap-2 text-base font-black uppercase tracking-wider">
-            <HardDrive className="h-4 w-4 text-primary" />
-            Volume API Key Management
-          </CardTitle>
-          <CardDescription>
-            Select a volume, rotate its API key, disable its API key, or delete the volume.
-          </CardDescription>
-        </CardHeader>
+      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-4 py-6 md:px-8 md:py-10">
+        
+        {/* Header and Global Actions */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="space-y-1">
+            <h1 className="flex items-center gap-2 text-2xl font-black uppercase tracking-tight text-foreground">
+              <HardDrive className="h-6 w-6 text-primary" />
+              Volume Management
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Provision independent volumes to isolate telemetry streams.
+            </p>
+          </div>
 
-        <CardContent className="space-y-4">
-          {error ? (
-            <div className="rounded-md border border-destructive/35 bg-destructive/10 px-3 py-2 text-xs font-medium text-destructive">
-              {error}
-            </div>
-          ) : null}
-
-          {notice ? (
-            <div className="rounded-md border border-success/35 bg-success/10 px-3 py-2 text-xs font-medium text-success">
-              {notice}
-            </div>
-          ) : null}
-
-          <div className="space-y-2 rounded-lg border border-border/60 bg-background/50 p-3">
-            <Label htmlFor="volume-name">Create volume</Label>
+          <div className="w-full sm:w-auto">
             <div className="flex flex-col gap-2 sm:flex-row">
               <Input
-                id="volume-name"
                 value={newVolumeName}
                 onChange={(event) => setNewVolumeName(event.target.value)}
-                placeholder="team-a"
+                placeholder="volume-name"
+                className="h-9 w-full sm:w-48 bg-card/50"
                 disabled={busyAction !== null}
               />
-              <Button type="button" onClick={() => void handleCreateVolume()} disabled={busyAction !== null} className="gap-1.5">
-                {busyAction === 'create' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
-                Create
+              <Button 
+                type="button" 
+                onClick={() => void handleCreateVolume()} 
+                disabled={busyAction !== null} 
+                className="h-9 gap-1.5 font-bold uppercase tracking-wider text-[10px]"
+              >
+                {busyAction?.type === 'create' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+                Create Volume
               </Button>
             </div>
           </div>
+        </div>
 
-          <div className="space-y-2 rounded-lg border border-border/60 bg-background/50 p-3">
-            <Label htmlFor="volume-select">Select volume</Label>
-            {volumes === undefined ? (
-              <div className="flex h-9 items-center text-xs text-muted-foreground">
-                <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
-                Loading volumes...
-              </div>
-            ) : volumes.length === 0 ? (
-              <div className="text-xs text-muted-foreground">No volumes available.</div>
-            ) : (
-              <select
-                id="volume-select"
-                value={selectedVolumeId}
-                onChange={(event) => setSelectedVolumeId(event.target.value)}
-                className="h-9 w-full rounded-md border bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                disabled={busyAction !== null}
-              >
-                {volumes.map((volume) => (
-                  <option key={String(volume.id)} value={String(volume.id)}>
-                    {volume.name}
-                    {volume.isDefault ? ' (default)' : ''}
-                  </option>
-                ))}
-              </select>
-            )}
+        {error ? (
+          <div className="rounded-xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-xs font-medium text-destructive animate-in fade-in slide-in-from-top-1">
+            {error}
           </div>
+        ) : null}
 
-          {selectedVolume ? (
-            <div className="space-y-3 rounded-lg border border-border/60 bg-background/50 p-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <p className="text-sm font-semibold">{selectedVolume.name}</p>
-                {selectedVolume.isDefault ? <Badge variant="success">Default</Badge> : null}
-                <Badge variant={selectedVolume.key.enabled ? 'success' : 'warning'}>
-                  {selectedVolume.key.enabled ? 'API Key Enabled' : 'API Key Disabled'}
-                </Badge>
-              </div>
+        {notice ? (
+          <div className="rounded-xl border border-success/20 bg-success/10 px-4 py-3 text-xs font-medium text-success animate-in fade-in slide-in-from-top-1">
+            {notice}
+          </div>
+        ) : null}
 
-              <div className="space-y-1">
-                <Label>Current API key</Label>
-                <div className="rounded-md border border-border/60 bg-background px-3 py-2 font-mono text-xs break-all">
-                  {selectedVolume.key.value || 'No API key (disabled)'}
-                </div>
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => void handleRotateKey()}
-                  disabled={busyAction !== null}
-                  className="gap-1.5"
-                >
-                  {busyAction === 'rotate' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCw className="h-3.5 w-3.5" />}
-                  Rotate API key
-                </Button>
-
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => void handleDisableKey()}
-                  disabled={busyAction !== null || !selectedVolume.key.enabled}
-                  className="gap-1.5"
-                >
-                  {busyAction === 'disable' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Ban className="h-3.5 w-3.5" />}
-                  Disable API key
-                </Button>
-
-                <Button
-                  type="button"
-                  variant="destructive"
-                  onClick={() => void handleDeleteVolume()}
-                  disabled={busyAction !== null || selectedVolume.isDefault}
-                  className="gap-1.5"
-                  title={selectedVolume.isDefault ? 'Default volume cannot be deleted' : 'Delete this volume'}
-                >
-                  {busyAction === 'delete' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-                  Delete volume
-                </Button>
-              </div>
+        {/* Volume List */}
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {volumes === undefined ? (
+            Array.from({ length: 3 }).map((_, i) => (
+              <Card key={i} className="animate-pulse border-border/40 bg-card/30 h-48" />
+            ))
+          ) : volumes.length === 0 ? (
+            <div className="col-span-full flex flex-col items-center justify-center py-20 rounded-2xl border border-dashed border-border/60 bg-muted/10 text-muted-foreground">
+              <HardDrive className="h-8 w-8 mb-2 opacity-20" />
+              <p className="text-xs font-medium uppercase tracking-widest">No volumes configured</p>
             </div>
-          ) : null}
+          ) : (
+            volumes.map((volume: any) => {
+              const color = getPathColor(volume.name)
+              const isBusy = busyAction?.id === volume.id
+              
+              return (
+                <Card 
+                  key={volume.id} 
+                  className={cn(
+                    "group flex flex-col overflow-hidden border-border/40 bg-card/30 transition-all hover:bg-card/50",
+                    isBusy && "opacity-60"
+                  )}
+                >
+                  <CardHeader className="p-4 pb-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        <div 
+                          className="h-8 w-1 rounded-full shrink-0"
+                          style={{ backgroundColor: color }}
+                        />
+                        <div className="flex flex-col">
+                          <CardTitle className="text-sm font-black uppercase tracking-tight text-foreground">
+                            {volume.name}
+                          </CardTitle>
+                          <div className="flex items-center gap-1.5">
+                            {volume.isDefault ? (
+                              <Badge variant="success" className="text-[8px] h-4 font-black uppercase tracking-tighter px-1">Default</Badge>
+                            ) : null}
+                            <Badge 
+                              variant={volume.key.enabled ? 'outline' : 'warning'} 
+                              className="text-[8px] h-4 font-black uppercase tracking-tighter px-1 border-primary/20 text-primary/80"
+                            >
+                              {volume.key.enabled ? 'Key Active' : 'Key Disabled'}
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </CardHeader>
 
-        </CardContent>
-      </Card>
+                  <CardContent className="p-4 pt-0 flex-1 flex flex-col justify-between space-y-4">
+                    <div className="space-y-2">
+                      <Label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60">API Key</Label>
+                      <div className="group/key relative flex items-center rounded-lg border border-border/40 bg-background/50 px-3 py-2 font-mono text-[10px] break-all">
+                        <span className={cn("flex-1", !volume.key.enabled && "italic text-muted-foreground/40")}>
+                          {volume.key.value || 'No active key'}
+                        </span>
+                        {volume.key.enabled && (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-6 w-6 ml-2 shrink-0 text-muted-foreground hover:text-primary transition-colors"
+                            onClick={() => copyToClipboard(volume.key.value, volume.id)}
+                          >
+                            {copiedKey === volume.id ? <Check className="h-3 w-3 text-success" /> : <Copy className="h-3 w-3" />}
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-2 border-t border-border/20">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="flex-1 h-8 rounded-lg px-2 text-[10px] font-bold uppercase tracking-wider gap-1.5 hover:bg-primary/5 hover:text-primary"
+                        onClick={() => void handleRotateKey(volume)}
+                        disabled={busyAction !== null}
+                      >
+                        {busyAction?.type === 'rotate' && isBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCw className="h-3.5 w-3.5" />}
+                        Rotate
+                      </Button>
+
+                      {volume.key.enabled ? (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="flex-1 h-8 rounded-lg px-2 text-[10px] font-bold uppercase tracking-wider gap-1.5 hover:bg-warning/5 hover:text-warning"
+                          onClick={() => void handleDisableKey(volume)}
+                          disabled={busyAction !== null}
+                        >
+                          {busyAction?.type === 'disable' && isBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Ban className="h-3.5 w-3.5" />}
+                          Disable
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="flex-1 h-8 rounded-lg px-2 text-[10px] font-bold uppercase tracking-wider gap-1.5 hover:bg-success/5 hover:text-success"
+                          onClick={() => void handleRotateKey(volume)}
+                          disabled={busyAction !== null}
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                          Enable
+                        </Button>
+                      )}
+
+                      {!volume.isDefault && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-8 w-8 rounded-lg px-0 text-muted-foreground/40 hover:bg-destructive/5 hover:text-destructive transition-all"
+                          onClick={() => void handleDeleteVolume(volume)}
+                          disabled={busyAction !== null}
+                        >
+                          {busyAction?.type === 'delete' && isBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )
+            })
+          )}
+        </div>
       </main>
     </div>
   )
