@@ -231,13 +231,13 @@ function DeviceSettingsPage() {
         </div>
 
         {error ? (
-          <div className="rounded-xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-xs font-medium text-destructive animate-in fade-in slide-in-from-top-1">
+          <div className="rounded-xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-destructive animate-in fade-in slide-in-from-top-1">
             {error}
           </div>
         ) : null}
 
         {notice ? (
-          <div className="rounded-xl border border-success/20 bg-success/10 px-4 py-3 text-xs font-medium text-success animate-in fade-in slide-in-from-top-1">
+          <div className="rounded-xl border border-success/20 bg-success/10 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-success animate-in fade-in slide-in-from-top-1">
             {notice}
           </div>
         ) : null}
@@ -251,7 +251,7 @@ function DeviceSettingsPage() {
           ) : devices.length === 0 ? (
             <div className="col-span-full flex flex-col items-center justify-center py-20 rounded-2xl border border-dashed border-border/60 bg-muted/10 text-muted-foreground">
               <Monitor className="h-8 w-8 mb-2 opacity-20" />
-              <p className="text-xs font-medium uppercase tracking-widest">No devices registered</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">No devices registered</p>
             </div>
           ) : (
             sortedDevices.map((device: any) => {
@@ -278,7 +278,7 @@ function DeviceSettingsPage() {
                           style={{ backgroundColor: color }}
                         />
                         <div className="flex flex-col min-w-0">
-                          <CardTitle className="text-sm font-black uppercase tracking-tight text-foreground truncate">
+                          <CardTitle className="text-[11px] font-black uppercase tracking-widest text-foreground truncate">
                             {device.name}
                           </CardTitle>
                           <div className="flex items-center gap-1.5 mt-0.5">
@@ -287,7 +287,7 @@ function DeviceSettingsPage() {
                               <BrowserIcon className="h-3 w-3 text-muted-foreground/40" title={device.browser} />
                             </div>
                             {device.isCurrent ? (
-                              <Badge variant="success" className="text-[8px] h-4 font-black uppercase tracking-tighter px-1">You</Badge>
+                              <Badge variant="success" className="text-[8px] h-4 font-black uppercase tracking-widest px-1">You</Badge>
                             ) : (
                               <span className="text-[9px] font-bold text-muted-foreground/40 whitespace-nowrap">
                                 seen {device.lastSeenAt ? formatRelative(device.lastSeenAt) : 'never'}
@@ -318,7 +318,7 @@ function DeviceSettingsPage() {
                   <CardContent className="p-4 pt-0 flex-1 flex flex-col justify-between space-y-4">
                     <div className="space-y-3">
                       <div className="space-y-1.5">
-                        <Label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60">Device Name</Label>
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 leading-none ml-1">Device Name</Label>
                         <div className="flex gap-2">
                           <Input
                             value={nameDraft}
@@ -328,7 +328,7 @@ function DeviceSettingsPage() {
                                 [deviceId]: event.target.value,
                               }))
                             }
-                            className="h-8 text-xs bg-background/50"
+                            className="h-8 text-[10px] bg-background/50 font-black uppercase tracking-widest"
                             disabled={busyAction !== null}
                           />
                           <Button
@@ -344,7 +344,7 @@ function DeviceSettingsPage() {
                       </div>
 
                       <div className="space-y-1.5">
-                        <Label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60">Device Key</Label>
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 leading-none ml-1">Device Key</Label>
                         <div className="rounded-lg border border-border/40 bg-background/50 px-3 py-2 font-mono text-[9px] text-muted-foreground/60 break-all leading-tight">
                           {device.deviceKey}
                         </div>
@@ -355,7 +355,7 @@ function DeviceSettingsPage() {
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="flex-1 h-8 rounded-lg px-2 text-[10px] font-bold uppercase tracking-wider gap-1.5 hover:bg-primary/5 hover:text-primary"
+                        className="flex-1 h-8 rounded-lg px-2 text-[10px] font-black uppercase tracking-widest gap-2 hover:bg-primary/5 hover:text-primary transition-all active:scale-95"
                         onClick={() => void handleTestNotification(device)}
                         disabled={busyAction !== null || !device.enabled || !device.hasSubscription}
                       >
@@ -367,7 +367,7 @@ function DeviceSettingsPage() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="h-8 w-8 rounded-lg px-0 text-muted-foreground/40 hover:bg-destructive/5 hover:text-destructive transition-all"
+                          className="h-8 w-8 rounded-lg px-0 text-muted-foreground/40 hover:bg-destructive/5 hover:text-destructive transition-all active:scale-95"
                           onClick={() => void handleDeleteDevice(device)}
                           disabled={busyAction !== null}
                         >

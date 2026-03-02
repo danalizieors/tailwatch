@@ -14,8 +14,8 @@ export function StatusBoard({ rows, lastSeenAt }: StatusBoardProps) {
       <div className="flex-1 min-h-0 overflow-y-auto scroll-thin">
         {rows.length === 0 ? (
           <div className="flex h-full min-h-[300px] items-center justify-center flex-col gap-2 text-muted-foreground">
-            <AlertCircle className="h-5 w-5 opacity-40" />
-            <span className="text-xs font-medium opacity-60">Status Board empty</span>
+            <AlertCircle className="h-5 w-5 opacity-20" />
+            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">Status Board empty</span>
           </div>
         ) : (
           <div className="grid gap-3 px-1 pb-6 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 2xl:grid-cols-4">
@@ -51,7 +51,7 @@ export function StatusBoard({ rows, lastSeenAt }: StatusBoardProps) {
                       <span className="text-lg font-black truncate tracking-tight" style={{ color: jewelText }}>
                         {row.entityId}
                       </span>
-                      <span className="text-[10px] font-bold uppercase tracking-[0.2em] mt-1 opacity-60" style={{ color: jewelText }}>
+                      <span className="text-[10px] font-black uppercase tracking-widest mt-1 opacity-40" style={{ color: jewelText }}>
                         {row.entityType}
                       </span>
                     </div>
@@ -66,12 +66,12 @@ export function StatusBoard({ rows, lastSeenAt }: StatusBoardProps) {
                   
                   <div className="space-y-3.5 text-[11px] font-semibold">
                     <div className="flex flex-col items-start gap-1 border-b border-white/5 pb-2 sm:flex-row sm:items-center sm:justify-between">
-                      <span className="opacity-50 uppercase text-[9px] font-black tracking-widest" style={{ color: jewelText }}>Path</span>
+                      <span className="opacity-40 uppercase text-[10px] font-black tracking-widest" style={{ color: jewelText }}>Path</span>
                       <span className="max-w-full break-all font-mono opacity-90 sm:max-w-[160px] sm:truncate" style={{ color: jewelText }}>{row.path}</span>
                     </div>
-                    <div className="flex flex-col items-start gap-1 opacity-70 sm:flex-row sm:items-center sm:justify-between">
-                      <span className="opacity-50 uppercase text-[9px] font-black tracking-widest" style={{ color: jewelText }}>Last Seen</span>
-                      <span className="text-[11px]" style={{ color: jewelText }}>{formatRelative(row.lastSeenAt)}</span>
+                    <div className="flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:justify-between">
+                      <span className="opacity-40 uppercase text-[10px] font-black tracking-widest" style={{ color: jewelText }}>Last Seen</span>
+                      <span className="text-[11px] opacity-90" style={{ color: jewelText }}>{formatRelative(row.lastSeenAt)}</span>
                     </div>
                     
                     <div className="mt-4 pt-4 border-t border-white/5">
@@ -83,7 +83,7 @@ export function StatusBoard({ rows, lastSeenAt }: StatusBoardProps) {
                           border: `1px solid oklch(from ${pathColor} 0.25 0.08 h / 0.3)`
                         }}
                       >
-                        {row.lastContent ?? <span className="italic opacity-30 uppercase tracking-tighter">No Payload</span>}
+                        {row.lastContent ?? <span className="italic opacity-20 uppercase tracking-widest text-[9px]">No Payload</span>}
                       </div>
                     </div>
                   </div>

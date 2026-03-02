@@ -81,10 +81,10 @@ export function AppShellHeader({
                   key={item.id}
                   to={item.href as any}
                   className={cn(
-                    'group relative flex items-center gap-2.5 text-sm font-medium transition-all duration-300',
+                    'group relative flex items-center gap-2.5 text-[10px] font-black uppercase tracking-widest transition-all duration-300',
                     active
                       ? 'text-primary'
-                      : 'text-muted-foreground hover:text-foreground',
+                      : 'text-muted-foreground/60 hover:text-foreground',
                   )}
                 >
                   <div className={cn(
@@ -93,10 +93,10 @@ export function AppShellHeader({
                   )}>
                     <Icon className={cn(
                       "h-4 w-4 transition-colors",
-                      active ? "text-primary" : "text-muted-foreground/60 group-hover:text-foreground"
+                      active ? "text-primary" : "text-muted-foreground/40 group-hover:text-foreground"
                     )} />
                   </div>
-                  <span className={cn("relative z-10 transition-all duration-300", active && "font-bold tracking-tight")}>{item.label}</span>
+                  <span className={cn("relative z-10 transition-all duration-300", active && "text-primary font-black")}>{item.label}</span>
                 </Link>
               )
             })}
@@ -151,8 +151,8 @@ export function AppShellHeader({
               type="button"
               size="sm"
               variant="outline"
-              onClick={() => void signIn('github', { redirectTo: currentPathForRedirect() })}
-              className="hidden gap-1.5 md:flex"
+              onClick={() => void signIn('github')}
+              className="hidden gap-1.5 md:flex text-[10px] font-black uppercase tracking-widest"
             >
               <LogIn className="h-3.5 w-3.5" />
               Sign in
@@ -184,33 +184,48 @@ export function AppShellHeader({
                 )}
               </div>
               <div className="flex flex-col min-w-0">
-                <p className="truncate text-sm font-bold text-foreground">{displayName}</p>
-                {user.email ? <p className="truncate text-xs text-muted-foreground">{user.email}</p> : null}
+                <p className="truncate text-[10px] font-black uppercase tracking-widest text-foreground">{displayName}</p>
+                {user.email ? <p className="truncate text-[10px] text-muted-foreground/60">{user.email}</p> : null}
               </div>
             </div>
           )}
 
           <div className="flex flex-col gap-1">
-            {navItems.map((item) => {
-              const Icon = item.icon
-              const active = current === item.id
-              return (
-                <Link
-                  key={item.id}
-                  to={item.href as any}
-                  onClick={() => setIsMenuOpen(false)}
-                  className={cn(
-                    'flex items-center gap-3 rounded-lg px-3 py-2.5 text-xs font-bold uppercase tracking-wider transition-colors',
-                    active
-                      ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20'
-                      : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-                  )}
-                >
-                  <Icon className="h-4 w-4" />
-                  {item.label}
-                </Link>
-              )
-            })}
+            {isAuthenticated ? (
+              navItems.map((item) => {
+                const Icon = item.icon
+                const active = current === item.id
+                return (
+                  <Link
+                    key={item.id}
+                    to={item.href as any}
+                    onClick={() => setIsMenuOpen(false)}
+                    className={cn(
+                      'flex items-center gap-3 rounded-lg px-3 py-2.5 text-[10px] font-black uppercase tracking-widest transition-colors',
+                      active
+                        ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20'
+                        : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                    )}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {item.label}
+                  </Link>
+                )
+              })
+            ) : !isLoading && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="justify-start gap-3 h-11 text-[10px] font-black uppercase tracking-widest text-primary border-primary/20"
+                onClick={() => {
+                  setIsMenuOpen(false)
+                  void signIn('github')
+                }}
+              >
+                <LogIn className="h-4 w-4" />
+                Sign in to access dashboard
+              </Button>
+            )}
           </div>
           
           <div className="flex items-center justify-between border-t border-border/40 pt-3 px-1 mt-1">
@@ -222,7 +237,7 @@ export function AppShellHeader({
               <Button
                 variant="ghost"
                 size="sm"
-                className="gap-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 h-9"
+                className="gap-2 text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 h-9 text-[10px] font-black uppercase tracking-widest"
                 onClick={async () => {
                   setIsMenuOpen(false)
                   await signOut()
@@ -238,9 +253,9 @@ export function AppShellHeader({
                 size="sm"
                 onClick={() => {
                   setIsMenuOpen(false)
-                  void signIn('github', { redirectTo: currentPathForRedirect() })
+                  void signIn('github')
                 }}
-                className="gap-2 h-9 px-4"
+                className="gap-2 h-9 px-4 text-[10px] font-black uppercase tracking-widest"
               >
                 <LogIn className="h-4 w-4" />
                 <span>Sign in</span>

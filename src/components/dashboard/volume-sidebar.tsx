@@ -81,7 +81,7 @@ export function VolumeSidebar({
       <div className="flex flex-col gap-4">
         <div className="flex items-center px-1">
           <HardDrive className="h-4 w-4 text-primary" />
-          <h3 className="text-[10px] font-black uppercase tracking-widest text-foreground ml-2">Volumes</h3>
+          <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-2">Volumes</h3>
         </div>
 
         <nav className="flex flex-col gap-2">
@@ -93,32 +93,40 @@ export function VolumeSidebar({
               <div 
                 key={vol.name} 
                 className={cn(
-                  "group relative flex items-center gap-1 p-1 rounded-2xl transition-all duration-200 border border-transparent",
-                  isActive ? "bg-card border-border/40 shadow-sm ring-1 ring-primary/5" : "hover:bg-muted/30"
+                  "group relative flex items-center gap-1 p-1.5 rounded-2xl transition-all duration-300 border",
+                  isActive 
+                    ? "bg-primary/10 border-primary/30 shadow-[0_0_20px_-5px_rgba(var(--primary-rgb),0.2)] ring-1 ring-primary/20" 
+                    : "border-transparent hover:bg-muted/30"
                 )}
               >
                 <button
                   type="button"
                   onClick={() => onVolumeChange(vol.name)}
-                  className="flex-1 flex items-center gap-3 p-1.5 text-left min-w-0"
+                  className="flex-1 flex items-center gap-3 p-1 text-left min-w-0"
                 >
                   {/* Visual Marker */}
                   <div 
-                    className="h-8 w-1.5 rounded-full shrink-0 transition-all duration-300 group-hover:scale-y-110"
+                    className={cn(
+                      "h-10 w-1.5 rounded-full shrink-0 transition-all duration-500",
+                      isActive ? "scale-y-100" : "scale-y-50 group-hover:scale-y-75"
+                    )}
                     style={{ 
                       backgroundColor: color,
-                      boxShadow: isActive ? `0 0 16px ${color}66` : undefined
+                      boxShadow: isActive ? `0 0 20px ${color}` : undefined
                     }}
                   />
                   
                   <div className="flex flex-col min-w-0">
                     <span className={cn(
-                      "text-[11px] font-black uppercase tracking-wider truncate leading-none mb-1",
-                      isActive ? "text-foreground" : "text-muted-foreground group-hover:text-foreground/80"
+                      "text-[11px] font-black uppercase tracking-[0.1em] truncate leading-none mb-1.5 transition-colors",
+                      isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
                     )}>
                       {vol.name}
                     </span>
-                    <div className="flex items-center gap-1.5 text-muted-foreground/40 group-hover:text-muted-foreground/60">
+                    <div className={cn(
+                      "flex items-center gap-1.5 transition-colors",
+                      isActive ? "text-primary/60" : "text-muted-foreground/40 group-hover:text-muted-foreground/60"
+                    )}>
                       <span className="text-[9px] font-mono font-bold tracking-tighter truncate">
                         {vol.key || 'no_key'}
                       </span>
@@ -130,10 +138,10 @@ export function VolumeSidebar({
                   size="icon"
                   variant="ghost"
                   className={cn(
-                    'h-8 w-8 shrink-0 rounded-xl transition-all duration-200',
+                    'h-9 w-9 shrink-0 rounded-xl transition-all duration-200',
                     vol.notificationsEnabled 
-                      ? 'text-primary bg-primary/5 shadow-sm border border-primary/20' 
-                      : 'text-muted-foreground/20 hover:text-muted-foreground/60 hover:bg-muted/50'
+                      ? 'text-primary bg-primary/10 shadow-sm border border-primary/30' 
+                      : 'text-muted-foreground/40 hover:text-muted-foreground/80 hover:bg-muted/50'
                   )}
                   onClick={(e) => {
                     e.stopPropagation();
@@ -141,7 +149,7 @@ export function VolumeSidebar({
                   }}
                   title={vol.notificationsEnabled ? 'Disable notifications' : 'Enable notifications'}
                 >
-                   {vol.notificationsEnabled ? <Bell className="h-3.5 w-3.5" /> : <BellOff className="h-3.5 w-3.5" />}
+                   {vol.notificationsEnabled ? <Bell className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
                 </Button>
               </div>
             )
@@ -154,7 +162,7 @@ export function VolumeSidebar({
         <div className="flex flex-col gap-4">
           <div className="flex items-center px-1">
             <Laptop className="h-4 w-4 text-primary" />
-            <h3 className="text-[10px] font-black uppercase tracking-widest text-foreground ml-2">Devices</h3>
+            <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-2">Devices</h3>
           </div>
 
           <div className="flex flex-col gap-2">
@@ -165,7 +173,7 @@ export function VolumeSidebar({
                  ))}
                </div>
             ) : devices.length === 0 ? (
-              <p className="px-2 text-[10px] font-medium text-muted-foreground/50 italic">No devices registered</p>
+              <p className="px-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 italic">No devices</p>
             ) : (
               sortedDevices.map((device) => {
                 const OSIcon = getOSIcon(device.os);
@@ -176,38 +184,41 @@ export function VolumeSidebar({
                   <div 
                     key={String(device.id)} 
                     className={cn(
-                      "group relative flex items-center gap-1 p-1 rounded-2xl transition-all duration-200 border border-transparent",
-                      device.isCurrent ? "bg-card border-border/40 shadow-sm ring-1 ring-primary/5" : "hover:bg-muted/30"
+                      "group relative flex items-center gap-1 p-1.5 rounded-2xl transition-all duration-300 border",
+                      device.isCurrent 
+                        ? "bg-primary/10 border-primary/30 shadow-[0_0_20px_-5px_rgba(var(--primary-rgb),0.2)] ring-1 ring-primary/20" 
+                        : "border-transparent hover:bg-muted/30"
                     )}
                   >
-                    <div className="flex-1 flex items-center gap-3 p-1.5 text-left min-w-0">
+                    <div className="flex-1 flex items-center gap-3 p-1 text-left min-w-0">
                       {/* Visual Marker for Device */}
                       <div 
-                        className="h-8 w-1 rounded-full shrink-0 transition-all duration-300 group-hover:scale-y-110"
+                        className={cn(
+                          "h-10 w-1.5 rounded-full shrink-0 transition-all duration-500",
+                          device.isCurrent ? "scale-y-100" : "scale-y-50 group-hover:scale-y-75"
+                        )}
                         style={{ 
                           backgroundColor: color,
-                          boxShadow: device.isCurrent ? `0 0 12px ${color}44` : undefined
+                          boxShadow: device.isCurrent ? `0 0 20px ${color}` : undefined
                         }}
-                      />
-
-                      <div className="flex flex-col min-w-0">
+                      />                      <div className="flex flex-col min-w-0">
                         <div className="flex items-center gap-1.5">
                           <div className="flex items-center gap-1 shrink-0 mr-1">
-                            <OSIcon className="h-3 w-3 text-muted-foreground/40" title={device.os} />
-                            <BrowserIcon className="h-3 w-3 text-muted-foreground/40" title={device.browser} />
+                            <OSIcon className="h-3 w-3 text-muted-foreground/60" title={device.os} />
+                            <BrowserIcon className="h-3 w-3 text-muted-foreground/60" title={device.browser} />
                           </div>
                           <span className={cn(
-                            "text-[10px] font-black uppercase tracking-wider truncate leading-none",
-                            device.isCurrent ? "text-foreground" : "text-muted-foreground"
+                            "text-[11px] font-black uppercase tracking-[0.1em] truncate leading-none transition-colors",
+                            device.isCurrent ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
                           )}>
                             {device.name}
                           </span>
                         </div>
-                        <div className="flex items-center gap-1.5 mt-1">
+                        <div className="flex items-center gap-1.5 mt-1.5 transition-colors">
                           {device.isCurrent ? (
-                            <span className="text-[8px] font-black text-primary/60 bg-primary/10 px-1.5 py-0.5 rounded-[4px] uppercase tracking-tighter border border-primary/20">You</span>
+                            <span className="text-[8px] font-black text-primary/80 bg-primary/10 px-1.5 py-0.5 rounded-[4px] uppercase tracking-tighter border border-primary/20">You</span>
                           ) : (
-                            <span className="text-[9px] font-bold text-muted-foreground/30">
+                            <span className="text-[9px] font-bold text-muted-foreground/60 group-hover:text-muted-foreground/80">
                               {device.lastSeenAt ? formatRelative(device.lastSeenAt) : 'never seen'}
                             </span>
                           )}
@@ -219,10 +230,10 @@ export function VolumeSidebar({
                       size="icon"
                       variant="ghost"
                       className={cn(
-                        'h-8 w-8 shrink-0 rounded-xl transition-all duration-200',
+                        'h-9 w-9 shrink-0 rounded-xl transition-all duration-200',
                         device.enabled 
-                          ? 'text-primary bg-primary/5 shadow-sm border border-primary/20' 
-                          : 'text-muted-foreground/20 hover:text-muted-foreground/60 hover:bg-muted/50'
+                          ? 'text-primary bg-primary/10 shadow-sm border border-primary/30' 
+                          : 'text-muted-foreground/40 hover:text-muted-foreground/80 hover:bg-muted/50'
                       )}
                       onClick={(e) => {
                         e.stopPropagation();
@@ -230,7 +241,7 @@ export function VolumeSidebar({
                       }}
                       title={device.enabled ? 'Mute device' : 'Unmute device'}
                     >
-                       {device.enabled ? <Bell className="h-3.5 w-3.5" /> : <BellOff className="h-3.5 w-3.5" />}
+                       {device.enabled ? <Bell className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
                     </Button>
                   </div>
                 )
@@ -242,9 +253,9 @@ export function VolumeSidebar({
 
       {!isAuthenticated && (
         <div className="mt-auto rounded-xl border border-dashed border-border/60 bg-muted/20 p-4">
-          <div className="flex items-start gap-2 text-muted-foreground">
+          <div className="flex items-start gap-2 text-muted-foreground/80">
             <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-            <p className="text-[10px] font-medium leading-relaxed">
+            <p className="text-[10px] font-black uppercase tracking-widest leading-relaxed">
               Sign in to manage custom volumes and device alerts.
             </p>
           </div>

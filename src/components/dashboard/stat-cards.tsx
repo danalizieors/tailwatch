@@ -31,7 +31,7 @@ export function StatCards({ stats, orientation = 'horizontal' }: StatCardsProps)
             </div>
           )}
           <div className="flex flex-col">
-            <span className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest leading-none mb-1">{item.label}</span>
+            <span className="text-[10px] font-black text-muted-foreground/80 uppercase tracking-widest leading-none mb-1.5">{item.label}</span>
             <span className={cn(
               "text-sm font-semibold font-mono tabular-nums",
               orientation === 'horizontal' ? item.color : "text-foreground"

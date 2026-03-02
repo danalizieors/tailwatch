@@ -308,7 +308,7 @@ export function DashboardView({ initialMode = 'logs', volume, isAuthLoading, sho
 
               {/* Log Header - Sticky when in logs mode */}
               {mode === 'logs' && (
-                <div className="hidden md:grid grid-cols-[100px_80px_minmax(0,1fr)_100px] gap-4 px-6 py-2 bg-primary/5 rounded-xl text-[9px] uppercase font-black tracking-[0.2em] text-muted-foreground/50 border border-white/5 shadow-sm">
+                <div className="hidden md:grid grid-cols-[100px_80px_minmax(0,1fr)_100px] gap-4 px-6 py-2 bg-primary/5 rounded-xl text-[10px] uppercase font-black tracking-widest text-muted-foreground/40 border border-white/5 shadow-sm">
                   <div>Timestamp</div>
                   <div>Status</div>
                   <div>Message</div>

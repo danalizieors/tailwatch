@@ -69,7 +69,7 @@ export function IngestTools({
           </p>
           <Button
             size="sm"
-            className="w-full h-9 rounded-lg font-bold uppercase tracking-wider text-[10px] gap-2 shadow-sm"
+            className="w-full h-9 rounded-lg font-black uppercase tracking-widest text-[10px] gap-2 shadow-sm"
             onClick={onSendTest}
             disabled={isGeneratingRandomEvents}
           >
@@ -87,7 +87,7 @@ export function IngestTools({
           </Button>
           {generatorMessage && (
             <p className={cn(
-              "text-[10px] font-medium text-center",
+              "text-[10px] font-black uppercase tracking-widest text-center",
               generatorMessage.includes('Failed') ? "text-destructive" : "text-success"
             )}>
               {generatorMessage}
@@ -116,14 +116,14 @@ export function IngestTools({
             {!selectedTopic ? (
               <div className="flex items-start gap-2 rounded-lg bg-muted/40 p-3">
                 <Info className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
-                <p className="text-[10px] text-muted-foreground leading-normal">
+                <p className="text-[10px] text-muted-foreground font-medium leading-normal">
                   Select a topic/path in the navigator above to see your customized ingest commands.
                 </p>
               </div>
             ) : !volumePublishKey ? (
               <div className="flex items-start gap-2 rounded-lg bg-warning/10 border border-warning/20 p-3">
                 <Box className="h-3.5 w-3.5 text-warning mt-0.5 shrink-0" />
-                <p className="text-[10px] text-warning/90 leading-normal">
+                <p className="text-[10px] text-warning font-black uppercase tracking-widest leading-normal">
                   No API key found for this volume. Please check your volume settings to enable publishing.
                 </p>
               </div>
@@ -131,36 +131,36 @@ export function IngestTools({
               <div className="space-y-4">
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Auth Header</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">Auth Header</span>
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-6 px-2 text-[9px] font-bold uppercase tracking-widest gap-1.5"
+                      className="h-6 px-2 text-[10px] font-black uppercase tracking-widest gap-1.5"
                       onClick={() => curlCommands && copyToClipboard(curlCommands.header, 'header')}
                     >
                       {copiedVariant === 'header' ? <Check className="h-3 w-3 text-success" /> : <Copy className="h-3 w-3" />}
                       {copiedVariant === 'header' ? 'Copied' : 'Copy'}
                     </Button>
                   </div>
-                  <pre className="overflow-x-auto rounded-lg border border-border/40 bg-background/50 p-2.5 font-mono text-[10px] leading-relaxed text-foreground">
+                  <pre className="overflow-x-auto rounded-lg border border-border/40 bg-background/50 p-2.5 font-mono text-[10px] leading-relaxed text-foreground/90">
                     <code>{curlCommands?.header}</code>
                   </pre>
                 </div>
 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">URL Key (Legacy)</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">URL Key (Legacy)</span>
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-6 px-2 text-[9px] font-bold uppercase tracking-widest gap-1.5"
+                      className="h-6 px-2 text-[10px] font-black uppercase tracking-widest gap-1.5"
                       onClick={() => curlCommands && copyToClipboard(curlCommands.url, 'url')}
                     >
                       {copiedVariant === 'url' ? <Check className="h-3 w-3 text-success" /> : <Copy className="h-3 w-3" />}
                       {copiedVariant === 'url' ? 'Copied' : 'Copy'}
                     </Button>
                   </div>
-                  <pre className="overflow-x-auto rounded-lg border border-border/40 bg-background/50 p-2.5 font-mono text-[10px] leading-relaxed text-foreground">
+                  <pre className="overflow-x-auto rounded-lg border border-border/40 bg-background/50 p-2.5 font-mono text-[10px] leading-relaxed text-foreground/90">
                     <code>{curlCommands?.url}</code>
                   </pre>
                 </div>

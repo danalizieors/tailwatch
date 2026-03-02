@@ -229,12 +229,12 @@ function TailwatchLandingPage() {
             className="mx-auto flex min-h-16 w-full max-w-7xl min-w-0 flex-wrap items-center justify-between gap-3 px-4 py-2 md:h-16 md:flex-nowrap md:gap-4 md:px-6 md:py-0"
           >
             <div className="group flex min-w-0 shrink items-center gap-3 rounded-lg">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-primary/25 bg-primary/10 text-primary">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-primary/25 bg-primary/10 text-primary transition-all duration-300 group-hover:shadow-[0_0_15px_-3px_rgba(var(--primary-rgb),0.3)]">
                 <Terminal className="h-4 w-4" />
               </div>
               <div className="flex min-w-0 flex-col leading-none">
-                <span className="text-sm font-semibold tracking-[0.04em] text-foreground">Tailwatch</span>
-                <span className="truncate text-[10px] font-medium tracking-[0.08em] text-muted-foreground">
+                <span className="text-sm font-black uppercase tracking-tight text-foreground">Tailwatch</span>
+                <span className="truncate text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 mt-1">
                   Event Monitor
                 </span>
               </div>
@@ -245,7 +245,7 @@ function TailwatchLandingPage() {
                 to="/$volumeId"
                 params={{ volumeId: 'personal' }}
                 onClick={(event) => void handleDashboardNavigation(event)}
-                className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-primary/35 bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition-opacity duration-200 hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-primary/35 bg-primary px-4 py-2 text-[10px] font-black uppercase tracking-widest text-primary-foreground transition-all duration-200 hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-95 shadow-sm shadow-primary/20"
               >
                 {!isLoading && !isAuthenticated ? (
                   <>
@@ -269,17 +269,17 @@ function TailwatchLandingPage() {
           <section className="grid min-w-0 items-start gap-8 lg:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)] lg:gap-10">
             <div className="flex min-w-0 flex-col gap-6">
               <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="outline" className="border-border/70 bg-card/70 px-3 py-1 text-[11px] tracking-[0.04em] text-foreground">
+                <Badge variant="outline" className="border-border/70 bg-card/70 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-foreground">
                   Realtime event telemetry
                 </Badge>
-                <Badge variant="outline" className="border-border/70 bg-card/70 px-3 py-1 text-[11px] tracking-[0.04em]">
+                <Badge variant="outline" className="border-border/70 bg-card/70 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
                   Built for agents, jobs, services
                 </Badge>
               </div>
 
               <div className="space-y-4">
-                <p className="text-xs font-medium uppercase tracking-[0.08em] text-muted-foreground">Overview</p>
-                <h1 className="text-balance text-4xl font-bold leading-tight tracking-tight text-foreground sm:text-5xl lg:text-6xl">
+                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">Overview</p>
+                <h1 className="text-balance text-4xl font-black leading-tight tracking-tight text-foreground sm:text-5xl lg:text-6xl uppercase">
                   See every agent, job, and service
                   <span className="block text-primary">with real-time status visibility.</span>
                 </h1>
@@ -291,7 +291,7 @@ function TailwatchLandingPage() {
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="rounded-xl border border-border/60 bg-card/80 p-4">
-                  <div className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.04em] text-muted-foreground">
+                  <div className="mb-2 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
                     <Webhook className="h-3.5 w-3.5 text-primary" />
                     Zero SDK Ingestion
                   </div>
@@ -300,7 +300,7 @@ function TailwatchLandingPage() {
                   </p>
                 </div>
                 <div className="rounded-xl border border-border/60 bg-card/80 p-4">
-                  <div className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.04em] text-muted-foreground">
+                  <div className="mb-2 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
                     <Bell className="h-3.5 w-3.5 text-primary" />
                     Push Everywhere
                   </div>
@@ -321,11 +321,11 @@ function TailwatchLandingPage() {
                       <Activity className="h-4 w-4" />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-xs font-medium tracking-[0.04em] text-muted-foreground">Live status</p>
-                      <p className="truncate text-sm font-semibold text-foreground">Volume `production`</p>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Live status</p>
+                      <p className="truncate text-[11px] font-black uppercase tracking-widest text-foreground">Volume `production`</p>
                     </div>
                   </div>
-                  <div className="inline-flex w-fit items-center gap-2 rounded-full border border-success/20 bg-success/10 px-3 py-1 text-xs font-medium text-success">
+                  <div className="inline-flex w-fit items-center gap-2 rounded-full border border-success/20 bg-success/10 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-success">
                     <span className="h-2 w-2 rounded-full bg-success" />
                     Operational
                   </div>
@@ -334,48 +334,48 @@ function TailwatchLandingPage() {
                 <div className="grid min-w-0 gap-3 sm:grid-cols-2">
                   <Card className="min-w-0 border-primary/15 bg-background/60 shadow-none">
                     <CardHeader className="pb-2">
-                      <CardTitle className="flex items-center gap-2 text-xs font-semibold tracking-[0.04em] text-primary">
+                      <CardTitle className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary">
                         <ListTree className="h-3.5 w-3.5" />
                         Log Stream
                       </CardTitle>
-                      <CardDescription className="text-xs">Chronological timeline for "chain of thought" trails.</CardDescription>
+                      <CardDescription className="text-[10px] font-medium leading-normal">Chronological timeline for "chain of thought" trails.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-2 pb-4">
                       <div className="rounded-lg border border-border/60 bg-card/60 p-2">
-                        <p className="break-all text-[11px] font-semibold text-foreground">agents/vision</p>
-                        <p className="text-[10px] font-medium text-success">busy • Analyzing frame #420</p>
+                        <p className="break-all text-[10px] font-black uppercase tracking-widest text-foreground">agents/vision</p>
+                        <p className="text-[9px] font-bold uppercase tracking-widest text-success">busy • Analyzing frame #420</p>
                       </div>
                       <div className="rounded-lg border border-border/60 bg-card/60 p-2">
-                        <p className="break-all text-[11px] font-semibold text-foreground">agents/vision</p>
-                        <p className="text-[10px] font-medium text-muted-foreground">message • "Detected 3 objects"</p>
+                        <p className="break-all text-[10px] font-black uppercase tracking-widest text-foreground">agents/vision</p>
+                        <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/60">message • "Detected 3 objects"</p>
                       </div>
                       <div className="rounded-lg border border-destructive/25 bg-destructive/10 p-2">
-                        <p className="break-all text-[11px] font-semibold text-foreground">ops/db-backup</p>
-                        <p className="text-[10px] font-medium text-destructive">error • snapshot timeout</p>
+                        <p className="break-all text-[10px] font-black uppercase tracking-widest text-foreground">ops/db-backup</p>
+                        <p className="text-[9px] font-bold uppercase tracking-widest text-destructive">error • snapshot timeout</p>
                       </div>
                     </CardContent>
                   </Card>
 
                   <Card className="min-w-0 border-info/15 bg-background/60 shadow-none">
                     <CardHeader className="pb-2">
-                      <CardTitle className="flex items-center gap-2 text-xs font-semibold tracking-[0.04em] text-info">
+                      <CardTitle className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-info">
                         <LayoutGrid className="h-3.5 w-3.5" />
                         Status Board
                       </CardTitle>
-                      <CardDescription className="text-xs">High-density snapshot of busy and idle tasks.</CardDescription>
+                      <CardDescription className="text-[10px] font-medium leading-normal">High-density snapshot of busy and idle tasks.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-2 pb-4">
                       <div className="rounded-lg border border-success/20 bg-success/10 p-2">
-                        <p className="text-[11px] font-semibold text-foreground">vision-agent</p>
-                        <p className="text-[10px] font-medium text-success">busy • active for 00:23</p>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-foreground">vision-agent</p>
+                        <p className="text-[9px] font-bold uppercase tracking-widest text-success">busy • active for 00:23</p>
                       </div>
                       <div className="rounded-lg border border-warning/25 bg-warning/10 p-2">
-                        <p className="text-[11px] font-semibold text-foreground">file-ingestor</p>
-                        <p className="text-[10px] font-medium text-warning">idle • last seen 2m ago</p>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-foreground">file-ingestor</p>
+                        <p className="text-[9px] font-bold uppercase tracking-widest text-warning">idle • last seen 2m ago</p>
                       </div>
                       <div className="rounded-lg border border-destructive/25 bg-destructive/10 p-2">
-                        <p className="text-[11px] font-semibold text-foreground">nightly-backup</p>
-                        <p className="text-[10px] font-medium text-destructive">error • snapshot timeout</p>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-foreground">nightly-backup</p>
+                        <p className="text-[9px] font-bold uppercase tracking-widest text-destructive">error • snapshot timeout</p>
                       </div>
                     </CardContent>
                   </Card>
@@ -383,12 +383,12 @@ function TailwatchLandingPage() {
 
                   <div className="min-w-0 rounded-2xl border border-border/60 bg-background/70 p-4">
                   <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                    <p className="text-xs font-medium tracking-[0.04em] text-muted-foreground">Publish with HTTP</p>
-                    <span className="rounded-full border border-border/60 bg-card/70 px-2 py-1 text-[10px] font-medium tracking-[0.04em] text-muted-foreground">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Publish with HTTP</p>
+                    <span className="rounded-full border border-border/60 bg-card/70 px-2 py-1 text-[9px] font-black uppercase tracking-widest text-muted-foreground/40">
                       No SDK
                     </span>
                   </div>
-                  <pre className="w-full max-w-full overflow-x-auto rounded-xl border border-border/60 bg-card/60 p-3 text-[10px] leading-5 text-foreground sm:text-[11px]">
+                  <pre className="w-full max-w-full overflow-x-auto rounded-xl border border-border/60 bg-card/60 p-3 text-[10px] leading-5 text-foreground sm:text-[11px] font-mono">
                     <code>{curlExample}</code>
                   </pre>
                 </div>
@@ -400,14 +400,14 @@ function TailwatchLandingPage() {
             {proofStats.map((stat) => {
               const Icon = stat.icon
               return (
-                <div key={stat.label} className="rounded-xl border border-border/60 bg-card/80 p-4">
+                <div key={stat.label} className="rounded-xl border border-border/60 bg-card/80 p-4 group hover:bg-card transition-colors">
                   <div className="mb-3 flex items-center justify-between">
-                    <span className="text-[11px] font-medium tracking-[0.04em] text-muted-foreground">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
                       {stat.label}
                     </span>
-                    <Icon className="h-4 w-4 text-primary" />
+                    <Icon className="h-4 w-4 text-primary group-hover:scale-110 transition-transform" />
                   </div>
-                  <p className="text-2xl font-bold tracking-tight text-foreground">{stat.value}</p>
+                  <p className="text-2xl font-black tracking-tight text-foreground uppercase">{stat.value}</p>
                   <p className="mt-1 text-sm text-muted-foreground">{stat.detail}</p>
                 </div>
               )
@@ -416,8 +416,8 @@ function TailwatchLandingPage() {
 
           <section id="problem" className="space-y-6">
             <div className="space-y-3">
-              <p className="text-xs font-medium uppercase tracking-[0.08em] text-muted-foreground">Problem</p>
-              <h2 className="text-balance text-3xl font-bold tracking-tight text-foreground md:text-4xl">
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">Problem</p>
+              <h2 className="text-balance text-3xl font-black tracking-tight text-foreground md:text-4xl uppercase">
                 When everything emits events, nobody sees the status.
               </h2>
               <p className="max-w-3xl text-base leading-7 text-muted-foreground">
@@ -430,12 +430,12 @@ function TailwatchLandingPage() {
               {problemCards.map((card) => {
                 const Icon = card.icon
                 return (
-                  <Card key={card.title} className="border-border/70 bg-card/70 shadow-none">
+                  <Card key={card.title} className="border-border/70 bg-card/70 shadow-none hover:bg-card/80 transition-colors">
                     <CardHeader>
                       <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-xl border border-primary/15 bg-primary/10 text-primary">
                         <Icon className="h-4 w-4" />
                       </div>
-                      <CardTitle className="text-base font-bold">{card.title}</CardTitle>
+                      <CardTitle className="text-[13px] font-black uppercase tracking-widest">{card.title}</CardTitle>
                       <CardDescription className="text-sm leading-6">{card.description}</CardDescription>
                     </CardHeader>
                   </Card>
@@ -446,8 +446,8 @@ function TailwatchLandingPage() {
 
           <section id="how-it-works" className="space-y-6">
             <div className="space-y-3">
-              <p className="text-xs font-medium uppercase tracking-[0.08em] text-muted-foreground">Workflow</p>
-              <h2 className="text-balance text-3xl font-bold tracking-tight text-foreground md:text-4xl">
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">Workflow</p>
+              <h2 className="text-balance text-3xl font-black tracking-tight text-foreground md:text-4xl uppercase">
                 A topic path becomes your monitoring map.
               </h2>
               <p className="max-w-3xl text-base leading-7 text-muted-foreground">
@@ -458,10 +458,10 @@ function TailwatchLandingPage() {
             <div className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
               <Card className="border-border/70 bg-card/70 shadow-none">
                 <CardHeader>
-                  <CardTitle className="text-base font-bold">Example hierarchy</CardTitle>
-                  <CardDescription>Namespace events with meaningful segments so filtering stays fast and intuitive.</CardDescription>
+                  <CardTitle className="text-[13px] font-black uppercase tracking-widest">Example hierarchy</CardTitle>
+                  <CardDescription className="text-[10px] font-medium leading-normal">Namespace events with meaningful segments so filtering stays fast and intuitive.</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-2 pb-4 font-mono text-xs">
+                <CardContent className="space-y-2 pb-4 font-mono text-[11px]">
                   {[
                     '/production/agents/vision',
                     '/production/agents/planner',
@@ -471,7 +471,7 @@ function TailwatchLandingPage() {
                   ].map((path) => (
                     <div
                       key={path}
-                      className="rounded-lg border border-border/60 bg-background/60 px-3 py-2 text-foreground/95"
+                      className="rounded-lg border border-border/60 bg-background/60 px-3 py-2 text-foreground/90 font-bold"
                     >
                       {path}
                     </div>
@@ -483,14 +483,14 @@ function TailwatchLandingPage() {
                 {workflowSteps.map((step) => {
                   const Icon = step.icon
                   return (
-                    <div key={step.step} className="rounded-2xl border border-border/70 bg-card/70 p-4">
+                    <div key={step.step} className="rounded-2xl border border-border/70 bg-card/70 p-4 hover:bg-card/80 transition-colors">
                       <div className="mb-3 flex items-center gap-3">
                         <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
                           <Icon className="h-4 w-4" />
                         </div>
                         <div className="flex items-baseline gap-2">
-                          <span className="font-mono text-xs font-semibold tracking-[0.04em] text-primary">{step.step}</span>
-                          <p className="text-sm font-semibold text-foreground">{step.title}</p>
+                          <span className="font-mono text-[10px] font-black uppercase tracking-widest text-primary">{step.step}</span>
+                          <p className="text-[11px] font-black uppercase tracking-widest text-foreground">{step.title}</p>
                         </div>
                       </div>
                       <p className="text-sm leading-6 text-muted-foreground">{step.description}</p>
@@ -503,8 +503,8 @@ function TailwatchLandingPage() {
 
           <section id="features" className="space-y-6">
             <div className="space-y-3">
-              <p className="text-xs font-medium uppercase tracking-[0.08em] text-muted-foreground">Capabilities</p>
-              <h2 className="text-balance text-3xl font-bold tracking-tight text-foreground md:text-4xl">
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">Capabilities</p>
+              <h2 className="text-balance text-3xl font-black tracking-tight text-foreground md:text-4xl uppercase">
                 One dashboard, one event source, faster decisions.
               </h2>
               <p className="max-w-3xl text-base leading-7 text-muted-foreground">
@@ -516,12 +516,12 @@ function TailwatchLandingPage() {
               {featureCards.map((feature) => {
                 const Icon = feature.icon
                 return (
-                  <Card key={feature.title} className="border-border/70 bg-card/70 shadow-none">
+                  <Card key={feature.title} className="border-border/70 bg-card/70 shadow-none hover:bg-card/80 transition-colors">
                     <CardHeader className="pb-3">
                       <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-xl border border-primary/15 bg-primary/10 text-primary">
                         <Icon className="h-4 w-4" />
                       </div>
-                      <CardTitle className="text-base font-bold">{feature.title}</CardTitle>
+                      <CardTitle className="text-[13px] font-black uppercase tracking-widest">{feature.title}</CardTitle>
                       <CardDescription className="text-sm leading-6">{feature.description}</CardDescription>
                     </CardHeader>
                   </Card>
@@ -532,8 +532,8 @@ function TailwatchLandingPage() {
 
           <section className="space-y-6">
             <div className="space-y-3">
-              <p className="text-xs font-medium uppercase tracking-[0.08em] text-muted-foreground">Use Cases</p>
-              <h2 className="text-balance text-3xl font-bold tracking-tight text-foreground md:text-4xl">
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">Use Cases</p>
+              <h2 className="text-balance text-3xl font-black tracking-tight text-foreground md:text-4xl uppercase">
                 Built for the workflows teams already have.
               </h2>
               <p className="max-w-3xl text-base leading-7 text-muted-foreground">
@@ -545,11 +545,11 @@ function TailwatchLandingPage() {
               {useCases.map((item) => {
                 const Icon = item.icon
                 return (
-                  <div key={item.title} className="rounded-2xl border border-border/70 bg-card/70 p-4">
+                  <div key={item.title} className="rounded-2xl border border-border/70 bg-card/70 p-4 hover:bg-card/80 transition-colors">
                     <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl border border-primary/15 bg-primary/10 text-primary">
                       <Icon className="h-4 w-4" />
                     </div>
-                    <p className="text-sm font-bold text-foreground">{item.title}</p>
+                    <p className="text-[11px] font-black uppercase tracking-widest text-foreground">{item.title}</p>
                     <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.body}</p>
                   </div>
                 )
@@ -560,8 +560,8 @@ function TailwatchLandingPage() {
 
           <section id="faq" className="space-y-6">
             <div className="space-y-3">
-              <p className="text-xs font-medium uppercase tracking-[0.08em] text-muted-foreground">FAQ</p>
-              <h2 className="text-3xl font-bold tracking-tight text-foreground md:text-4xl">
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">FAQ</p>
+              <h2 className="text-3xl font-black tracking-tight text-foreground md:text-4xl uppercase">
                 Questions teams ask before they wire it in
               </h2>
             </div>
@@ -570,13 +570,13 @@ function TailwatchLandingPage() {
               {faqItems.map((item) => (
                 <details
                   key={item.q}
-                  className="group rounded-2xl border border-border/70 bg-card/70 p-4 open:bg-card/60"
+                  className="group rounded-2xl border border-border/70 bg-card/70 p-4 open:bg-card/60 transition-colors"
                 >
-                  <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-sm font-semibold text-foreground focus-visible:outline-none">
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-sm font-black uppercase tracking-tight text-foreground focus-visible:outline-none">
                     <span>{item.q}</span>
                     <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform duration-200 group-open:rotate-90" />
                   </summary>
-                  <p className="pt-3 text-sm leading-6 text-muted-foreground">{item.a}</p>
+                  <p className="pt-3 text-sm leading-6 text-muted-foreground font-medium">{item.a}</p>
                 </details>
               ))}
             </div>
@@ -585,8 +585,8 @@ function TailwatchLandingPage() {
           <section className="relative overflow-hidden rounded-2xl border border-border/70 bg-card/80 p-6 md:p-8">
             <div className="relative grid gap-6 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
               <div className="space-y-4">
-                <p className="text-xs font-medium uppercase tracking-[0.08em] text-muted-foreground">Get started</p>
-                <h2 className="text-balance text-3xl font-bold tracking-tight text-foreground md:text-4xl">
+                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">Get started</p>
+                <h2 className="text-balance text-3xl font-black tracking-tight text-foreground md:text-4xl uppercase">
                   Deploy Tailwatch quickly and standardize system visibility.
                 </h2>
                 <p className="max-w-2xl text-base leading-7 text-muted-foreground">
@@ -594,19 +594,19 @@ function TailwatchLandingPage() {
                 </p>
               </div>
 
-              <div className="rounded-xl border border-border/60 bg-background/60 px-4 py-3 text-sm text-muted-foreground">
-                Single entry point: use the <span className="font-semibold text-foreground">Open Dashboard</span> button in the header.
+              <div className="rounded-xl border border-border/60 bg-background/60 px-4 py-3 text-[11px] font-black uppercase tracking-widest text-muted-foreground/60">
+                Single entry point: use the <span className="text-foreground">Open Dashboard</span> button in the header.
               </div>
             </div>
           </section>
         </main>
 
         <footer className="border-t border-border/40 bg-background/50">
-          <div className="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-4 px-4 py-6 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between md:px-6">
+          <div className="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-4 px-4 py-6 text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 md:flex-row md:items-center md:justify-between md:px-6">
             <div className="flex flex-wrap items-center gap-2">
               <Terminal className="h-4 w-4 text-primary" />
-              <span>Tailwatch</span>
-              <span className="text-muted-foreground/60">Realtime event monitor</span>
+              <span className="text-foreground/60">Tailwatch</span>
+              <span>Realtime event monitor</span>
             </div>
             <div className="flex flex-wrap items-center gap-4">
               <span>Open dashboard from the header button.</span>

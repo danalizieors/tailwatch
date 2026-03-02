@@ -201,7 +201,7 @@ function VolumeSettingsPage() {
                 type="button" 
                 onClick={() => void handleCreateVolume()} 
                 disabled={busyAction !== null} 
-                className="h-9 gap-1.5 font-bold uppercase tracking-wider text-[10px]"
+                className="h-9 gap-1.5 font-black uppercase tracking-widest text-[10px]"
               >
                 {busyAction?.type === 'create' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
                 Create Volume
@@ -211,13 +211,13 @@ function VolumeSettingsPage() {
         </div>
 
         {error ? (
-          <div className="rounded-xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-xs font-medium text-destructive animate-in fade-in slide-in-from-top-1">
+          <div className="rounded-xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-destructive animate-in fade-in slide-in-from-top-1">
             {error}
           </div>
         ) : null}
 
         {notice ? (
-          <div className="rounded-xl border border-success/20 bg-success/10 px-4 py-3 text-xs font-medium text-success animate-in fade-in slide-in-from-top-1">
+          <div className="rounded-xl border border-success/20 bg-success/10 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-success animate-in fade-in slide-in-from-top-1">
             {notice}
           </div>
         ) : null}
@@ -231,7 +231,7 @@ function VolumeSettingsPage() {
           ) : volumes.length === 0 ? (
             <div className="col-span-full flex flex-col items-center justify-center py-20 rounded-2xl border border-dashed border-border/60 bg-muted/10 text-muted-foreground">
               <HardDrive className="h-8 w-8 mb-2 opacity-20" />
-              <p className="text-xs font-medium uppercase tracking-widest">No volumes configured</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">No volumes configured</p>
             </div>
           ) : (
             volumes.map((volume: any) => {
@@ -254,16 +254,16 @@ function VolumeSettingsPage() {
                           style={{ backgroundColor: color }}
                         />
                         <div className="flex flex-col">
-                          <CardTitle className="text-sm font-black uppercase tracking-tight text-foreground">
+                          <CardTitle className="text-[11px] font-black uppercase tracking-widest text-foreground">
                             {volume.name}
                           </CardTitle>
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1.5 mt-0.5">
                             {volume.isDefault ? (
-                              <Badge variant="success" className="text-[8px] h-4 font-black uppercase tracking-tighter px-1">Default</Badge>
+                              <Badge variant="success" className="text-[8px] h-4 font-black uppercase tracking-widest px-1">Default</Badge>
                             ) : null}
                             <Badge 
                               variant={volume.key.enabled ? 'outline' : 'warning'} 
-                              className="text-[8px] h-4 font-black uppercase tracking-tighter px-1 border-primary/20 text-primary/80"
+                              className="text-[8px] h-4 font-black uppercase tracking-widest px-1 border-primary/20 text-primary/80"
                             >
                               {volume.key.enabled ? 'Key Active' : 'Key Disabled'}
                             </Badge>
@@ -275,7 +275,7 @@ function VolumeSettingsPage() {
 
                   <CardContent className="p-4 pt-0 flex-1 flex flex-col justify-between space-y-4">
                     <div className="space-y-2">
-                      <Label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60">API Key</Label>
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 leading-none ml-1">API Key</Label>
                       <div className="group/key relative flex items-center rounded-lg border border-border/40 bg-background/50 px-3 py-2 font-mono text-[10px] break-all">
                         <span className={cn("flex-1", !volume.key.enabled && "italic text-muted-foreground/40")}>
                           {volume.key.value || 'No active key'}
@@ -297,7 +297,7 @@ function VolumeSettingsPage() {
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="flex-1 h-8 rounded-lg px-2 text-[10px] font-bold uppercase tracking-wider gap-1.5 hover:bg-primary/5 hover:text-primary"
+                        className="flex-1 h-8 rounded-lg px-2 text-[10px] font-black uppercase tracking-widest gap-2 hover:bg-primary/5 hover:text-primary transition-all active:scale-95"
                         onClick={() => void handleRotateKey(volume)}
                         disabled={busyAction !== null}
                       >
@@ -309,7 +309,7 @@ function VolumeSettingsPage() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="flex-1 h-8 rounded-lg px-2 text-[10px] font-bold uppercase tracking-wider gap-1.5 hover:bg-warning/5 hover:text-warning"
+                          className="flex-1 h-8 rounded-lg px-2 text-[10px] font-black uppercase tracking-widest gap-2 hover:bg-warning/5 hover:text-warning transition-all active:scale-95"
                           onClick={() => void handleDisableKey(volume)}
                           disabled={busyAction !== null}
                         >
@@ -320,7 +320,7 @@ function VolumeSettingsPage() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="flex-1 h-8 rounded-lg px-2 text-[10px] font-bold uppercase tracking-wider gap-1.5 hover:bg-success/5 hover:text-success"
+                          className="flex-1 h-8 rounded-lg px-2 text-[10px] font-black uppercase tracking-widest gap-2 hover:bg-success/5 hover:text-success transition-all active:scale-95"
                           onClick={() => void handleRotateKey(volume)}
                           disabled={busyAction !== null}
                         >
@@ -333,7 +333,7 @@ function VolumeSettingsPage() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="h-8 w-8 rounded-lg px-0 text-muted-foreground/40 hover:bg-destructive/5 hover:text-destructive transition-all"
+                          className="h-8 w-8 rounded-lg px-0 text-muted-foreground/40 hover:bg-destructive/5 hover:text-destructive transition-all active:scale-95"
                           onClick={() => void handleDeleteVolume(volume)}
                           disabled={busyAction !== null}
                         >
