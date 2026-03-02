@@ -16,6 +16,15 @@ export const Route = createFileRoute('/settings/devices')({
   component: DeviceSettingsPage,
 })
 
+type ManagedDevice = {
+  id: any
+  name: string
+  deviceKey: string
+  enabled: boolean
+  hasSubscription: boolean
+  isCurrent: boolean
+}
+
 function DeviceSettingsPage() {
   const { isLoading: authLoading, isAuthenticated } = useConvexAuth()
   const { signIn } = useAuthActions()
@@ -43,7 +52,7 @@ function DeviceSettingsPage() {
           currentDeviceKey,
         }
       : 'skip',
-  )
+  ) as ManagedDevice[] | undefined
 
   useEffect(() => {
     if (!devices) return
@@ -58,7 +67,7 @@ function DeviceSettingsPage() {
     })
   }, [devices])
 
-  const handleSaveDevice = async (device: NonNullable<typeof devices>[number]) => {
+  const handleSaveDevice = async (device: ManagedDevice) => {
     const deviceId = String(device.id)
     const draft = nameDraftsById[deviceId] ?? device.name
     const nextName = draft.trim()
@@ -96,7 +105,7 @@ function DeviceSettingsPage() {
     }
   }
 
-  const handleToggleNotifications = async (device: NonNullable<typeof devices>[number]) => {
+  const handleToggleNotifications = async (device: ManagedDevice) => {
     const deviceId = String(device.id)
     try {
       setBusyAction('toggle')
@@ -118,7 +127,7 @@ function DeviceSettingsPage() {
     }
   }
 
-  const handleDeleteDevice = async (device: NonNullable<typeof devices>[number]) => {
+  const handleDeleteDevice = async (device: ManagedDevice) => {
     if (device.isCurrent) return
 
     if (!window.confirm(`Delete device "${device.name}"?`)) {
@@ -144,7 +153,7 @@ function DeviceSettingsPage() {
     }
   }
 
-  const handleTestNotification = async (device: NonNullable<typeof devices>[number]) => {
+  const handleTestNotification = async (device: ManagedDevice) => {
     try {
       setBusyAction('test')
       setBusyDeviceId(String(device.id))

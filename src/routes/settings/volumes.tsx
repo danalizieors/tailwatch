@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
 import { useAuthActions } from '@convex-dev/auth/react'
 import { Ban, HardDrive, Loader2, LogIn, Plus, RotateCw, Trash2 } from 'lucide-react'
@@ -10,15 +10,28 @@ import { Button } from '~/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/card'
 import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label'
+import { getVolumeColor } from '~/lib/utils'
 
 export const Route = createFileRoute('/settings/volumes')({
   component: VolumeSettingsPage,
 })
 
+type ManagedVolume = {
+  id: any
+  name: string
+  isDefault: boolean
+  key: {
+    value: string
+    enabled: boolean
+  }
+}
+
 function VolumeSettingsPage() {
   const { isLoading: authLoading, isAuthenticated } = useConvexAuth()
   const { signIn } = useAuthActions()
-  const volumes = useQuery(api.volumes.listManagedVolumes, isAuthenticated ? {} : 'skip')
+  const volumes = useQuery(api.volumes.listManagedVolumes, isAuthenticated ? {} : 'skip') as
+    | ManagedVolume[]
+    | undefined
 
   const ensurePersonalVolume = useMutation(api.volumes.ensurePersonalVolume)
   const createVolume = useMutation(api.volumes.createVolume)
@@ -26,9 +39,9 @@ function VolumeSettingsPage() {
   const disableVolumeKey = useMutation(api.volumes.disableVolumeKey)
   const deleteVolume = useMutation(api.volumes.deleteVolume)
 
-  const [selectedVolumeId, setSelectedVolumeId] = useState('')
   const [newVolumeName, setNewVolumeName] = useState('')
   const [busyAction, setBusyAction] = useState<'create' | 'rotate' | 'disable' | 'delete' | null>(null)
+  const [busyVolumeId, setBusyVolumeId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const hasEnsuredPersonalRef = useRef(false)
@@ -47,26 +60,6 @@ function VolumeSettingsPage() {
     })
   }, [ensurePersonalVolume, isAuthenticated])
 
-  useEffect(() => {
-    if (!volumes || volumes.length === 0) {
-      setSelectedVolumeId('')
-      return
-    }
-
-    const stillExists = selectedVolumeId
-      ? volumes.some((volume) => String(volume.id) === selectedVolumeId)
-      : false
-
-    if (!stillExists) {
-      setSelectedVolumeId(String(volumes[0].id))
-    }
-  }, [volumes, selectedVolumeId])
-
-  const selectedVolume = useMemo(() => {
-    if (!volumes || volumes.length === 0) return null
-    return volumes.find((volume) => String(volume.id) === selectedVolumeId) ?? null
-  }, [volumes, selectedVolumeId])
-
   const handleCreateVolume = async () => {
     const name = newVolumeName.trim()
     if (!name) {
@@ -81,7 +74,6 @@ function VolumeSettingsPage() {
 
       const created = await createVolume({ name })
       setNewVolumeName('')
-      setSelectedVolumeId(String(created.id))
       setNotice(`Volume "${created.name}" created.`)
     } catch (createError) {
       setError(createError instanceof Error ? createError.message : 'Failed to create volume')
@@ -90,64 +82,71 @@ function VolumeSettingsPage() {
     }
   }
 
-  const handleRotateKey = async () => {
-    if (!selectedVolume) return
+  const handleRotateKey = async (volume: ManagedVolume) => {
+    const volumeId = String(volume.id)
 
     try {
       setBusyAction('rotate')
+      setBusyVolumeId(volumeId)
       setError(null)
       setNotice(null)
 
-      const key = await rotateVolumeKey({ volumeId: selectedVolume.id })
-      setNotice(`API key rotated for "${selectedVolume.name}". New key: ${key.value}`)
+      const key = await rotateVolumeKey({ volumeId: volume.id })
+      setNotice(`API key rotated for "${volume.name}". New key: ${key.value}`)
     } catch (rotateError) {
       setError(rotateError instanceof Error ? rotateError.message : 'Failed to rotate API key')
     } finally {
       setBusyAction(null)
+      setBusyVolumeId(null)
     }
   }
 
-  const handleDisableKey = async () => {
-    if (!selectedVolume) return
+  const handleDisableKey = async (volume: ManagedVolume) => {
+    const volumeId = String(volume.id)
 
-    if (!window.confirm(`Disable API key for volume "${selectedVolume.name}"?`)) {
+    if (!window.confirm(`Disable API key for volume "${volume.name}"?`)) {
       return
     }
 
     try {
       setBusyAction('disable')
+      setBusyVolumeId(volumeId)
       setError(null)
       setNotice(null)
 
-      await disableVolumeKey({ volumeId: selectedVolume.id })
-      setNotice(`API key disabled for "${selectedVolume.name}".`)
+      await disableVolumeKey({ volumeId: volume.id })
+      setNotice(`API key disabled for "${volume.name}".`)
     } catch (disableError) {
       setError(disableError instanceof Error ? disableError.message : 'Failed to disable API key')
     } finally {
       setBusyAction(null)
+      setBusyVolumeId(null)
     }
   }
 
-  const handleDeleteVolume = async () => {
-    if (!selectedVolume || selectedVolume.isDefault) return
+  const handleDeleteVolume = async (volume: ManagedVolume) => {
+    if (volume.isDefault) return
+    const volumeId = String(volume.id)
 
-    if (!window.confirm(`Delete volume "${selectedVolume.name}"? This also deletes all paths and events in that volume.`)) {
+    if (!window.confirm(`Delete volume "${volume.name}"? This also deletes all paths and events in that volume.`)) {
       return
     }
 
     try {
       setBusyAction('delete')
+      setBusyVolumeId(volumeId)
       setError(null)
       setNotice(null)
 
-      const result = await deleteVolume({ volumeId: selectedVolume.id })
+      const result = await deleteVolume({ volumeId: volume.id })
       setNotice(
-        `Volume "${selectedVolume.name}" deleted. Removed ${result.deletedPaths} path(s) and ${result.deletedEvents} event(s).`,
+        `Volume "${volume.name}" deleted. Removed ${result.deletedPaths} path(s) and ${result.deletedEvents} event(s).`,
       )
     } catch (deleteError) {
       setError(deleteError instanceof Error ? deleteError.message : 'Failed to delete volume')
     } finally {
       setBusyAction(null)
+      setBusyVolumeId(null)
     }
   }
 
@@ -200,7 +199,7 @@ function VolumeSettingsPage() {
             Volume API Key Management
           </CardTitle>
           <CardDescription>
-            Select a volume, rotate its API key, disable its API key, or delete the volume.
+            Every volume is shown below with its own API key actions.
           </CardDescription>
         </CardHeader>
 
@@ -235,7 +234,7 @@ function VolumeSettingsPage() {
           </div>
 
           <div className="space-y-2 rounded-lg border border-border/60 bg-background/50 p-3">
-            <Label htmlFor="volume-select">Select volume</Label>
+            <Label>Volumes</Label>
             {volumes === undefined ? (
               <div className="flex h-9 items-center text-xs text-muted-foreground">
                 <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
@@ -244,77 +243,93 @@ function VolumeSettingsPage() {
             ) : volumes.length === 0 ? (
               <div className="text-xs text-muted-foreground">No volumes available.</div>
             ) : (
-              <select
-                id="volume-select"
-                value={selectedVolumeId}
-                onChange={(event) => setSelectedVolumeId(event.target.value)}
-                className="h-9 w-full rounded-md border bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                disabled={busyAction !== null}
-              >
-                {volumes.map((volume) => (
-                  <option key={String(volume.id)} value={String(volume.id)}>
-                    {volume.name}
-                    {volume.isDefault ? ' (default)' : ''}
-                  </option>
-                ))}
-              </select>
+              <div className="space-y-3">
+                {volumes.map((volume) => {
+                  const volumeColor = getVolumeColor(volume.name)
+                  const volumeId = String(volume.id)
+                  const isBusy = busyVolumeId === volumeId
+
+                  return (
+                    <div
+                      key={volumeId}
+                      className="space-y-3 rounded-lg border border-border/60 bg-background/50 p-3"
+                      style={{
+                        borderColor: `oklch(from ${volumeColor} 0.56 0.20 h / 0.45)`,
+                        backgroundColor: `oklch(from ${volumeColor} 0.17 0.07 h / 0.45)`,
+                      }}
+                    >
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span
+                          className="h-2.5 w-2.5 rounded-full border border-black/15"
+                          style={{ backgroundColor: volumeColor }}
+                        />
+                        <p className="text-sm font-semibold">{volume.name}</p>
+                        {volume.isDefault ? <Badge variant="success">Default</Badge> : null}
+                        <Badge variant={volume.key.enabled ? 'success' : 'warning'}>
+                          {volume.key.enabled ? 'API Key Enabled' : 'API Key Disabled'}
+                        </Badge>
+                      </div>
+
+                      <div className="space-y-1">
+                        <Label>Current API key</Label>
+                        <div className="rounded-md border border-border/60 bg-background px-3 py-2 font-mono text-xs break-all">
+                          {volume.key.value || 'No API key (disabled)'}
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => void handleRotateKey(volume)}
+                          disabled={busyAction !== null}
+                          className="gap-1.5"
+                        >
+                          {busyAction === 'rotate' && isBusy ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <RotateCw className="h-3.5 w-3.5" />
+                          )}
+                          Rotate API key
+                        </Button>
+
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => void handleDisableKey(volume)}
+                          disabled={busyAction !== null || !volume.key.enabled}
+                          className="gap-1.5"
+                        >
+                          {busyAction === 'disable' && isBusy ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Ban className="h-3.5 w-3.5" />
+                          )}
+                          Disable API key
+                        </Button>
+
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          onClick={() => void handleDeleteVolume(volume)}
+                          disabled={busyAction !== null || volume.isDefault}
+                          className="gap-1.5"
+                          title={volume.isDefault ? 'Default volume cannot be deleted' : 'Delete this volume'}
+                        >
+                          {busyAction === 'delete' && isBusy ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-3.5 w-3.5" />
+                          )}
+                          Delete volume
+                        </Button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
             )}
           </div>
-
-          {selectedVolume ? (
-            <div className="space-y-3 rounded-lg border border-border/60 bg-background/50 p-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <p className="text-sm font-semibold">{selectedVolume.name}</p>
-                {selectedVolume.isDefault ? <Badge variant="success">Default</Badge> : null}
-                <Badge variant={selectedVolume.key.enabled ? 'success' : 'warning'}>
-                  {selectedVolume.key.enabled ? 'API Key Enabled' : 'API Key Disabled'}
-                </Badge>
-              </div>
-
-              <div className="space-y-1">
-                <Label>Current API key</Label>
-                <div className="rounded-md border border-border/60 bg-background px-3 py-2 font-mono text-xs break-all">
-                  {selectedVolume.key.value || 'No API key (disabled)'}
-                </div>
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => void handleRotateKey()}
-                  disabled={busyAction !== null}
-                  className="gap-1.5"
-                >
-                  {busyAction === 'rotate' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCw className="h-3.5 w-3.5" />}
-                  Rotate API key
-                </Button>
-
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => void handleDisableKey()}
-                  disabled={busyAction !== null || !selectedVolume.key.enabled}
-                  className="gap-1.5"
-                >
-                  {busyAction === 'disable' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Ban className="h-3.5 w-3.5" />}
-                  Disable API key
-                </Button>
-
-                <Button
-                  type="button"
-                  variant="destructive"
-                  onClick={() => void handleDeleteVolume()}
-                  disabled={busyAction !== null || selectedVolume.isDefault}
-                  className="gap-1.5"
-                  title={selectedVolume.isDefault ? 'Default volume cannot be deleted' : 'Delete this volume'}
-                >
-                  {busyAction === 'delete' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-                  Delete volume
-                </Button>
-              </div>
-            </div>
-          ) : null}
 
         </CardContent>
       </Card>

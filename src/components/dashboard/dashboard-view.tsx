@@ -6,9 +6,12 @@ import {
   BellOff,
   Check,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   ChevronDown,
   Copy,
   Filter,
+  HardDrive,
   Hash,
   Info,
   LayoutGrid,
@@ -28,7 +31,7 @@ import { StatusBoard } from './status-board'
 import { TopicSelector } from './topic-selector'
 import { useDashboardData } from './use-dashboard-data'
 import { AppShellHeader } from '~/components/layout/app-shell-header'
-import { cn } from '~/lib/utils'
+import { cn, getVolumeColor } from '~/lib/utils'
 import { NotificationManager } from '~/lib/notifications'
 
 interface DashboardViewProps {
@@ -37,6 +40,23 @@ interface DashboardViewProps {
 }
 
 const EVENT_STATUS_OPTIONS: Array<EventStatus | 'all'> = ['all', 'busy', 'idle']
+const VOLUME_DRAWER_COLLAPSED_KEY = 'tailwatch_volume_drawer_collapsed'
+
+type ManagedVolume = {
+  id: any
+  name: string
+  isDefault?: boolean
+  notificationsEnabled?: boolean
+  key?: {
+    value?: string
+  }
+}
+
+type ManagedDevice = {
+  id: any
+  isCurrent: boolean
+  notifications: boolean
+}
 
 export function DashboardView({ mode, volume }: DashboardViewProps) {
   const [selectedTopic, setSelectedTopic] = useState<string | undefined>(undefined)
@@ -50,19 +70,22 @@ export function DashboardView({ mode, volume }: DashboardViewProps) {
   const [generatorMessage, setGeneratorMessage] = useState<string | null>(null)
   const [copiedCurlVariant, setCopiedCurlVariant] = useState<'header' | 'url' | null>(null)
   const [volumePublishKey, setVolumePublishKey] = useState<string | null>(null)
-  const [volumeOptions, setVolumeOptions] = useState<string[]>(['personal'])
+  const [isVolumeDrawerCollapsed, setIsVolumeDrawerCollapsed] = useState(false)
+  const [isVolumeDrawerMobileOpen, setIsVolumeDrawerMobileOpen] = useState(false)
+  const [volumeNotificationPending, setVolumeNotificationPending] = useState<Record<string, boolean>>({})
   const [isHydratingFilter, setIsHydratingFilter] = useState(true)
   const { isAuthenticated } = useConvexAuth()
   const publish = useMutation(api.events.publish)
   const publishByKey = useMutation(api.events.publishByKey)
   const updatePushSubscription = useMutation(api.devices.updatePushSubscription)
   const setNotificationsEnabled = useMutation(api.devices.setNotificationsEnabled)
-  const managedVolumes = useQuery(api.volumes.listManagedVolumes, {}) as
-    | Array<{ name: string; isDefault?: boolean; key?: { value?: string } }>
-    | undefined
+  const setVolumeNotificationsEnabled = useMutation(api.volumes.setVolumeNotificationsEnabled)
+  const managedVolumes = useQuery(api.volumes.listManagedVolumes, isAuthenticated ? {} : 'skip') as ManagedVolume[] | undefined
 
   const currentDeviceKey = useMemo(() => NotificationManager.getDeviceKey(), [])
-  const devices = useQuery(api.devices.listDevices, isAuthenticated ? { currentDeviceKey } : 'skip')
+  const devices = useQuery(api.devices.listDevices, isAuthenticated ? { currentDeviceKey } : 'skip') as
+    | ManagedDevice[]
+    | undefined
   const currentDevice = devices?.find((d) => d.isCurrent)
 
   useEffect(() => {
@@ -119,46 +142,31 @@ export function DashboardView({ mode, volume }: DashboardViewProps) {
   }, [selectedTopic, volume, isHydratingFilter])
 
   const activeVolume = volume?.trim() || 'personal'
-  const volumeChoices = useMemo(() => {
-    const values = Array.from(new Set(['personal', ...volumeOptions, activeVolume].map((value) => value.trim()).filter(Boolean)))
-    return values.sort((left, right) => {
-      if (left === 'personal') return -1
-      if (right === 'personal') return 1
-      return left.localeCompare(right)
-    })
-  }, [volumeOptions, activeVolume])
+  const managedVolumeRows = useMemo(() => managedVolumes ?? [], [managedVolumes])
+  const selectedVolume = useMemo(() => {
+    if (!managedVolumeRows.length) return undefined
+    return managedVolumeRows.find((row) => row.name === activeVolume)
+  }, [managedVolumeRows, activeVolume])
 
   useEffect(() => {
-    const volumes = managedVolumes ?? []
-    const knownVolumes = Array.from(
-      new Set(
-        volumes
-          .map((row) => row.name?.trim())
-          .filter((name): name is string => Boolean(name && name.length > 0)),
-      ),
-    )
-
-    setVolumeOptions(knownVolumes.length > 0 ? knownVolumes : ['personal'])
-
-    const volumeToken = activeVolume.trim()
-    const matchedVolume =
-      volumes.find((row) => row.key?.value?.trim() === volumeToken) ??
-      volumes.find((row) => row.name === volumeToken) ??
-      (volumeToken === 'personal' ? volumes.find((row) => row.isDefault) : undefined)
-
-    const key = matchedVolume?.key?.value?.trim()
+    const key = selectedVolume?.key?.value?.trim()
     if (key && key.length > 0) {
       setVolumePublishKey(key)
       return
     }
-
-    if (volumeToken && volumeToken !== 'personal') {
-      setVolumePublishKey(volumeToken)
-      return
-    }
-
     setVolumePublishKey(null)
-  }, [activeVolume, managedVolumes])
+  }, [selectedVolume])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const stored = window.localStorage.getItem(VOLUME_DRAWER_COLLAPSED_KEY)
+    setIsVolumeDrawerCollapsed(stored === '1')
+  }, [])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    window.localStorage.setItem(VOLUME_DRAWER_COLLAPSED_KEY, isVolumeDrawerCollapsed ? '1' : '0')
+  }, [isVolumeDrawerCollapsed])
 
   useEffect(() => {
     if (!copiedCurlVariant || typeof window === 'undefined') return
@@ -228,6 +236,46 @@ export function DashboardView({ mode, volume }: DashboardViewProps) {
 
     window.location.assign(nextUrl.toString())
   }
+
+  const handleSelectVolume = (nextVolume: string) => {
+    setIsVolumeDrawerMobileOpen(false)
+    if (nextVolume === activeVolume) return
+    switchVolume(nextVolume)
+  }
+
+  const toggleVolumeNotifications = async (volumeRow: ManagedVolume) => {
+    const volumeId = String(volumeRow.id)
+    const nextEnabled = volumeRow.notificationsEnabled === false
+    setVolumeNotificationPending((previous) => ({
+      ...previous,
+      [volumeId]: true,
+    }))
+
+    try {
+      await setVolumeNotificationsEnabled({
+        volumeId: volumeRow.id,
+        enabled: nextEnabled,
+      })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to update volume notifications'
+      alert(message)
+    } finally {
+      setVolumeNotificationPending((previous) => {
+        const next = { ...previous }
+        delete next[volumeId]
+        return next
+      })
+    }
+  }
+
+  useEffect(() => {
+    if (!managedVolumeRows.length) return
+    if (managedVolumeRows.some((row) => row.name === activeVolume)) return
+
+    const fallbackVolume = managedVolumeRows.find((row) => row.isDefault)?.name ?? managedVolumeRows[0]?.name
+    if (!fallbackVolume || fallbackVolume === activeVolume) return
+    switchVolume(fallbackVolume)
+  }, [managedVolumeRows, activeVolume, mode])
 
   const requestNotifications = async () => {
     if (typeof window !== 'undefined') {
@@ -466,14 +514,109 @@ export function DashboardView({ mode, volume }: DashboardViewProps) {
     </div>
   )
 
+  const renderVolumeItems = (compact: boolean) => {
+    if (managedVolumeRows.length === 0) {
+      return (
+        <div className="rounded-lg border border-border/50 bg-card/40 px-3 py-2 text-[11px] text-muted-foreground">
+          No volumes found
+        </div>
+      )
+    }
+
+    return managedVolumeRows.map((row) => {
+      const isActive = row.name === activeVolume
+      const isVolumeNotificationsEnabled = row.notificationsEnabled !== false
+      const volumeId = String(row.id)
+      const isPending = Boolean(volumeNotificationPending[volumeId])
+      const volumeColor = getVolumeColor(row.name)
+      const iconColor = `oklch(from ${volumeColor} 0.80 0.18 h)`
+      const cardBorderColor = isActive
+        ? `oklch(from ${volumeColor} 0.56 0.20 h / 0.55)`
+        : `oklch(from ${volumeColor} 0.44 0.13 h / 0.35)`
+      const cardBgColor = isActive
+        ? `oklch(from ${volumeColor} 0.22 0.10 h / 0.58)`
+        : `oklch(from ${volumeColor} 0.17 0.07 h / 0.42)`
+      const labelColor = isActive
+        ? `oklch(from ${volumeColor} 0.93 0.03 h)`
+        : `oklch(from ${volumeColor} 0.84 0.05 h)`
+
+      return (
+        <div
+          key={volumeId}
+          className="group flex items-center rounded-lg border p-1"
+          style={{
+            borderColor: cardBorderColor,
+            backgroundColor: cardBgColor,
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => handleSelectVolume(row.name)}
+            className={cn(
+              'flex min-w-0 items-center rounded-md text-left text-xs font-semibold',
+              compact ? 'h-9 w-9 justify-center' : 'h-9 flex-1 gap-2 px-2',
+            )}
+            title={compact ? row.name : undefined}
+            style={compact ? undefined : { color: labelColor }}
+          >
+            {compact ? (
+              <span
+                className="h-3 w-3 shrink-0 rounded-full border border-black/20"
+                style={{ backgroundColor: volumeColor }}
+                aria-hidden="true"
+              />
+            ) : (
+              <>
+                <HardDrive
+                  className="h-4 w-4 shrink-0"
+                  style={{ color: iconColor }}
+                />
+                <span
+                  className="h-2 w-2 shrink-0 rounded-full border border-black/15"
+                  style={{ backgroundColor: volumeColor }}
+                  aria-hidden="true"
+                />
+              </>
+            )}
+            {compact ? null : (
+              <span className="truncate">
+                {row.name}
+                {row.isDefault ? ' (default)' : ''}
+              </span>
+            )}
+          </button>
+
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            className={cn(
+              'h-9 w-9 shrink-0',
+              isVolumeNotificationsEnabled ? '' : 'text-muted-foreground/50',
+              isPending ? 'opacity-60' : '',
+            )}
+            onClick={() => {
+              void toggleVolumeNotifications(row)
+            }}
+            disabled={isPending}
+            style={isVolumeNotificationsEnabled ? { color: iconColor } : undefined}
+            title={
+              isVolumeNotificationsEnabled
+                ? `Disable volume notifications for ${row.name}`
+                : `Enable volume notifications for ${row.name}`
+            }
+          >
+            {isVolumeNotificationsEnabled ? <Bell className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
+          </Button>
+        </div>
+      )
+    })
+  }
+
   const dashboardContent = (
     <div className="flex h-[100svh] min-h-[100svh] w-full flex-col overflow-hidden text-foreground md:h-dvh md:min-h-dvh">
       <AppShellHeader
         current="events"
-        activeVolume={activeVolume}
-        volumeChoices={volumeChoices}
-        showVolumeSelector
-        onVolumeChange={switchVolume}
         topRight={headerTopRight}
         actions={
           <TopicSelector
@@ -487,6 +630,15 @@ export function DashboardView({ mode, volume }: DashboardViewProps) {
           <div className="flex flex-col gap-3 rounded-lg border border-border/40 bg-card/50 px-2.5 py-2.5 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center justify-between gap-2 sm:justify-start">
               <div className="flex items-center gap-2">
+                <Button
+                  size="icon"
+                  variant="outline"
+                  className="h-7 w-7 border-border/70 bg-background/50 md:hidden"
+                  onClick={() => setIsVolumeDrawerMobileOpen(true)}
+                  title="Open volumes drawer"
+                >
+                  <HardDrive className="h-3.5 w-3.5" />
+                </Button>
                 <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/20">
                   {mode === 'logs' ? <Hash className="h-4 w-4" /> : <LayoutGrid className="h-4 w-4" />}
                 </div>
@@ -563,8 +715,68 @@ export function DashboardView({ mode, volume }: DashboardViewProps) {
       />
 
       {/* VIEWPORT CONTENT */}
-      <main className="flex min-h-0 flex-1 overflow-hidden">
-        <div className="flex-1 min-h-0 px-3 py-3 md:px-8 md:py-4 flex flex-col gap-4">
+      <main className="relative flex min-h-0 flex-1 overflow-hidden">
+        <aside
+          className={cn(
+            'hidden border-r border-border/40 bg-card/40 backdrop-blur md:flex md:flex-col',
+            isVolumeDrawerCollapsed ? 'md:w-24' : 'md:w-72',
+          )}
+        >
+          <div className="flex items-center justify-between border-b border-border/40 px-2.5 py-2">
+            {isVolumeDrawerCollapsed ? (
+              <HardDrive className="h-4 w-4 text-primary" />
+            ) : (
+              <div className="flex items-center gap-2">
+                <HardDrive className="h-4 w-4 text-primary" />
+                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-muted-foreground">Volumes</p>
+              </div>
+            )}
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              className="h-7 w-7"
+              onClick={() => setIsVolumeDrawerCollapsed((previous) => !previous)}
+              title={isVolumeDrawerCollapsed ? 'Expand volume drawer' : 'Collapse volume drawer'}
+            >
+              {isVolumeDrawerCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+            </Button>
+          </div>
+
+          <div className="scroll-thin flex-1 overflow-y-auto p-2">{renderVolumeItems(isVolumeDrawerCollapsed)}</div>
+        </aside>
+
+        {isVolumeDrawerMobileOpen ? (
+          <div className="absolute inset-0 z-40 md:hidden">
+            <button
+              type="button"
+              className="absolute inset-0 bg-black/50 backdrop-blur-[1px]"
+              onClick={() => setIsVolumeDrawerMobileOpen(false)}
+              aria-label="Close volumes drawer"
+            />
+            <aside className="absolute left-0 top-0 flex h-full w-72 flex-col border-r border-border/50 bg-background/95 p-2 shadow-2xl backdrop-blur">
+              <div className="flex items-center justify-between border-b border-border/40 px-2 py-2">
+                <div className="flex items-center gap-2">
+                  <HardDrive className="h-4 w-4 text-primary" />
+                  <p className="text-[10px] font-black uppercase tracking-[0.16em] text-muted-foreground">Volumes</p>
+                </div>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  className="h-7 w-7"
+                  onClick={() => setIsVolumeDrawerMobileOpen(false)}
+                  title="Close volume drawer"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="scroll-thin mt-2 flex-1 overflow-y-auto">{renderVolumeItems(false)}</div>
+            </aside>
+          </div>
+        ) : null}
+
+        <div className="flex-1 min-h-0 px-3 py-3 md:px-6 md:py-4 flex flex-col gap-4">
           {error && (
             <Card className="border-destructive/20 bg-destructive/10 text-destructive-foreground backdrop-blur shadow-sm overflow-hidden shrink-0">
               <CardContent className="p-3 text-xs font-medium flex items-center gap-3">

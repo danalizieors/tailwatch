@@ -5,6 +5,7 @@ import { buildPushHTTPRequest } from '@pushforge/builder'
 import { action, internalAction } from './_generated/server'
 import { internal } from './_generated/api'
 import { auth } from './auth'
+const internalApi = internal as any
 
 async function requireUserId(ctx: any) {
   const userId = await auth.getUserId(ctx)
@@ -16,14 +17,14 @@ export const sendTestPush = action({
   args: { deviceId: v.id('devices') },
   handler: async (ctx, args) => {
     const userId = await requireUserId(ctx)
-    const device = await ctx.runQuery(internal.devices.getDeviceInternal, { deviceId: args.deviceId })
+    const device = await ctx.runQuery(internalApi.devices.getDeviceInternal, { deviceId: args.deviceId })
     if (!device || device.userId !== userId) throw new Error('Unauthorized')
 
     if (!device.subscription || !device.notifications) {
       throw new Error('Notifications are not enabled for this device')
     }
 
-    return await ctx.runAction(internal.push.sendPushForEventInternal, {
+    return await ctx.runAction(internalApi.push.sendPushForEventInternal, {
       volume: 'test',
       path: 'internal/test',
       status: 'idle',
@@ -60,7 +61,7 @@ export const sendPushForEventInternal = internalAction({
       return { ok: false, reason: 'invalid_vapid_key' }
     }
 
-    const targets = await ctx.runQuery(internal.devices.listPushTargetsInternal, { 
+    const targets = await ctx.runQuery(internalApi.devices.listPushTargetsInternal, {
       userId: args.userId,
       deviceId: args.deviceId,
     })
@@ -110,7 +111,7 @@ export const sendPushForEventInternal = internalAction({
         const res = await fetch(endpoint, { method: 'POST', headers, body: requestBody })
         if (res.status === 404 || res.status === 410) {
           console.log(`Push subscription expired for device ${target.deviceId} (${serviceName})`)
-          await ctx.runMutation(internal.devices.clearPushSubscriptionInternal, { deviceId: target.deviceId })
+          await ctx.runMutation(internalApi.devices.clearPushSubscriptionInternal, { deviceId: target.deviceId })
         } else if (res.ok) {
           sent++
         } else {

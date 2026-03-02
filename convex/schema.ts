@@ -9,6 +9,7 @@ export default defineSchema({
     name: v.string(),
     key: v.optional(v.string()),
     keyEnabled: v.optional(v.boolean()),
+    notificationsEnabled: v.optional(v.boolean()),
   })
     .index('by_user', ['userId'])
     .index('by_user_and_name', ['userId', 'name'])

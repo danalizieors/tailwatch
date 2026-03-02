@@ -5,7 +5,7 @@ import { Link, useNavigate } from '@tanstack/react-router'
 import { Activity, HardDrive, Laptop, LogIn, LogOut, Menu, Terminal, X } from 'lucide-react'
 import { api } from '../../../convex/_generated/api'
 import { Button } from '~/components/ui/button'
-import { cn } from '~/lib/utils'
+import { cn, getVolumeColor } from '~/lib/utils'
 
 type HeaderSection = 'events' | 'volumes' | 'devices'
 
@@ -63,6 +63,7 @@ export function AppShellHeader({
   const displayName = user?.name?.trim() || user?.email?.trim() || 'User'
   const avatarInitial = displayName.charAt(0).toUpperCase() || 'U'
   const normalizedVolume = activeVolume.trim() || 'personal'
+  const activeVolumeColor = getVolumeColor(normalizedVolume)
   const logsHref = `/${encodeURIComponent(normalizedVolume)}`
   const eventHref = logsHref
 
@@ -266,6 +267,11 @@ export function AppShellHeader({
           <div className="no-scrollbar flex items-center gap-2 overflow-x-auto min-w-0">
             {showVolumeSelector ? (
               <div className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-card/70 px-2 py-1 shrink-0">
+                <span
+                  className="h-2 w-2 rounded-full border border-black/20"
+                  style={{ backgroundColor: activeVolumeColor }}
+                  aria-hidden="true"
+                />
                 <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/80">Volume</span>
                 <select
                   value={normalizedVolume}

@@ -64,28 +64,20 @@ async function generateUniqueVolumeKey(ctx: any) {
 }
 
 async function ensureVolumeExists(ctx: any, volumeName: string, userId?: string) {
-  // 1. Try to find a volume owned by the user
-  if (userId) {
-    const existing = await ctx.db
-      .query('volumes')
-      .withIndex('by_user_and_name', (q: any) => q.eq('userId', userId).eq('name', volumeName))
-      .first()
-    if (existing) return existing
-  }
-
-  // 2. Try to find a global volume
-  const existingGlobal = await ctx.db
+  const ownerId = typeof userId === 'string' && userId.trim().length > 0 ? userId.trim() : undefined
+  const existing = await ctx.db
     .query('volumes')
-    .withIndex('by_user_and_name', (q: any) => q.eq('userId', undefined).eq('name', volumeName))
+    .withIndex('by_user_and_name', (q: any) => q.eq('userId', ownerId).eq('name', volumeName))
     .first()
-  if (existingGlobal) return existingGlobal
+  if (existing) return existing
 
   const key = await generateUniqueVolumeKey(ctx)
   const volumeId = await ctx.db.insert('volumes', {
-    userId,
+    userId: ownerId,
     name: volumeName,
     key,
     keyEnabled: true,
+    notificationsEnabled: true,
   })
   const created = await ctx.db.get(volumeId)
   if (!created) throw new Error('Failed to create volume')
@@ -149,28 +141,31 @@ async function publishResolved(
     content: input.content,
   })
 
-  try {
-    const ownerUserId =
-      typeof volumeDoc.userId === 'string' && volumeDoc.userId.trim().length > 0
-        ? volumeDoc.userId.trim()
-        : undefined
-    const payload: {
-      volume: string
-      path: string
-      status: 'busy' | 'idle'
-      content?: string
-      userId?: string
-    } = {
-      volume: volumeName,
-      path: finalPath,
-      status,
-      content: input.content,
-    }
-    if (ownerUserId) payload.userId = ownerUserId
+  const volumeNotificationsEnabled = volumeDoc.notificationsEnabled !== false
+  if (volumeNotificationsEnabled) {
+    try {
+      const ownerUserId =
+        typeof volumeDoc.userId === 'string' && volumeDoc.userId.trim().length > 0
+          ? volumeDoc.userId.trim()
+          : undefined
+      const payload: {
+        volume: string
+        path: string
+        status: 'busy' | 'idle'
+        content?: string
+        userId?: string
+      } = {
+        volume: volumeName,
+        path: finalPath,
+        status,
+        content: input.content,
+      }
+      if (ownerUserId) payload.userId = ownerUserId
 
-    await ctx.scheduler.runAfter(0, internal.push.sendPushForEventInternal, payload)
-  } catch (error) {
-    console.warn('Failed to schedule push notification delivery', error)
+      await ctx.scheduler.runAfter(0, internal.push.sendPushForEventInternal, payload)
+    } catch (error) {
+      console.warn('Failed to schedule push notification delivery', error)
+    }
   }
 
   return {
@@ -403,22 +398,21 @@ async function buildSnapshot(
   const q = input.q?.trim().toLowerCase()
   const limit = Math.min(Math.max(Number(input.limit ?? 200), 1), 500)
 
-  const volumeCandidates: any[] = []
   const userId = typeof input.userId === 'string' && input.userId.trim().length > 0 ? input.userId.trim() : undefined
 
-  if (userId) {
-    const userVolumes = await ctx.db
-      .query('volumes')
-      .withIndex('by_user_and_name', (queryBuilder: any) => queryBuilder.eq('userId', userId).eq('name', volumeName))
-      .collect()
-    volumeCandidates.push(...userVolumes)
+  if (!userId) {
+    return toDashboardSnapshot({
+      events: [],
+      topicTreeEvents: [],
+      paths: [],
+      totalEvents: 0,
+    })
   }
 
-  const globalVolumes = await ctx.db
+  const volumeCandidates: any[] = await ctx.db
     .query('volumes')
-    .withIndex('by_user_and_name', (queryBuilder: any) => queryBuilder.eq('userId', undefined).eq('name', volumeName))
+    .withIndex('by_user_and_name', (queryBuilder: any) => queryBuilder.eq('userId', userId).eq('name', volumeName))
     .collect()
-  volumeCandidates.push(...globalVolumes)
 
   const seenVolumeIds = new Set<string>()
   const volumeRows = volumeCandidates.filter((volume) => {

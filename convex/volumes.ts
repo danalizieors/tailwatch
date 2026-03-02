@@ -21,6 +21,12 @@ async function getCurrentUserId(ctx: QueryCtx | MutationCtx) {
   return normalizeUserId(userId)
 }
 
+async function requireCurrentUserId(ctx: QueryCtx | MutationCtx) {
+  const userId = await getCurrentUserId(ctx)
+  if (!userId) throw new Error('Sign in required')
+  return userId
+}
+
 function isOwnedByUser(volume: VolumeDoc, userId: string | undefined) {
   return normalizeUserId(volume.userId) === userId
 }
@@ -91,6 +97,7 @@ async function createOwnedVolume(ctx: MutationCtx, userId: string | undefined, n
     name,
     key,
     keyEnabled: true,
+    notificationsEnabled: true,
   })
   const created = await ctx.db.get(volumeId)
   if (!created) throw new Error('Failed to create volume')
@@ -118,6 +125,7 @@ function mapVolume(row: VolumeDoc) {
     id: row._id,
     name: row.name,
     isDefault: row.name === DEFAULT_VOLUME_NAME,
+    notificationsEnabled: row.notificationsEnabled !== false,
     key: {
       id: `${row._id}:key`,
       volumeId: row._id,
@@ -130,7 +138,7 @@ function mapVolume(row: VolumeDoc) {
 export const listManagedVolumes = query({
   args: {},
   handler: async (ctx) => {
-    const userId = await getCurrentUserId(ctx)
+    const userId = await requireCurrentUserId(ctx)
     const volumes = await listOwnedVolumes(ctx, userId)
 
     return volumes
@@ -147,7 +155,7 @@ export const listManagedVolumes = query({
 export const ensurePersonalVolume = mutation({
   args: {},
   handler: async (ctx) => {
-    const userId = await getCurrentUserId(ctx)
+    const userId = await requireCurrentUserId(ctx)
     const volume = await ensurePersonalVolumeForUser(ctx, userId)
     return mapVolume(volume)
   },
@@ -158,7 +166,7 @@ export const createVolume = mutation({
     name: v.string(),
   },
   handler: async (ctx, args) => {
-    const userId = await getCurrentUserId(ctx)
+    const userId = await requireCurrentUserId(ctx)
     await ensurePersonalVolumeForUser(ctx, userId)
 
     const name = normalizeVolumeName(args.name)
@@ -176,7 +184,7 @@ export const renameVolume = mutation({
     name: v.string(),
   },
   handler: async (ctx, args) => {
-    const userId = await getCurrentUserId(ctx)
+    const userId = await requireCurrentUserId(ctx)
     await ensurePersonalVolumeForUser(ctx, userId)
 
     const volume = await assertVolumeOwnership(ctx, args.volumeId, userId)
@@ -205,7 +213,7 @@ export const updateVolumeKey = mutation({
     enabled: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const userId = await getCurrentUserId(ctx)
+    const userId = await requireCurrentUserId(ctx)
     await ensurePersonalVolumeForUser(ctx, userId)
 
     const volume = await assertVolumeOwnership(ctx, args.volumeId, userId)
@@ -239,7 +247,7 @@ export const rotateVolumeKey = mutation({
     volumeId: v.id('volumes'),
   },
   handler: async (ctx, args) => {
-    const userId = await getCurrentUserId(ctx)
+    const userId = await requireCurrentUserId(ctx)
     await ensurePersonalVolumeForUser(ctx, userId)
 
     await assertVolumeOwnership(ctx, args.volumeId, userId)
@@ -261,7 +269,7 @@ export const disableVolumeKey = mutation({
     volumeId: v.id('volumes'),
   },
   handler: async (ctx, args) => {
-    const userId = await getCurrentUserId(ctx)
+    const userId = await requireCurrentUserId(ctx)
     await ensurePersonalVolumeForUser(ctx, userId)
 
     await assertVolumeOwnership(ctx, args.volumeId, userId)
@@ -277,12 +285,36 @@ export const disableVolumeKey = mutation({
   },
 })
 
+export const setVolumeNotificationsEnabled = mutation({
+  args: {
+    volumeId: v.id('volumes'),
+    enabled: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await requireCurrentUserId(ctx)
+    await ensurePersonalVolumeForUser(ctx, userId)
+    await assertVolumeOwnership(ctx, args.volumeId, userId)
+
+    await ctx.db.patch(args.volumeId, {
+      notificationsEnabled: args.enabled,
+    })
+
+    const updated = await ctx.db.get(args.volumeId)
+    if (!updated) throw new Error('Volume not found after notification update')
+
+    return {
+      volumeId: updated._id,
+      enabled: updated.notificationsEnabled !== false,
+    }
+  },
+})
+
 export const deleteVolume = mutation({
   args: {
     volumeId: v.id('volumes'),
   },
   handler: async (ctx, args) => {
-    const userId = await getCurrentUserId(ctx)
+    const userId = await requireCurrentUserId(ctx)
     await ensurePersonalVolumeForUser(ctx, userId)
 
     const volume = await assertVolumeOwnership(ctx, args.volumeId, userId)
