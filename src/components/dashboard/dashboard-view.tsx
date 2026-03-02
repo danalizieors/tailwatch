@@ -15,6 +15,7 @@ import {
   Hash,
   Info,
   LayoutGrid,
+  Laptop,
   Search,
   ShieldCheck,
   Shuffle,
@@ -41,6 +42,7 @@ interface DashboardViewProps {
 
 const EVENT_STATUS_OPTIONS: Array<EventStatus | 'all'> = ['all', 'busy', 'idle']
 const VOLUME_DRAWER_COLLAPSED_KEY = 'tailwatch_volume_drawer_collapsed'
+const SIDEBAR_SECTION_KEY = 'tailwatch_sidebar_section'
 
 type ManagedVolume = {
   id: any
@@ -54,8 +56,12 @@ type ManagedVolume = {
 
 type ManagedDevice = {
   id: any
+  name: string
+  deviceKey: string
   isCurrent: boolean
   notifications: boolean
+  hasSubscription: boolean
+  lastSeenAt?: string
 }
 
 export function DashboardView({ mode, volume }: DashboardViewProps) {
@@ -72,12 +78,15 @@ export function DashboardView({ mode, volume }: DashboardViewProps) {
   const [volumePublishKey, setVolumePublishKey] = useState<string | null>(null)
   const [isVolumeDrawerCollapsed, setIsVolumeDrawerCollapsed] = useState(false)
   const [isVolumeDrawerMobileOpen, setIsVolumeDrawerMobileOpen] = useState(false)
+  const [sidebarSection, setSidebarSection] = useState<'volumes' | 'devices'>('volumes')
   const [volumeNotificationPending, setVolumeNotificationPending] = useState<Record<string, boolean>>({})
+  const [deviceNotificationPending, setDeviceNotificationPending] = useState<Record<string, boolean>>({})
   const [isHydratingFilter, setIsHydratingFilter] = useState(true)
   const { isAuthenticated } = useConvexAuth()
   const publish = useMutation(api.events.publish)
   const publishByKey = useMutation(api.events.publishByKey)
   const updatePushSubscription = useMutation(api.devices.updatePushSubscription)
+  const updateDevice = useMutation(api.devices.updateDevice)
   const setNotificationsEnabled = useMutation(api.devices.setNotificationsEnabled)
   const setVolumeNotificationsEnabled = useMutation(api.volumes.setVolumeNotificationsEnabled)
   const managedVolumes = useQuery(api.volumes.listManagedVolumes, isAuthenticated ? {} : 'skip') as ManagedVolume[] | undefined
@@ -161,12 +170,21 @@ export function DashboardView({ mode, volume }: DashboardViewProps) {
     if (typeof window === 'undefined') return
     const stored = window.localStorage.getItem(VOLUME_DRAWER_COLLAPSED_KEY)
     setIsVolumeDrawerCollapsed(stored === '1')
+    const storedSection = window.localStorage.getItem(SIDEBAR_SECTION_KEY)
+    if (storedSection === 'devices' || storedSection === 'volumes') {
+      setSidebarSection(storedSection)
+    }
   }, [])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
     window.localStorage.setItem(VOLUME_DRAWER_COLLAPSED_KEY, isVolumeDrawerCollapsed ? '1' : '0')
   }, [isVolumeDrawerCollapsed])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    window.localStorage.setItem(SIDEBAR_SECTION_KEY, sidebarSection)
+  }, [sidebarSection])
 
   useEffect(() => {
     if (!copiedCurlVariant || typeof window === 'undefined') return
@@ -263,6 +281,38 @@ export function DashboardView({ mode, volume }: DashboardViewProps) {
       setVolumeNotificationPending((previous) => {
         const next = { ...previous }
         delete next[volumeId]
+        return next
+      })
+    }
+  }
+
+  const toggleDeviceNotifications = async (deviceRow: ManagedDevice) => {
+    const deviceId = String(deviceRow.id)
+    const nextEnabled = !deviceRow.notifications
+
+    setDeviceNotificationPending((previous) => ({
+      ...previous,
+      [deviceId]: true,
+    }))
+
+    try {
+      if (deviceRow.isCurrent) {
+        if (nextEnabled === isBellEnabled) return
+        await requestNotifications()
+        return
+      }
+
+      await updateDevice({
+        deviceId: deviceRow.id,
+        enabled: nextEnabled,
+      })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to update device notifications'
+      alert(message)
+    } finally {
+      setDeviceNotificationPending((previous) => {
+        const next = { ...previous }
+        delete next[deviceId]
         return next
       })
     }
@@ -613,6 +663,152 @@ export function DashboardView({ mode, volume }: DashboardViewProps) {
     })
   }
 
+  const renderDeviceItems = (compact: boolean) => {
+    if (!isAuthenticated) {
+      return (
+        <div className="rounded-lg border border-border/50 bg-card/40 px-3 py-2 text-[11px] text-muted-foreground">
+          Sign in to view devices
+        </div>
+      )
+    }
+
+    if (!devices) {
+      return (
+        <div className="rounded-lg border border-border/50 bg-card/40 px-3 py-2 text-[11px] text-muted-foreground">
+          Loading devices...
+        </div>
+      )
+    }
+
+    if (devices.length === 0) {
+      return (
+        <div className="rounded-lg border border-border/50 bg-card/40 px-3 py-2 text-[11px] text-muted-foreground">
+          No devices found
+        </div>
+      )
+    }
+
+    return devices.map((row) => {
+      const deviceId = String(row.id)
+      const isPending = Boolean(deviceNotificationPending[deviceId])
+      const deviceColor = getVolumeColor(`device:${row.name || row.deviceKey || deviceId}`)
+      const iconColor = `oklch(from ${deviceColor} 0.82 0.17 h)`
+      const cardBorderColor = row.isCurrent
+        ? `oklch(from ${deviceColor} 0.58 0.19 h / 0.55)`
+        : `oklch(from ${deviceColor} 0.43 0.12 h / 0.35)`
+      const cardBgColor = row.isCurrent
+        ? `oklch(from ${deviceColor} 0.22 0.10 h / 0.58)`
+        : `oklch(from ${deviceColor} 0.17 0.07 h / 0.42)`
+      const labelColor = row.isCurrent
+        ? `oklch(from ${deviceColor} 0.93 0.03 h)`
+        : `oklch(from ${deviceColor} 0.84 0.05 h)`
+
+      return (
+        <div
+          key={deviceId}
+          className="group flex items-center rounded-lg border p-1"
+          style={{
+            borderColor: cardBorderColor,
+            backgroundColor: cardBgColor,
+          }}
+        >
+          <div
+            className={cn(
+              'flex min-w-0 items-center rounded-md text-left text-xs font-semibold',
+              compact ? 'h-9 w-9 justify-center' : 'h-9 flex-1 gap-2 px-2',
+            )}
+            style={compact ? undefined : { color: labelColor }}
+            title={compact ? row.name : undefined}
+          >
+            {compact ? (
+              <span
+                className="h-3 w-3 shrink-0 rounded-full border border-black/20"
+                style={{ backgroundColor: deviceColor }}
+                aria-hidden="true"
+              />
+            ) : (
+              <>
+                <Laptop className="h-4 w-4 shrink-0" style={{ color: iconColor }} />
+                <span
+                  className="h-2 w-2 shrink-0 rounded-full border border-black/15"
+                  style={{ backgroundColor: deviceColor }}
+                  aria-hidden="true"
+                />
+              </>
+            )}
+            {compact ? null : (
+              <span className="truncate">
+                {row.name}
+                {row.isCurrent ? ' (current)' : ''}
+              </span>
+            )}
+          </div>
+
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            className={cn(
+              'h-9 w-9 shrink-0',
+              row.notifications ? '' : 'text-muted-foreground/50',
+              isPending ? 'opacity-60' : '',
+            )}
+            onClick={() => {
+              void toggleDeviceNotifications(row)
+            }}
+            disabled={isPending || (!row.notifications && !row.hasSubscription && !row.isCurrent)}
+            style={row.notifications ? { color: iconColor } : undefined}
+            title={
+              row.notifications
+                ? `Disable notifications for ${row.name}`
+                : row.isCurrent
+                  ? `Enable notifications for ${row.name}`
+                  : row.hasSubscription
+                    ? `Enable notifications for ${row.name}`
+                    : `${row.name} has no push subscription yet`
+            }
+          >
+            {row.notifications ? <Bell className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
+          </Button>
+        </div>
+      )
+    })
+  }
+
+  const renderSidebarTabs = (compact: boolean) => (
+    <div
+      className={cn(
+        'border-b border-border/40 p-1',
+        compact ? 'flex flex-col gap-1 items-center' : 'flex items-center gap-1',
+      )}
+    >
+      <Button
+        type="button"
+        size={compact ? 'icon' : 'sm'}
+        variant={sidebarSection === 'volumes' ? 'default' : 'ghost'}
+        className={cn(compact ? 'h-7 w-7' : 'h-7 flex-1 text-[10px] font-bold uppercase tracking-widest')}
+        onClick={() => setSidebarSection('volumes')}
+        title="Show volumes"
+      >
+        <HardDrive className="h-3.5 w-3.5" />
+        {compact ? null : <span>Volumes</span>}
+      </Button>
+      <Button
+        type="button"
+        size={compact ? 'icon' : 'sm'}
+        variant={sidebarSection === 'devices' ? 'default' : 'ghost'}
+        className={cn(compact ? 'h-7 w-7' : 'h-7 flex-1 text-[10px] font-bold uppercase tracking-widest')}
+        onClick={() => setSidebarSection('devices')}
+        title="Show devices"
+      >
+        <Laptop className="h-3.5 w-3.5" />
+        {compact ? null : <span>Devices</span>}
+      </Button>
+    </div>
+  )
+
+  const sidebarTitle = sidebarSection === 'volumes' ? 'Volumes' : 'Devices'
+
   const dashboardContent = (
     <div className="flex h-[100svh] min-h-[100svh] w-full flex-col overflow-hidden text-foreground md:h-dvh md:min-h-dvh">
       <AppShellHeader
@@ -635,9 +831,9 @@ export function DashboardView({ mode, volume }: DashboardViewProps) {
                   variant="outline"
                   className="h-7 w-7 border-border/70 bg-background/50 md:hidden"
                   onClick={() => setIsVolumeDrawerMobileOpen(true)}
-                  title="Open volumes drawer"
+                  title={`Open ${sidebarTitle.toLowerCase()} drawer`}
                 >
-                  <HardDrive className="h-3.5 w-3.5" />
+                  {sidebarSection === 'volumes' ? <HardDrive className="h-3.5 w-3.5" /> : <Laptop className="h-3.5 w-3.5" />}
                 </Button>
                 <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/20">
                   {mode === 'logs' ? <Hash className="h-4 w-4" /> : <LayoutGrid className="h-4 w-4" />}
@@ -724,11 +920,19 @@ export function DashboardView({ mode, volume }: DashboardViewProps) {
         >
           <div className="flex items-center justify-between border-b border-border/40 px-2.5 py-2">
             {isVolumeDrawerCollapsed ? (
-              <HardDrive className="h-4 w-4 text-primary" />
+              sidebarSection === 'volumes' ? (
+                <HardDrive className="h-4 w-4 text-primary" />
+              ) : (
+                <Laptop className="h-4 w-4 text-primary" />
+              )
             ) : (
               <div className="flex items-center gap-2">
-                <HardDrive className="h-4 w-4 text-primary" />
-                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-muted-foreground">Volumes</p>
+                {sidebarSection === 'volumes' ? (
+                  <HardDrive className="h-4 w-4 text-primary" />
+                ) : (
+                  <Laptop className="h-4 w-4 text-primary" />
+                )}
+                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-muted-foreground">{sidebarTitle}</p>
               </div>
             )}
             <Button
@@ -737,13 +941,17 @@ export function DashboardView({ mode, volume }: DashboardViewProps) {
               variant="ghost"
               className="h-7 w-7"
               onClick={() => setIsVolumeDrawerCollapsed((previous) => !previous)}
-              title={isVolumeDrawerCollapsed ? 'Expand volume drawer' : 'Collapse volume drawer'}
+              title={isVolumeDrawerCollapsed ? `Expand ${sidebarTitle.toLowerCase()} drawer` : `Collapse ${sidebarTitle.toLowerCase()} drawer`}
             >
               {isVolumeDrawerCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
             </Button>
           </div>
 
-          <div className="scroll-thin flex-1 overflow-y-auto p-2">{renderVolumeItems(isVolumeDrawerCollapsed)}</div>
+          {renderSidebarTabs(isVolumeDrawerCollapsed)}
+
+          <div className="scroll-thin flex-1 overflow-y-auto p-2">
+            {sidebarSection === 'volumes' ? renderVolumeItems(isVolumeDrawerCollapsed) : renderDeviceItems(isVolumeDrawerCollapsed)}
+          </div>
         </aside>
 
         {isVolumeDrawerMobileOpen ? (
@@ -757,8 +965,12 @@ export function DashboardView({ mode, volume }: DashboardViewProps) {
             <aside className="absolute left-0 top-0 flex h-full w-72 flex-col border-r border-border/50 bg-background/95 p-2 shadow-2xl backdrop-blur">
               <div className="flex items-center justify-between border-b border-border/40 px-2 py-2">
                 <div className="flex items-center gap-2">
-                  <HardDrive className="h-4 w-4 text-primary" />
-                  <p className="text-[10px] font-black uppercase tracking-[0.16em] text-muted-foreground">Volumes</p>
+                  {sidebarSection === 'volumes' ? (
+                    <HardDrive className="h-4 w-4 text-primary" />
+                  ) : (
+                    <Laptop className="h-4 w-4 text-primary" />
+                  )}
+                  <p className="text-[10px] font-black uppercase tracking-[0.16em] text-muted-foreground">{sidebarTitle}</p>
                 </div>
                 <Button
                   type="button"
@@ -766,12 +978,15 @@ export function DashboardView({ mode, volume }: DashboardViewProps) {
                   variant="ghost"
                   className="h-7 w-7"
                   onClick={() => setIsVolumeDrawerMobileOpen(false)}
-                  title="Close volume drawer"
+                  title={`Close ${sidebarTitle.toLowerCase()} drawer`}
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
               </div>
-              <div className="scroll-thin mt-2 flex-1 overflow-y-auto">{renderVolumeItems(false)}</div>
+              {renderSidebarTabs(false)}
+              <div className="scroll-thin mt-2 flex-1 overflow-y-auto">
+                {sidebarSection === 'volumes' ? renderVolumeItems(false) : renderDeviceItems(false)}
+              </div>
             </aside>
           </div>
         ) : null}
