@@ -1,5 +1,6 @@
 import { useDeferredValue, useState, useEffect, useMemo } from 'react'
 import { useConvexAuth, useMutation, useQuery } from 'convex/react'
+import { useNavigate } from '@tanstack/react-router'
 import {
   Info,
   ShieldCheck,
@@ -25,11 +26,14 @@ import { VolumeSidebar } from './volume-sidebar'
 import { inferBrowserName, inferPlatformName } from '~/lib/device-identity'
 
 interface DashboardViewProps {
-  mode: 'logs' | 'status'
+  initialMode?: 'logs' | 'status'
   volume?: string
+  isAuthLoading?: boolean
+  showAuthLoading?: boolean
 }
 
-export function DashboardView({ mode, volume }: DashboardViewProps) {
+export function DashboardView({ initialMode = 'logs', volume, isAuthLoading, showAuthLoading }: DashboardViewProps) {
+  const [mode, setMode] = useState<'logs' | 'status'>(initialMode)
   const [selectedTopic, setSelectedTopic] = useState<string | undefined>(undefined)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<EventStatus | 'all'>('all')
@@ -43,6 +47,7 @@ export function DashboardView({ mode, volume }: DashboardViewProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   
   const { isAuthenticated } = useConvexAuth()
+  const navigate = useNavigate()
   
   const publish = useMutation(api.events.publish)
   const publishByKey = useMutation(api.events.publishByKey)
@@ -167,24 +172,12 @@ export function DashboardView({ mode, volume }: DashboardViewProps) {
   }
 
   const switchVolume = (nextVolumeRaw: string) => {
-    if (typeof window === 'undefined') return
-
     const nextVolume = nextVolumeRaw.trim() || 'personal'
-    const currentUrl = new URL(window.location.href)
-    const targetPath =
-      mode === 'status'
-        ? nextVolume === 'personal'
-          ? '/status'
-          : `/${encodeURIComponent(nextVolume)}/status`
-        : `/${encodeURIComponent(nextVolume)}`
-
-    const nextUrl = new URL(targetPath, currentUrl.origin)
-    const filter = currentUrl.searchParams.get('filter')
-    const path = currentUrl.searchParams.get('path')
-    if (filter?.trim()) nextUrl.searchParams.set('filter', filter)
-    if (path?.trim()) nextUrl.searchParams.set('path', path)
-
-    window.location.assign(nextUrl.toString())
+    void navigate({ 
+      to: '/$volumeId', 
+      params: { volumeId: nextVolume },
+      search: (prev: any) => prev 
+    })
   }
 
   const generateRandomEvents = async () => {
@@ -230,15 +223,6 @@ export function DashboardView({ mode, volume }: DashboardViewProps) {
       <Button
         size="icon"
         variant="ghost"
-        className="h-8 w-8 lg:hidden"
-        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-        title="Toggle sidebar"
-      >
-        <LayoutGrid className="h-4 w-4" />
-      </Button>
-      <Button
-        size="icon"
-        variant="ghost"
         className={cn('h-8 w-8', isSoundEnabled ? 'text-primary' : 'text-muted-foreground/40')}
         onClick={toggleSound}
         title={isSoundEnabled ? 'Mute beep' : 'Enable beep'}
@@ -247,11 +231,6 @@ export function DashboardView({ mode, volume }: DashboardViewProps) {
       </Button>
     </div>
   )
-
-  const selectedPathQuery = selectedTopic?.trim() ? `?path=${encodeURIComponent(selectedTopic)}` : ''
-  const logsModeHref = `/${encodeURIComponent(activeVolume)}${selectedPathQuery}`
-  const statusModeBaseHref = activeVolume === 'personal' ? '/status' : `/${encodeURIComponent(activeVolume)}/status`
-  const statusModeHref = `${statusModeBaseHref}${selectedPathQuery}`
 
   return (
     <div className="flex h-[100svh] min-h-[100svh] w-full flex-col overflow-hidden text-foreground md:h-dvh md:min-h-dvh bg-background">
@@ -287,20 +266,23 @@ export function DashboardView({ mode, volume }: DashboardViewProps) {
           devices={devices}
           onToggleDeviceMute={(deviceId, enabled) => void updateDevice({ deviceId, enabled })}
           isOpen={isSidebarOpen}
+          onClose={() => setIsSidebarOpen(false)}
         />
         {/* CENTER: Main Content */}
         <main className="flex-1 min-w-0 flex flex-col overflow-y-auto no-scrollbar">
           <div className="max-w-[1400px] w-full mx-auto px-4 md:px-8 flex flex-col">
             {/* Sticky Header Section */}
-            <div className="sticky top-0 z-40 bg-background/95 backdrop-blur-sm pt-4 md:pt-6 pb-2 space-y-4">
-              <ControlBar
-                mode={mode}
-                logsModeHref={logsModeHref}
-                statusModeHref={statusModeHref}
-                topicTree={data?.topicTree ?? []}
-                selectedTopic={selectedTopic}
-                onSelectTopic={(topic) => setSelectedTopic(normalizeTopicPath(topic))}
-              />
+            <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm pt-4 md:pt-6 pb-2 space-y-4">
+              <div className="relative z-20">
+                <ControlBar
+                  mode={mode}
+                  onModeChange={setMode}
+                  topicTree={data?.topicTree ?? []}
+                  selectedTopic={selectedTopic}
+                  onSelectTopic={(topic) => setSelectedTopic(normalizeTopicPath(topic))}
+                  onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+                />
+              </div>
 
               {error && (
                 <Card className="border-destructive/20 bg-destructive/10 text-destructive-foreground">
@@ -311,16 +293,18 @@ export function DashboardView({ mode, volume }: DashboardViewProps) {
                 </Card>
               )}
 
-              <ActionBar
-                search={search}
-                onSearchChange={setSearch}
-                statusFilter={statusFilter}
-                onStatusFilterChange={setStatusFilter}
-                onAcknowledgeAll={markAllSeen}
-                itemCount={mode === 'logs' ? filteredEvents.length : (data?.entities.length ?? 0)}
-                mode={mode}
-                stats={data?.stats}
-              />
+              <div className="relative z-10">
+                <ActionBar
+                  search={search}
+                  onSearchChange={setSearch}
+                  statusFilter={statusFilter}
+                  onStatusFilterChange={setStatusFilter}
+                  onAcknowledgeAll={markAllSeen}
+                  itemCount={mode === 'logs' ? filteredEvents.length : (data?.entities.length ?? 0)}
+                  mode={mode}
+                  stats={data?.stats}
+                />
+              </div>
 
               {/* Log Header - Sticky when in logs mode */}
               {mode === 'logs' && (

@@ -57,51 +57,61 @@ export function AppShellHeader({
 
   return (
     <header 
-      className="z-50 shrink-0 border-b border-border/40 bg-background/90 px-3 pb-2 backdrop-blur-md md:px-8"
+      className="z-50 shrink-0 border-b border-border/40 bg-background/95 px-3 backdrop-blur-md md:px-8"
       style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.5rem)' }}
     >
-      <div className="flex items-center justify-between gap-2 md:gap-4">
-        <Link to="/" className="group inline-flex shrink-0 items-center gap-2 rounded-lg px-1 py-1">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-primary/25 bg-primary/10 text-primary">
-            <Terminal className="h-4 w-4" />
-          </div>
-          <div className="leading-none">
-            <p className="text-sm font-black uppercase tracking-wide text-foreground">Tailwatch</p>
-          </div>
-        </Link>
+      <div className="flex h-14 items-center justify-between gap-4 md:gap-8">
+        <div className="flex items-center gap-6 md:gap-8">
+          <Link to="/" className="group relative inline-flex shrink-0 items-center gap-2.5">
+            <div className="relative z-10 flex h-8 w-8 items-center justify-center rounded-lg border border-primary/25 bg-primary/10 text-primary transition-all duration-300 group-hover:border-primary/40 group-hover:bg-primary/20 group-hover:shadow-[0_0_15px_-3px_rgba(var(--primary-rgb),0.3)]">
+              <Terminal className="h-4 w-4" />
+            </div>
+            <p className="text-sm font-black uppercase tracking-tight text-foreground transition-colors group-hover:text-primary">Tailwatch</p>
+          </Link>
 
-        {/* Desktop Navigation */}
-        <nav className="no-scrollbar hidden flex-1 items-center overflow-x-auto rounded-lg border border-primary/15 bg-primary/5 p-1 md:flex">
-          {navItems.map((item) => {
-            const Icon = item.icon
-            const active = current === item.id
-            return (
-              <Link
-                key={item.id}
-                to={item.href as any}
-                className={cn(
-                  'inline-flex shrink-0 items-center gap-1.5 rounded-md border border-transparent px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider',
-                  active
-                    ? 'bg-background text-primary border-border/60 shadow-sm'
-                    : 'text-muted-foreground/70 hover:text-foreground',
-                )}
-              >
-                <Icon className="h-3.5 w-3.5" />
-                {item.label}
-              </Link>
-            )
-          })}
-        </nav>
+          <div className="hidden h-5 w-px bg-border/60 md:block" />
+
+          {/* Desktop Navigation */}
+          <nav className="hidden items-center gap-8 md:flex h-full">
+            {navItems.map((item) => {
+              const active = current === item.id
+              const Icon = item.icon
+              return (
+                <Link
+                  key={item.id}
+                  to={item.href as any}
+                  className={cn(
+                    'group relative flex items-center gap-2.5 text-sm font-medium transition-all duration-300',
+                    active
+                      ? 'text-primary'
+                      : 'text-muted-foreground hover:text-foreground',
+                  )}
+                >
+                  <div className={cn(
+                    "flex h-8 w-8 shrink-0 items-center justify-center rounded-xl transition-all duration-300 relative z-10",
+                    active ? "bg-primary/10 shadow-[0_0_20px_-3px_rgba(var(--primary-rgb),0.3)] ring-1 ring-primary/20" : "group-hover:bg-muted/50"
+                  )}>
+                    <Icon className={cn(
+                      "h-4 w-4 transition-colors",
+                      active ? "text-primary" : "text-muted-foreground/60 group-hover:text-foreground"
+                    )} />
+                  </div>
+                  <span className={cn("relative z-10 transition-all duration-300", active && "font-bold tracking-tight")}>{item.label}</span>
+                </Link>
+              )
+            })}
+          </nav>
+        </div>
 
         <div className="ml-auto flex shrink-0 items-center gap-2">
-          <div className="hidden items-center gap-2 md:flex">
+          <div className="flex items-center gap-2">
             {topRight}
           </div>
           
           {isLoading ? (
-            <Button type="button" size="sm" variant="outline" disabled className="hidden sm:flex">
-              Checking session...
-            </Button>
+            <div className="hidden h-8 w-8 items-center justify-center sm:flex">
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent opacity-50" />
+            </div>
           ) : isAuthenticated ? (
             <div className="hidden items-center gap-2 md:flex">
               <details className="group relative">
@@ -117,7 +127,7 @@ export function AppShellHeader({
                     )}
                   </div>
                 </summary>
-                <div className="absolute right-0 top-9 z-50 w-52 rounded-md border border-border/70 bg-card/95 p-1.5 shadow-lg backdrop-blur">
+                <div className="absolute right-0 top-10 z-50 w-52 rounded-md border border-border/70 bg-card/95 p-1.5 shadow-lg backdrop-blur">
                   <div className="border-b border-border/60 px-2 py-2">
                     <p className="truncate text-xs font-semibold text-foreground">{displayName}</p>
                     {user?.email ? <p className="truncate text-[10px] text-muted-foreground">{user.email}</p> : null}
@@ -163,7 +173,7 @@ export function AppShellHeader({
 
       {/* Mobile Menu */}
       {isMenuOpen && (
-        <div className="mt-2 flex flex-col gap-3 rounded-xl border border-primary/15 bg-primary/5 p-3 animate-in fade-in slide-in-from-top-2 md:hidden shadow-xl backdrop-blur-lg">
+        <div className="mt-2 flex flex-col gap-3 rounded-xl border border-primary/15 bg-primary/5 p-3 animate-in fade-in slide-in-from-top-2 md:hidden shadow-xl backdrop-blur-lg mb-4">
           {isAuthenticated && user && (
             <div className="flex items-center gap-3 border-b border-border/40 pb-3 px-1">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border/70 bg-muted/40">

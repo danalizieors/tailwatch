@@ -1,4 +1,4 @@
-import { Bell, BellOff, HardDrive, Info, Laptop, Smartphone, Monitor, Key, Globe, Compass, Terminal, Command, Layout } from 'lucide-react'
+import { Bell, BellOff, HardDrive, Info, Laptop, Smartphone, Monitor, Key, Globe, Compass, Terminal, Command, Layout, X } from 'lucide-react'
 import { cn, getPathColor } from '~/lib/utils'
 import { Button } from '~/components/ui/button'
 import { formatRelative } from '~/lib/format'
@@ -20,6 +20,7 @@ interface VolumeSidebarProps {
   }>
   onToggleDeviceMute: (deviceId: any, enabled: boolean) => void
   isOpen?: boolean
+  onClose?: () => void
 }
 
 function getOSIcon(os?: string) {
@@ -45,6 +46,7 @@ export function VolumeSidebar({
   devices,
   onToggleDeviceMute,
   isOpen = false,
+  onClose,
 }: VolumeSidebarProps) {
   const sortedDevices = [...(devices ?? [])].sort((a, b) => {
     if (a.isCurrent) return -1
@@ -54,9 +56,27 @@ export function VolumeSidebar({
 
   return (
     <aside className={cn(
-      "fixed inset-y-0 left-0 z-[60] w-[260px] flex-col gap-8 border-r border-border/40 bg-background px-6 py-6 transition-transform duration-300 ease-in-out lg:static lg:inset-auto lg:flex lg:translate-x-0 overflow-y-auto no-scrollbar",
-      isOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full"
+      "fixed inset-y-0 left-0 z-[60] w-[280px] flex flex-col gap-8 border-r border-border/40 bg-background/95 backdrop-blur-xl px-6 py-6 transition-all duration-300 ease-in-out lg:static lg:inset-auto lg:flex lg:translate-x-0 overflow-y-auto no-scrollbar",
+      isOpen ? "translate-x-0 shadow-2xl opacity-100" : "-translate-x-full opacity-0 lg:opacity-100"
     )}>
+      {/* Mobile Close Button */}
+      <div className="flex items-center justify-between lg:hidden mb-2">
+        <div className="flex items-center gap-2">
+          <div className="h-8 w-8 flex items-center justify-center rounded-lg border border-primary/25 bg-primary/10 text-primary">
+            <Terminal className="h-4 w-4" />
+          </div>
+          <span className="text-xs font-black uppercase tracking-widest text-foreground">Menu</span>
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 -mr-2"
+          onClick={onClose}
+        >
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
+
       {/* VOLUMES SECTION */}
       <div className="flex flex-col gap-4">
         <div className="flex items-center px-1">

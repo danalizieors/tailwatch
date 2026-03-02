@@ -258,7 +258,7 @@ function normalizeQueryStatus(value?: string) {
   return undefined
 }
 
-export const getDashboardSnapshot = query({
+export const dashboardSnapshot = query({
   args: {
     volume: v.optional(v.string()),
     topicPrefix: v.optional(v.string()),
@@ -274,6 +274,8 @@ export const getDashboardSnapshot = query({
     })
   },
 })
+
+export const statusSnapshot = dashboardSnapshot
 
 async function buildSnapshot(
   ctx: any,
@@ -396,10 +398,12 @@ function buildTopicTree(paths: string[], prefix?: string) {
 
   function convert(node: any, pathAcc: string[]): any {
     const currentPath = [...pathAcc, node.name].filter((s) => s !== 'root')
-    const fullPath = currentPath.join('/')
+    const path = currentPath.join('/')
     return {
+      id: path,
       name: node.name,
-      fullPath,
+      path,
+      count: 0, // Could be enriched if needed
       children: Array.from(node.children.values())
         .map((child) => convert(child, currentPath))
         .sort((a, b) => a.name.localeCompare(b.name)),

@@ -26,8 +26,10 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic, placeholder 
   const allTopics = useMemo(() => {
     const list: { path: string; name: string; count: number }[] = []
     const traverse = (nodes: TopicNode[]) => {
+      if (!nodes) return
       for (const node of nodes) {
-        list.push({ path: node.path, name: node.name, count: node.count })
+        const path = node.path || ''
+        list.push({ path, name: node.name || '', count: node.count || 0 })
         traverse(node.children)
       }
     }
@@ -38,7 +40,7 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic, placeholder 
   const filteredTopics = useMemo(() => {
     if (query) {
       return allTopics
-        .filter((t) => t.path.toLowerCase().includes(query.toLowerCase()))
+        .filter((t) => (t.path || '').toLowerCase().includes(query.toLowerCase()))
         .sort((a, b) => b.count - a.count)
         .slice(0, 12)
     }
@@ -47,6 +49,7 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic, placeholder 
       return allTopics
         .filter(
           (t) =>
+            t.path &&
             t.path.startsWith(selectedTopic + '/') &&
             t.path.split('/').length === selectedTopic.split('/').length + 1
         )
@@ -55,7 +58,7 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic, placeholder 
     }
 
     return allTopics
-      .filter((t) => !t.path.includes('/'))
+      .filter((t) => t.path && !t.path.includes('/'))
       .sort((a, b) => b.count - a.count)
       .slice(0, 12)
   }, [allTopics, query, selectedTopic])
@@ -248,13 +251,13 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic, placeholder 
               </button>
             ) : null}
             {filteredTopics.map((topic, index) => {
-              const color = getPathColor(topic.path)
+              const color = getPathColor(topic.path || '')
               const isSelected = selectedTopic === topic.path
               const isActive = activeIndex === index
               
               return (
                 <button
-                  key={topic.path}
+                  key={topic.path || index}
                   type="button"
                   className={cn(
                     "w-full flex items-center justify-between px-3 py-2.5 text-left transition-colors",
