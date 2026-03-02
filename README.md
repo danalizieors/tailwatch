@@ -1,112 +1,52 @@
 # Tailwatch
 
-Tailwatch is a realtime event monitor for teams that need fast visibility across agents, jobs, services, pipelines, and message streams.
+Tailwatch is a live event monitor designed for one simple purpose: to answer the question **"What is happening in my system right now?"**
 
-It is designed for the gap between raw logs and heavyweight observability platforms: simple enough to adopt quickly, but structured enough to answer what is happening right now.
+It sits in the sweet spot between messy, overwhelming logs and complex, heavy monitoring tools. It provides a clean, real-time status for your AI agents, background workers, and distributed services.
 
-## Why Tailwatch
+## The Vision: Instant Clarity
 
-When multiple systems emit events, teams usually lose context before they lose data.
+When running complex systems—like multi-step AI agents, long-running deployment pipelines, or a fleet of background workers—it's easy to lose the thread. You know something is happening, but is it *stuck*? Is it *busy*? Or is it *idle*?
 
-Common questions become harder than they should be:
+Tailwatch transforms a stream of raw data into a living **Status Board**. Instead of tailing logs and searching for specific markers, you glance at the board to see the state of every component at once.
 
-- What is active right now?
-- What failed, and where did it fail?
-- Which project, workflow, or team does this event belong to?
-- Did a run finish, stall, or go idle?
+## Stay Informed Everywhere
 
-Tailwatch gives you a single live surface for event streams and current state.
+One of Tailwatch's most powerful features is its **native push notification system**. You don't need to keep the dashboard open to know when something goes wrong or a critical task finishes.
 
-## What It Does
+- **Cross-Platform Alerts**: Receive instant push notifications on your desktop, tablet, or phone.
+- **State-Triggered Notifications**: Get notified the moment a process switches to an `error` state or exceeds its expected `busy` duration.
+- **Mobile-First Design**: Install Tailwatch as a PWA on your mobile device to get a native-app experience with reliable background alerts.
 
-Tailwatch lets clients publish events to a path-based namespace, then turns those events into two complementary views:
+## The Two Essential Views
 
-- Log Stream: a live timeline of events (good for debugging and tracing activity)
-- Status Board: a derived snapshot of current entity state (good for triage and operations)
+Tailwatch provides two complementary views that work together to show you the full picture.
 
-This makes it useful both as a lightweight monitoring layer and as an operational wallboard.
+### 1. The Status Board (The "Now" View)
+A live snapshot of your entire system's health.
+- **Identify Stalls**: Spot jobs that have been "busy" for longer than expected.
+- **Visualize Flow**: Watch as different components switch from idle to busy in a coordinated sequence.
+- **Second-Monitor Ready**: A high-level dashboard designed to be kept open and visible.
 
-## Core Concepts
+### 2. The Log Stream (The "Timeline" View)
+A real-time feed of every message as it arrives.
+- **Watch the Thinking**: Follow the step-by-step logic of an AI agent or a build script.
+- **Contextual Details**: See the specific messages or errors associated with a state change.
+- **Coordinated Tracking**: Color-coded paths make it easy to follow multiple interleaved streams.
 
-### Hierarchical Topics
+## The Conceptual Model
 
-Events are published into a hierarchy defined by the topic path.
+Tailwatch is built on three core ideas that make monitoring feel natural:
 
-Examples:
+- **The Busy/Idle State Machine**: Every event in Tailwatch is either `busy` or `idle`. This binary status tells you instantly if a job is actively working or if it has reached a resting state. It’s the simplest possible heartbeat for any process.
+- **Hierarchical Paths**: Organize your systems using a familiar, file-system-like structure. Group events under paths like `/production/worker-1` or `/staging/vision-agent/step-3`.
+- **Isolated Volumes**: Keep your environments completely separate using "Volumes." Each volume is its own independent workspace with a human-readable identity.
 
-- `/team-a/project-x/task/planner`
-- `/team-a/project-y/pipeline/ingest`
-- `/ops/cron/nightly-backup`
-- `/app/frontend/messages`
+---
 
-These paths become filterable namespaces in the dashboard.
+## Perfect For...
 
-### Event Stream + Derived State
-
-Tailwatch stores and streams raw events in realtime, while also deriving current status per entity.
-
-That means you can move between:
-
-- the timeline (what happened)
-- the snapshot (what is happening now)
-
-### Volume Separation
-
-Tailwatch supports volume scoping so teams can keep environments or organizations separated while using the same event model.
-
-## Event Types
-
-Tailwatch supports a small, practical event model for operational streams:
-
-- `start` — work begins
-- `log` — message or progress output
-- `stop` — work finishes successfully
-- `error` — work fails
-- `heartbeat` — keepalive for long-running work
-- `status` — explicit state update
-
-This model works well for agents, background jobs, services, and general application events.
-
-## Current Capabilities
-
-- Realtime event streaming dashboard
-- Status board with derived entity state
-- Hierarchical topic filtering
-- Search and event-type filtering
-- Volume-aware monitoring views
-- Browser sound alerts and push notifications (optional)
-- Lightweight HTTP publish pattern for event ingestion
-
-## Typical Use Cases
-
-- AI/agent orchestration workflows
-- CI/CD and deployment pipelines
-- Background workers and scheduled jobs
-- Ops/infra checks and cron tasks
-- Internal app message streams and activity feeds
-
-## Product Principles
-
-- Fast to adopt: simple publish model, minimal ceremony
-- Operator-friendly: timeline + current-state views
-- Structured but flexible: hierarchy without heavy schema requirements
-- Useful early: provides value before a full observability rollout
-
-## Roadmap Direction
-
-Tailwatch is focused on becoming a stronger operational signal layer for realtime workstreams.
-
-Planned and likely next areas include:
-
-- richer run and timeline detail views
-- topic-focused shared views
-- access control and publish/read permissions
-- webhooks for key events (for example failures)
-- retention controls and policies
-- summary metrics and trend visualizations
-
-## Project Status
-
-Tailwatch is currently a private project.
-
-This README describes the product intent, current capabilities, and direction. Details may evolve as the product matures.
+*   **AI Agents**: Watch an agent's "chain of thought" and get notified when it hits a roadblock.
+*   **Background Jobs**: Monitor scheduled tasks and get alerts if a backup fails.
+*   **CI/CD Pipelines**: Track builds and deployments, receiving a push notification the moment production is live.
+*   **Distributed Systems**: A lightweight way to see if remote services are still "breathing" across all your devices.

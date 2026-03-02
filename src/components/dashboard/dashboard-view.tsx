@@ -548,7 +548,7 @@ export function DashboardView({ mode, volume }: DashboardViewProps) {
             : 'text-muted-foreground/70 hover:text-foreground',
         )}
       >
-        Logs
+        Log Stream
       </a>
       <a
         href={statusModeHref}
@@ -559,7 +559,7 @@ export function DashboardView({ mode, volume }: DashboardViewProps) {
             : 'text-muted-foreground/70 hover:text-foreground',
         )}
       >
-        Status
+        Status Board
       </a>
     </div>
   )
@@ -839,7 +839,7 @@ export function DashboardView({ mode, volume }: DashboardViewProps) {
                   {mode === 'logs' ? <Hash className="h-4 w-4" /> : <LayoutGrid className="h-4 w-4" />}
                 </div>
                 <h2 className="text-xs font-bold text-foreground/90 uppercase tracking-tight sm:text-sm">
-                  {mode === 'logs' ? 'Event Log' : 'Path Registry'}
+                  {mode === 'logs' ? 'Log Stream' : 'Status Board'}
                 </h2>
                 <span className="text-[10px] font-bold text-muted-foreground/60 bg-muted/20 px-1.5 py-0.5 rounded-md border border-border/10">
                   {mode === 'logs' ? `${filteredEvents.length}` : `${data?.entities.length ?? 0}`}
