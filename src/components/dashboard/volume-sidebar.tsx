@@ -5,7 +5,7 @@ import { formatRelative } from '~/lib/format'
 
 interface VolumeSidebarProps {
   activeVolume: string
-  volumeChoices: Array<{ name: string; notifications: boolean; id: any; key?: string }>
+  volumeChoices: Array<{ name: string; notificationsEnabled: boolean; id: any; key?: string }>
   onVolumeChange: (volume: string) => void
   onToggleVolumeNotifications: (volumeId: any, enabled: boolean) => void
   isAuthenticated: boolean
@@ -111,17 +111,17 @@ export function VolumeSidebar({
                   variant="ghost"
                   className={cn(
                     'h-8 w-8 shrink-0 rounded-xl transition-all duration-200',
-                    vol.notifications 
+                    vol.notificationsEnabled 
                       ? 'text-primary bg-primary/5 shadow-sm border border-primary/20' 
                       : 'text-muted-foreground/20 hover:text-muted-foreground/60 hover:bg-muted/50'
                   )}
                   onClick={(e) => {
                     e.stopPropagation();
-                    onToggleVolumeNotifications(vol.id, !vol.notifications);
+                    onToggleVolumeNotifications(vol.id, !vol.notificationsEnabled);
                   }}
-                  title={vol.notifications ? 'Disable notifications' : 'Enable notifications'}
+                  title={vol.notificationsEnabled ? 'Disable notifications' : 'Enable notifications'}
                 >
-                   {vol.notifications ? <Bell className="h-3.5 w-3.5" /> : <BellOff className="h-3.5 w-3.5" />}
+                   {vol.notificationsEnabled ? <Bell className="h-3.5 w-3.5" /> : <BellOff className="h-3.5 w-3.5" />}
                 </Button>
               </div>
             )

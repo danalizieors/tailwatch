@@ -56,7 +56,10 @@ export function AppShellHeader({
   }, [])
 
   return (
-    <header className="z-50 shrink-0 border-b border-border/40 bg-background/90 px-3 py-2 backdrop-blur-md md:px-8">
+    <header 
+      className="z-50 shrink-0 border-b border-border/40 bg-background/90 px-3 pb-2 backdrop-blur-md md:px-8"
+      style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.5rem)' }}
+    >
       <div className="flex items-center justify-between gap-2 md:gap-4">
         <Link to="/" className="group inline-flex shrink-0 items-center gap-2 rounded-lg px-1 py-1">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-primary/25 bg-primary/10 text-primary">

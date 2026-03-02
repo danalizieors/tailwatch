@@ -29,3 +29,11 @@ export function getPathColor(path: string) {
 
   return `oklch(${l.toFixed(3)} ${c.toFixed(3)} ${h.toFixed(2)})`
 }
+
+/**
+ * Generates a stable color for volume names. Prefixing with `volume:`
+ * keeps volume colors independent from regular path hashing.
+ */
+export function getVolumeColor(name: string) {
+  return getPathColor(`volume:${name}`)
+}

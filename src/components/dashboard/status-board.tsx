@@ -15,7 +15,7 @@ export function StatusBoard({ rows, lastSeenAt }: StatusBoardProps) {
         {rows.length === 0 ? (
           <div className="flex h-full min-h-[300px] items-center justify-center flex-col gap-2 text-muted-foreground">
             <AlertCircle className="h-5 w-5 opacity-40" />
-            <span className="text-xs font-medium opacity-60">Registry empty</span>
+            <span className="text-xs font-medium opacity-60">Status Board empty</span>
           </div>
         ) : (
           <div className="grid gap-3 px-1 pb-6 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 2xl:grid-cols-4">

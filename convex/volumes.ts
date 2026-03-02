@@ -21,6 +21,12 @@ async function getCurrentUserId(ctx: QueryCtx | MutationCtx) {
   return normalizeUserId(userId)
 }
 
+async function requireCurrentUserId(ctx: QueryCtx | MutationCtx) {
+  const userId = await getCurrentUserId(ctx)
+  if (!userId) throw new Error('Sign in required')
+  return userId
+}
+
 function isOwnedByUser(volume: VolumeDoc, userId: string | undefined) {
   return normalizeUserId(volume.userId) === userId
 }
@@ -91,6 +97,7 @@ async function createOwnedVolume(ctx: MutationCtx, userId: string | undefined, n
     name,
     key,
     keyEnabled: true,
+    notificationsEnabled: true,
   })
   const created = await ctx.db.get(volumeId)
   if (!created) throw new Error('Failed to create volume')
@@ -118,7 +125,7 @@ function mapVolume(row: VolumeDoc) {
     id: row._id,
     name: row.name,
     isDefault: row.name === DEFAULT_VOLUME_NAME,
-    notifications: row.notifications !== false, // default to true
+    notificationsEnabled: row.notificationsEnabled !== false,
     key: {
       id: `${row._id}:key`,
       volumeId: row._id,
@@ -138,7 +145,7 @@ export const setVolumeNotifications = mutation({
     await assertVolumeOwnership(ctx, args.volumeId, userId)
 
     await ctx.db.patch(args.volumeId, {
-      notifications: args.enabled,
+      notificationsEnabled: args.enabled,
     })
   },
 })
@@ -146,7 +153,7 @@ export const setVolumeNotifications = mutation({
 export const listManagedVolumes = query({
   args: {},
   handler: async (ctx) => {
-    const userId = await getCurrentUserId(ctx)
+    const userId = await requireCurrentUserId(ctx)
     const volumes = await listOwnedVolumes(ctx, userId)
 
     return volumes
@@ -163,7 +170,7 @@ export const listManagedVolumes = query({
 export const ensurePersonalVolume = mutation({
   args: {},
   handler: async (ctx) => {
-    const userId = await getCurrentUserId(ctx)
+    const userId = await requireCurrentUserId(ctx)
     const volume = await ensurePersonalVolumeForUser(ctx, userId)
     return mapVolume(volume)
   },
@@ -174,7 +181,7 @@ export const createVolume = mutation({
     name: v.string(),
   },
   handler: async (ctx, args) => {
-    const userId = await getCurrentUserId(ctx)
+    const userId = await requireCurrentUserId(ctx)
     await ensurePersonalVolumeForUser(ctx, userId)
 
     const name = normalizeVolumeName(args.name)
@@ -192,7 +199,7 @@ export const renameVolume = mutation({
     name: v.string(),
   },
   handler: async (ctx, args) => {
-    const userId = await getCurrentUserId(ctx)
+    const userId = await requireCurrentUserId(ctx)
     await ensurePersonalVolumeForUser(ctx, userId)
 
     const volume = await assertVolumeOwnership(ctx, args.volumeId, userId)
@@ -221,7 +228,7 @@ export const updateVolumeKey = mutation({
     enabled: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const userId = await getCurrentUserId(ctx)
+    const userId = await requireCurrentUserId(ctx)
     await ensurePersonalVolumeForUser(ctx, userId)
 
     const volume = await assertVolumeOwnership(ctx, args.volumeId, userId)
@@ -234,10 +241,7 @@ export const updateVolumeKey = mutation({
 
     if (args.enabled === true) {
       const hasKey = typeof volume.key === 'string' && volume.key.trim().length > 0
-      patch.keyEnabled = true
-      if (!hasKey) {
-        patch.key = await generateUniqueVolumeKey(ctx)
-      }
+      patch.keyEnabled = hasKey
     }
 
     if (Object.keys(patch).length > 0) {
@@ -245,8 +249,9 @@ export const updateVolumeKey = mutation({
     }
 
     const updated = await ctx.db.get(args.volumeId)
-    if (!updated) throw new Error('Volume not found after key update')
-    return mapVolume(updated as VolumeDoc).key
+    if (!updated) throw new Error('Volume not found after update')
+
+    return mapVolume(updated as VolumeDoc)
   },
 })
 
@@ -255,7 +260,7 @@ export const rotateVolumeKey = mutation({
     volumeId: v.id('volumes'),
   },
   handler: async (ctx, args) => {
-    const userId = await getCurrentUserId(ctx)
+    const userId = await requireCurrentUserId(ctx)
     await ensurePersonalVolumeForUser(ctx, userId)
 
     await assertVolumeOwnership(ctx, args.volumeId, userId)
@@ -268,7 +273,8 @@ export const rotateVolumeKey = mutation({
 
     const updated = await ctx.db.get(args.volumeId)
     if (!updated) throw new Error('Volume not found after key rotation')
-    return mapVolume(updated as VolumeDoc).key
+
+    return mapVolume(updated as VolumeDoc)
   },
 })
 
@@ -277,19 +283,19 @@ export const disableVolumeKey = mutation({
     volumeId: v.id('volumes'),
   },
   handler: async (ctx, args) => {
-    const userId = await getCurrentUserId(ctx)
+    const userId = await requireCurrentUserId(ctx)
     await ensurePersonalVolumeForUser(ctx, userId)
 
     await assertVolumeOwnership(ctx, args.volumeId, userId)
 
     await ctx.db.patch(args.volumeId, {
-      key: undefined,
       keyEnabled: false,
     })
 
     const updated = await ctx.db.get(args.volumeId)
     if (!updated) throw new Error('Volume not found after key disable')
-    return mapVolume(updated as VolumeDoc).key
+
+    return mapVolume(updated as VolumeDoc)
   },
 })
 
@@ -298,7 +304,7 @@ export const deleteVolume = mutation({
     volumeId: v.id('volumes'),
   },
   handler: async (ctx, args) => {
-    const userId = await getCurrentUserId(ctx)
+    const userId = await requireCurrentUserId(ctx)
     await ensurePersonalVolumeForUser(ctx, userId)
 
     const volume = await assertVolumeOwnership(ctx, args.volumeId, userId)
@@ -317,9 +323,9 @@ export const deleteVolume = mutation({
         .query('events')
         .withIndex('by_pathId', (q) => q.eq('pathId', String(path._id)))
         .collect()
-      deletedEvents += events.length
 
       for (const event of events) {
+        deletedEvents += 1
         await ctx.db.delete(event._id)
       }
       await ctx.db.delete(path._id)

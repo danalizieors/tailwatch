@@ -50,8 +50,8 @@ export function DashboardView({ mode, volume }: DashboardViewProps) {
   const setVolumeNotifications = useMutation(api.volumes.setVolumeNotifications)
   const registerDevice = useMutation(api.devices.registerDevice)
 
-  const managedVolumes = useQuery(api.volumes.listManagedVolumes, {}) as
-    | Array<{ id: any; name: string; isDefault?: boolean; notifications: boolean; key?: { value?: string } }>
+  const managedVolumes = useQuery(api.volumes.listManagedVolumes, isAuthenticated ? {} : 'skip') as
+    | Array<{ id: any; name: string; isDefault?: boolean; notificationsEnabled: boolean; key?: { value?: string } }>
     | undefined
 
   const currentDeviceKey = useMemo(() => NotificationManager.getDeviceKey(), [])
@@ -275,7 +275,7 @@ export function DashboardView({ mode, volume }: DashboardViewProps) {
           volumeChoices={(managedVolumes ?? []).map(v => ({ 
             id: v.id, 
             name: v.name, 
-            notifications: v.notifications,
+            notificationsEnabled: v.notificationsEnabled,
             key: v.key?.value
           }))}
           onVolumeChange={(v) => {

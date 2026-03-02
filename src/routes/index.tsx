@@ -37,21 +37,21 @@ const proofStats = [
     icon: LayoutGrid,
   },
   {
-    label: 'Event Types',
-    value: '6',
-    detail: 'start, message, stop, error, heartbeat, update',
+    label: 'Status',
+    value: 'Busy/Idle',
+    detail: 'Binary state machine',
     icon: Activity,
   },
   {
     label: 'Ingestion',
     value: 'HTTP',
-    detail: 'Simple POST endpoint per topic path',
+    detail: 'Simple POST endpoint',
     icon: Webhook,
   },
   {
     label: 'Alerts',
     value: 'Push',
-    detail: 'Optional browser push notifications',
+    detail: 'Desktop & Mobile notifications',
     icon: Bell,
   },
 ]
@@ -60,20 +60,20 @@ const problemCards = [
   {
     title: 'Streams lose context',
     description:
-      'Events arrive fast, but ownership disappears. You can see output, not where it belongs in the system.',
+      'Events arrive fast, but ownership disappears. You can see output, but not where it belongs in the system.',
     icon: ListTree,
   },
   {
-    title: 'State drifts silently',
+    title: 'Failures are silent',
     description:
-      'An event says “started”, but nobody can tell what is still running, failed, idle, or stopped right now.',
-    icon: Clock3,
+      'Jobs fail in the background and go unnoticed for hours. You need to be alerted the moment a process hits an error.',
+    icon: Bell,
   },
   {
-    title: 'Failures hide in noise',
+    title: 'State drifts away',
     description:
-      'Important errors are mixed with normal chatter, forcing operators to scan timelines instead of reading state.',
-    icon: CircleAlert,
+      'An event says “started”, but nobody can tell what is still running, failed, idle, or stopped right now.',
+    icon: LayoutGrid,
   },
 ]
 
@@ -86,50 +86,50 @@ const workflowSteps = [
   },
   {
     step: '02',
-    title: 'Stream in realtime',
-    description: 'Tailwatch appends and streams events instantly so operators can react as systems change.',
+    title: 'Watch the Log Stream',
+    description: 'Tailwatch appends and streams events instantly so you can follow the "chain of thought" in real-time.',
     icon: Zap,
   },
   {
     step: '03',
-    title: 'Derive current state',
+    title: 'Derive system status',
     description:
-      'The dashboard summarizes event sequences into entity snapshots: working, stopped, error, idle, or unknown.',
+      'The Status Board summarizes event sequences into entity snapshots: busy, idle, or error.',
     icon: LayoutGrid,
   },
   {
     step: '04',
-    title: 'Alert when needed',
+    title: 'Alert everywhere',
     description:
-      'Enable sound and browser push notifications to react to failures without keeping the dashboard in focus.',
+      'Enable browser push notifications to receive instant alerts on desktop or mobile when systems change state.',
     icon: Bell,
   },
 ]
 
 const featureCards = [
   {
-    title: 'Hierarchical topics',
-    description: 'Namespace events by team, project, job, task, or service using URL segments.',
+    title: 'Hierarchical paths',
+    description: 'Namespace events by team, project, or service using a familiar file-system-like hierarchy.',
     icon: GitBranch,
   },
   {
-    title: 'Realtime timeline',
-    description: 'Treat Tailwatch like a lightweight observability console for live activity and message trails.',
+    title: 'Live Log Stream',
+    description: 'A real-time timeline for following step-by-step logic, heartbeat signals, and detailed message trails.',
     icon: ListTree,
   },
   {
-    title: 'State snapshots',
-    description: 'See current entity state at a glance with the latest content, run ID, and timestamps.',
+    title: 'Status Board snapshot',
+    description: 'A high-level view of your entire system. Instantly identify stalls and busy components.',
     icon: LayoutGrid,
   },
   {
-    title: 'Search and filters',
-    description: 'Filter by topic, type, run, and content to isolate exactly the event thread you need.',
-    icon: Database,
+    title: 'PWA & Mobile Push',
+    description: 'Install Tailwatch as a Progressive Web App (PWA) on any device for native-app experience and background alerts.',
+    icon: Bell,
   },
   {
-    title: 'Workspace scoping',
-    description: 'Separate streams with workspace headers for multi-team or environment-specific monitoring.',
+    title: 'Isolated Volumes',
+    description: 'Separate production, staging, and internal environments with cryptographically secure volumes.',
     icon: Lock,
   },
 ]
@@ -137,42 +137,42 @@ const featureCards = [
 const useCases = [
   {
     title: 'Agent orchestration',
-    body: 'Track planner, coder, reviewer, and tool runs by topic path and run ID.',
+    body: 'Watch an agent’s "chain of thought" and get a push notification when it hits a roadblock.',
     icon: Sparkles,
   },
   {
-    title: 'CI / pipeline jobs',
-    body: 'Follow build, test, deploy, and rollback stages without building custom dashboards first.',
-    icon: Server,
+    title: 'Critical Alerts',
+    body: 'Get notified immediately on your phone when a production pipeline fails or a backup stalls.',
+    icon: Bell,
   },
   {
     title: 'Cron + ops tasks',
-    body: 'Monitor scheduled jobs, backup checks, and health routines with simple start/stop/error events.',
+    body: 'Monitor scheduled jobs and health routines with simple status-based events and background alerts.',
     icon: ShieldCheck,
   },
   {
-    title: 'App message streams',
-    body: 'Use event streams for lightweight app timelines or internal team notifications.',
+    title: 'Distributed Systems',
+    body: 'A lightweight way to see if remote services are still "breathing" across all your devices.',
     icon: Terminal,
   },
 ]
 
 const faqItems = [
   {
-    q: 'Do I need an SDK to send events?',
-    a: 'No. Tailwatch uses a plain HTTP POST publish endpoint, so curl, shell scripts, CI runners, and app services can all publish events directly.',
+    q: 'Do I need an SDK to receive alerts?',
+    a: 'No. Tailwatch uses native browser Web Push. You can enable notifications for any volume with one click on desktop or by installing the PWA on your mobile device.',
   },
   {
     q: 'Can I use Tailwatch for more than agent tasks?',
-    a: 'Yes. The model is generic: jobs, services, pipelines, cron tasks, and simple message feeds all fit the same path-based event pattern.',
+    a: 'Yes. The model is generic: jobs, services, pipelines, cron tasks, and simple message feeds all fit the same path-based event pattern with integrated alerting.',
   },
   {
     q: 'How does the dashboard stay readable under high event volume?',
-    a: 'Tailwatch combines path hierarchy, filtering, and state summaries so operators can quickly isolate what matters without losing realtime context.',
+    a: 'Tailwatch combines path hierarchy, filtering, and status summaries so you can quickly isolate what matters. Critical state changes will always trigger a push notification if enabled.',
   },
   {
-    q: 'Can I separate environments or teams?',
-    a: 'Yes. Tailwatch supports workspace scoping and hierarchical topic paths, so you can split production, staging, or team-specific feeds cleanly.',
+    q: 'How do mobile notifications work?',
+    a: 'Tailwatch is a Progressive Web App (PWA). Just "Add to Home Screen" on iOS or Android, and you will receive native background alerts just like a standalone app.',
   },
 ]
 
@@ -220,7 +220,10 @@ function TailwatchLandingPage() {
       </div>
 
       <div className="relative z-10 w-full min-w-0">
-        <header className="sticky top-0 z-50 border-b border-border/50 bg-background/90 backdrop-blur-md">
+        <header
+          className="sticky top-0 z-50 border-b border-border/50 bg-background/90 backdrop-blur-md"
+          style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
+        >
           <nav
             aria-label="Primary"
             className="mx-auto flex min-h-16 w-full max-w-7xl min-w-0 flex-wrap items-center justify-between gap-3 px-4 py-2 md:h-16 md:flex-nowrap md:gap-4 md:px-6 md:py-0"
@@ -278,11 +281,11 @@ function TailwatchLandingPage() {
                 <p className="text-xs font-medium uppercase tracking-[0.08em] text-muted-foreground">Overview</p>
                 <h1 className="text-balance text-4xl font-bold leading-tight tracking-tight text-foreground sm:text-5xl lg:text-6xl">
                   See every agent, job, and service
-                  <span className="block text-primary">with realtime operational visibility.</span>
+                  <span className="block text-primary">with real-time status visibility.</span>
                 </h1>
                 <p className="max-w-2xl text-base leading-7 text-muted-foreground md:text-lg">
-                  Tailwatch is a lightweight realtime dashboard for hierarchical events, tasks, and messages.
-                  Publish to a URL path, stream updates instantly, and keep event context and current state in one place.
+                  Tailwatch is the sweet spot between messy logs and complex monitoring. 
+                  A living Status Board and real-time alerts for your entire agentic workforce.
                 </p>
               </div>
 
@@ -290,19 +293,19 @@ function TailwatchLandingPage() {
                 <div className="rounded-xl border border-border/60 bg-card/80 p-4">
                   <div className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.04em] text-muted-foreground">
                     <Webhook className="h-3.5 w-3.5 text-primary" />
-                    Simple ingestion
+                    Zero SDK Ingestion
                   </div>
                   <p className="text-sm leading-6 text-foreground/90">
-                    No SDK required. `curl`, CI jobs, scripts, and apps can publish events over HTTP.
+                    Just a simple HTTP POST. curl, Python, Node, Go—all supported out of the box.
                   </p>
                 </div>
                 <div className="rounded-xl border border-border/60 bg-card/80 p-4">
                   <div className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.04em] text-muted-foreground">
-                    <ShieldCheck className="h-3.5 w-3.5 text-success" />
-                    Operational clarity
+                    <Bell className="h-3.5 w-3.5 text-primary" />
+                    Push Everywhere
                   </div>
                   <p className="text-sm leading-6 text-foreground/90">
-                    Path hierarchy + derived entity state makes “what is active now?” visible immediately.
+                    Cross-platform alerts on Desktop, iOS, and Android via native Web Push.
                   </p>
                 </div>
               </div>
@@ -318,13 +321,13 @@ function TailwatchLandingPage() {
                       <Activity className="h-4 w-4" />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-xs font-medium tracking-[0.04em] text-muted-foreground">Live feed</p>
-                      <p className="truncate text-sm font-semibold text-foreground">Workspace `default`</p>
+                      <p className="text-xs font-medium tracking-[0.04em] text-muted-foreground">Live status</p>
+                      <p className="truncate text-sm font-semibold text-foreground">Volume `production`</p>
                     </div>
                   </div>
                   <div className="inline-flex w-fit items-center gap-2 rounded-full border border-success/20 bg-success/10 px-3 py-1 text-xs font-medium text-success">
                     <span className="h-2 w-2 rounded-full bg-success" />
-                    Live
+                    Operational
                   </div>
                 </div>
 
@@ -333,22 +336,22 @@ function TailwatchLandingPage() {
                     <CardHeader className="pb-2">
                       <CardTitle className="flex items-center gap-2 text-xs font-semibold tracking-[0.04em] text-primary">
                         <ListTree className="h-3.5 w-3.5" />
-                        Event Timeline
+                        Log Stream
                       </CardTitle>
-                      <CardDescription className="text-xs">Chronological events with path, type, and payload content.</CardDescription>
+                      <CardDescription className="text-xs">Chronological timeline for "chain of thought" trails.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-2 pb-4">
                       <div className="rounded-lg border border-border/60 bg-card/60 p-2">
-                        <p className="break-all text-[11px] font-semibold text-foreground">team-a/project-x/task/planner</p>
-                        <p className="text-[10px] font-medium text-success">start • run_123</p>
+                        <p className="break-all text-[11px] font-semibold text-foreground">agents/vision</p>
+                        <p className="text-[10px] font-medium text-success">busy • Analyzing frame #420</p>
                       </div>
                       <div className="rounded-lg border border-border/60 bg-card/60 p-2">
-                        <p className="break-all text-[11px] font-semibold text-foreground">team-a/project-x/task/planner</p>
-                        <p className="text-[10px] font-medium text-muted-foreground">message • "Fetched repository files"</p>
+                        <p className="break-all text-[11px] font-semibold text-foreground">agents/vision</p>
+                        <p className="text-[10px] font-medium text-muted-foreground">message • "Detected 3 objects"</p>
                       </div>
                       <div className="rounded-lg border border-destructive/25 bg-destructive/10 p-2">
-                        <p className="break-all text-[11px] font-semibold text-foreground">ops/cron/nightly-backup</p>
-                        <p className="text-[10px] font-medium text-destructive">error • disk snapshot timeout</p>
+                        <p className="break-all text-[11px] font-semibold text-foreground">ops/db-backup</p>
+                        <p className="text-[10px] font-medium text-destructive">error • snapshot timeout</p>
                       </div>
                     </CardContent>
                   </Card>
@@ -357,17 +360,17 @@ function TailwatchLandingPage() {
                     <CardHeader className="pb-2">
                       <CardTitle className="flex items-center gap-2 text-xs font-semibold tracking-[0.04em] text-info">
                         <LayoutGrid className="h-3.5 w-3.5" />
-                        State Snapshot
+                        Status Board
                       </CardTitle>
-                      <CardDescription className="text-xs">Derived state per entity for quick operator decisions.</CardDescription>
+                      <CardDescription className="text-xs">High-density snapshot of busy and idle tasks.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-2 pb-4">
                       <div className="rounded-lg border border-success/20 bg-success/10 p-2">
-                        <p className="text-[11px] font-semibold text-foreground">planner</p>
-                        <p className="text-[10px] font-medium text-success">working • active for 00:23</p>
+                        <p className="text-[11px] font-semibold text-foreground">vision-agent</p>
+                        <p className="text-[10px] font-medium text-success">busy • active for 00:23</p>
                       </div>
                       <div className="rounded-lg border border-warning/25 bg-warning/10 p-2">
-                        <p className="text-[11px] font-semibold text-foreground">deployer</p>
+                        <p className="text-[11px] font-semibold text-foreground">file-ingestor</p>
                         <p className="text-[10px] font-medium text-warning">idle • last seen 2m ago</p>
                       </div>
                       <div className="rounded-lg border border-destructive/25 bg-destructive/10 p-2">
@@ -415,10 +418,11 @@ function TailwatchLandingPage() {
             <div className="space-y-3">
               <p className="text-xs font-medium uppercase tracking-[0.08em] text-muted-foreground">Problem</p>
               <h2 className="text-balance text-3xl font-bold tracking-tight text-foreground md:text-4xl">
-                When everything emits events, nobody sees the system state.
+                When everything emits events, nobody sees the status.
               </h2>
               <p className="max-w-3xl text-base leading-7 text-muted-foreground">
-                Tailwatch is designed for the gap between raw event streams and heavyweight observability stacks: realtime operational visibility with a path-based model that is easy to publish into.
+                Tailwatch is designed for the gap between raw event streams and heavyweight observability stacks: 
+                real-time status visibility with a path-based model that makes monitoring feel like a file system.
               </p>
             </div>
 
@@ -447,7 +451,7 @@ function TailwatchLandingPage() {
                 A topic path becomes your monitoring map.
               </h2>
               <p className="max-w-3xl text-base leading-7 text-muted-foreground">
-                Use hierarchy in the URL itself. Tailwatch stores the stream, organizes it by segments, and derives operator-friendly state from the latest events.
+                Use hierarchy in the URL itself. Tailwatch stores the Log Stream, organizes it by segments, and derives operator-friendly status from the latest events.
               </p>
             </div>
 
@@ -459,9 +463,9 @@ function TailwatchLandingPage() {
                 </CardHeader>
                 <CardContent className="space-y-2 pb-4 font-mono text-xs">
                   {[
-                    '/team-a/project-x/task/planner',
-                    '/team-a/project-x/task/coder',
-                    '/team-a/project-y/pipeline/ingest',
+                    '/production/agents/vision',
+                    '/production/agents/planner',
+                    '/staging/pipelines/ingest',
                     '/ops/cron/nightly-backup',
                     '/app/frontend/messages',
                   ].map((path) => (
@@ -504,7 +508,7 @@ function TailwatchLandingPage() {
                 One dashboard, one event source, faster decisions.
               </h2>
               <p className="max-w-3xl text-base leading-7 text-muted-foreground">
-                Tailwatch keeps ingestion simple and operator workflows practical: monitor event flow, inspect context, and triage what matters now from one screen.
+                Tailwatch keeps ingestion simple and operator workflows practical: monitor the Log Stream, inspect the Status Board, and triage what matters now from one screen.
               </p>
             </div>
 
@@ -533,7 +537,7 @@ function TailwatchLandingPage() {
                 Built for the workflows teams already have.
               </h2>
               <p className="max-w-3xl text-base leading-7 text-muted-foreground">
-                Tailwatch works best when you want a practical event dashboard first, not a long instrumentation project.
+                Tailwatch works best when you want a practical status dashboard first, not a long instrumentation project.
               </p>
             </div>
 
@@ -583,10 +587,10 @@ function TailwatchLandingPage() {
               <div className="space-y-4">
                 <p className="text-xs font-medium uppercase tracking-[0.08em] text-muted-foreground">Get started</p>
                 <h2 className="text-balance text-3xl font-bold tracking-tight text-foreground md:text-4xl">
-                  Deploy Tailwatch quickly and standardize event visibility.
+                  Deploy Tailwatch quickly and standardize system visibility.
                 </h2>
                 <p className="max-w-2xl text-base leading-7 text-muted-foreground">
-                  Open the dashboard from the top navigation and start publishing events immediately with the same endpoint model.
+                  Open the dashboard from the top navigation and start publishing events immediately to your own Volume.
                 </p>
               </div>
 

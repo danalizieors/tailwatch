@@ -64,28 +64,20 @@ async function generateUniqueVolumeKey(ctx: any) {
 }
 
 async function ensureVolumeExists(ctx: any, volumeName: string, userId?: string) {
-  // 1. Try to find a volume owned by the user
-  if (userId) {
-    const existing = await ctx.db
-      .query('volumes')
-      .withIndex('by_user_and_name', (q: any) => q.eq('userId', userId).eq('name', volumeName))
-      .first()
-    if (existing) return existing
-  }
-
-  // 2. Try to find a global volume
-  const existingGlobal = await ctx.db
+  const ownerId = typeof userId === 'string' && userId.trim().length > 0 ? userId.trim() : undefined
+  const existing = await ctx.db
     .query('volumes')
-    .withIndex('by_user_and_name', (q: any) => q.eq('userId', undefined).eq('name', volumeName))
+    .withIndex('by_user_and_name', (q: any) => q.eq('userId', ownerId).eq('name', volumeName))
     .first()
-  if (existingGlobal) return existingGlobal
+  if (existing) return existing
 
   const key = await generateUniqueVolumeKey(ctx)
   const volumeId = await ctx.db.insert('volumes', {
-    userId,
+    userId: ownerId,
     name: volumeName,
     key,
     keyEnabled: true,
+    notificationsEnabled: true,
   })
   const created = await ctx.db.get(volumeId)
   if (!created) throw new Error('Failed to create volume')
@@ -149,14 +141,13 @@ async function publishResolved(
     content: input.content,
   })
 
-  try {
-    const ownerUserId =
-      typeof volumeDoc.userId === 'string' && volumeDoc.userId.trim().length > 0
-        ? volumeDoc.userId.trim()
-        : undefined
-    
-    // Only schedule push if volume notifications are enabled
-    if (volumeDoc.notifications !== false) {
+  // Schedule push if volume notifications are enabled
+  if (volumeDoc.notificationsEnabled !== false) {
+    try {
+      const ownerUserId =
+        typeof volumeDoc.userId === 'string' && volumeDoc.userId.trim().length > 0
+          ? volumeDoc.userId.trim()
+          : undefined
       const payload: {
         volume: string
         path: string
@@ -172,9 +163,9 @@ async function publishResolved(
       if (ownerUserId) payload.userId = ownerUserId
 
       await ctx.scheduler.runAfter(0, internal.push.sendPushForEventInternal, payload)
+    } catch (error) {
+      console.warn('Failed to schedule push notification delivery', error)
     }
-  } catch (error) {
-    console.warn('Failed to schedule push notification delivery', error)
   }
 
   return {
@@ -262,340 +253,16 @@ function statusRank(status: 'busy' | 'idle') {
 function normalizeQueryStatus(value?: string) {
   const normalized = value?.trim().toLowerCase()
   if (!normalized || normalized === 'all') return undefined
-  if (normalized === 'busy' || normalized === 'idle') return normalized
+  if (normalized === 'busy') return 'busy'
+  if (normalized === 'idle') return 'idle'
   return undefined
 }
 
-function toDashboardSnapshot(input: {
-  events: Array<{
-    id: string
-    volume: string
-    path: string
-    segments: string[]
-    time: string
-    ingestedAt: string
-    status: 'busy' | 'idle'
-    content?: string
-    pathId: string
-    entityId: string
-    entityType: 'path'
-  }>
-  topicTreeEvents: Array<{
-    segments: string[]
-  }>
-  paths: Array<{
-    key: string
-    volume: string
-    path: string
-    segments: string[]
-    status: 'busy' | 'idle'
-    lastTime: string
-    lastIngestedAt: string
-    lastContent?: string
-  }>
-  totalEvents: number
-}) {
-  type MutableNode = {
-    id: string
-    name: string
-    path: string
-    count: number
-    children: MutableNode[]
-    childrenMap: Map<string, MutableNode>
-  }
-
-  type TopicTreeNode = {
-    id: string
-    name: string
-    path: string
-    count: number
-    children: TopicTreeNode[]
-  }
-
-  const root: MutableNode = {
-    id: 'root',
-    name: 'root',
-    path: '',
-    count: 0,
-    children: [],
-    childrenMap: new Map(),
-  }
-
-  for (const event of input.topicTreeEvents) {
-    root.count += 1
-    let cursor = root
-    let partial = ''
-    for (const segment of event.segments) {
-      partial = partial ? `${partial}/${segment}` : segment
-      let child = cursor.childrenMap.get(segment)
-      if (!child) {
-        child = {
-          id: partial,
-          name: segment,
-          path: partial,
-          count: 0,
-          children: [],
-          childrenMap: new Map(),
-        }
-        cursor.childrenMap.set(segment, child)
-        cursor.children.push(child)
-      }
-      child.count += 1
-      cursor = child
-    }
-  }
-
-  const finalizeNodes = (nodes: MutableNode[]): TopicTreeNode[] =>
-    nodes
-      .slice()
-      .sort((left, right) => right.count - left.count || left.name.localeCompare(right.name))
-      .map((node) => ({
-        id: node.id,
-        name: node.name,
-        path: node.path,
-        count: node.count,
-        children: finalizeNodes(node.children),
-      }))
-
-  const entities = input.paths.map((row) => {
-    const segments = row.segments.length > 0 ? row.segments : row.path.split('/').filter(Boolean)
-    const entityId = segments[segments.length - 1] || row.path || 'path'
-    return {
-      key: row.key,
-      volume: row.volume,
-      path: row.path,
-      entityId,
-      entityType: 'path',
-      currentStatus: row.status,
-      lastSeenAt: row.lastIngestedAt,
-      lastContent: row.lastContent,
-    }
-  })
-
-  const busyCount = input.paths.filter((row) => row.status === 'busy').length
-  const idleCount = input.paths.filter((row) => row.status === 'idle').length
-
-  return {
-    events: input.events,
-    paths: input.paths,
-    entities,
-    topicTree: finalizeNodes(root.children),
-    stats: {
-      totalEvents: input.totalEvents,
-      pathCount: input.paths.length,
-      busyCount,
-      idleCount,
-    },
-    fetchedAt: new Date().toISOString(),
-  }
-}
-
-async function buildSnapshot(
-  ctx: any,
-  input: {
-    userId?: string
-    volume?: string
-    topicPrefix?: string
-    status?: string
-    q?: string
-    limit?: number
-  },
-) {
-  const volumeName = normalizeVolume(input.volume)
-  const statusFilter = normalizeQueryStatus(input.status)
-  const topicPrefix = normalizeTopicPath(input.topicPrefix ?? '')
-  const q = input.q?.trim().toLowerCase()
-  const limit = Math.min(Math.max(Number(input.limit ?? 200), 1), 500)
-
-  const volumeCandidates: any[] = []
-  const userId = typeof input.userId === 'string' && input.userId.trim().length > 0 ? input.userId.trim() : undefined
-
-  if (userId) {
-    const userVolumes = await ctx.db
-      .query('volumes')
-      .withIndex('by_user_and_name', (queryBuilder: any) => queryBuilder.eq('userId', userId).eq('name', volumeName))
-      .collect()
-    volumeCandidates.push(...userVolumes)
-  }
-
-  const globalVolumes = await ctx.db
-    .query('volumes')
-    .withIndex('by_user_and_name', (queryBuilder: any) => queryBuilder.eq('userId', undefined).eq('name', volumeName))
-    .collect()
-  volumeCandidates.push(...globalVolumes)
-
-  const seenVolumeIds = new Set<string>()
-  const volumeRows = volumeCandidates.filter((volume) => {
-    const id = String(volume._id)
-    if (seenVolumeIds.has(id)) return false
-    seenVolumeIds.add(id)
-    return true
-  })
-
-  if (volumeRows.length === 0) {
-    return toDashboardSnapshot({
-      events: [],
-      topicTreeEvents: [],
-      paths: [],
-      totalEvents: 0,
-    })
-  }
-
-  const events: Array<{
-    id: string
-    volume: string
-    path: string
-    segments: string[]
-    time: string
-    ingestedAt: string
-    status: 'busy' | 'idle'
-    content?: string
-    pathId: string
-    entityId: string
-    entityType: 'path'
-  }> = []
-
-  const paths: Array<{
-    key: string
-    volume: string
-    path: string
-    segments: string[]
-    status: 'busy' | 'idle'
-    lastTime: string
-    lastIngestedAt: string
-    lastContent?: string
-  }> = []
-
-  for (const volume of volumeRows) {
-    const candidateVolumeName = normalizeVolume(typeof volume.name === 'string' ? volume.name : volumeName)
-    const pathRows = await ctx.db
-      .query('paths')
-      .withIndex('by_volumeId', (queryBuilder: any) => queryBuilder.eq('volumeId', String(volume._id)))
-      .collect()
-
-    for (const pathRow of pathRows) {
-      const pathValue = normalizeTopicPath(String(pathRow.path ?? ''))
-      if (!pathValue) continue
-      if (!pathMatchesPrefix(pathValue, topicPrefix)) continue
-
-      const pathEvents = await ctx.db
-        .query('events')
-        .withIndex('by_pathId', (queryBuilder: any) => queryBuilder.eq('pathId', String(pathRow._id)))
-        .collect()
-
-      if (pathEvents.length === 0) continue
-
-      const normalizedEvents: Array<{
-        id: string
-        volume: string
-        path: string
-        segments: string[]
-        time: string
-        ingestedAt: string
-        status: 'busy' | 'idle'
-        content?: string
-        pathId: string
-        entityId: string
-        entityType: 'path'
-      }> = pathEvents
-        .map((eventRow: any) => {
-          const time = typeof eventRow.time === 'string' ? eventRow.time : new Date(eventRow._creationTime ?? Date.now()).toISOString()
-          const ingestedAt = new Date(eventRow._creationTime ?? Date.now()).toISOString()
-          const status = eventRow.status === 'busy' ? 'busy' : 'idle'
-          const content = typeof eventRow.content === 'string' ? eventRow.content : undefined
-          const segments = splitTopicPath(pathValue)
-          const entityId = segments[segments.length - 1] || pathValue
-
-          return {
-            id: String(eventRow._id),
-            volume: candidateVolumeName,
-            path: pathValue,
-            segments,
-            time,
-            ingestedAt,
-            status,
-            content,
-            pathId: String(pathRow._id),
-            entityId,
-            entityType: 'path' as const,
-          }
-        })
-        .sort((left: { time: string; ingestedAt: string }, right: { time: string; ingestedAt: string }) => {
-          const byTime = right.time.localeCompare(left.time)
-          if (byTime !== 0) return byTime
-          return right.ingestedAt.localeCompare(left.ingestedAt)
-        })
-
-      const latestForPath = normalizedEvents[0]
-      if (!latestForPath) continue
-
-      const pathHaystack = `${pathValue} ${latestForPath.content ?? ''}`.toLowerCase()
-      for (const event of normalizedEvents) {
-        const eventHaystack = `${event.path} ${event.content ?? ''}`.toLowerCase()
-        if (statusFilter && event.status !== statusFilter) continue
-        if (q && !eventHaystack.includes(q)) continue
-        events.push(event)
-      }
-
-      if (!(q && !pathHaystack.includes(q)) && !(statusFilter && latestForPath.status !== statusFilter)) {
-        paths.push({
-          key: `${String(volume._id)}::${pathValue}`,
-          volume: candidateVolumeName,
-          path: pathValue,
-          segments: latestForPath.segments,
-          status: latestForPath.status,
-          lastTime: latestForPath.time,
-          lastIngestedAt: latestForPath.ingestedAt,
-          lastContent: latestForPath.content,
-        })
-      }
-    }
-  }
-
-  paths.sort((left, right) => {
-    const byStatus = statusRank(left.status) - statusRank(right.status)
-    if (byStatus !== 0) return byStatus
-    return right.lastIngestedAt.localeCompare(left.lastIngestedAt)
-  })
-
-  events.sort((left, right) => {
-    const byTime = right.time.localeCompare(left.time)
-    if (byTime !== 0) return byTime
-    return right.ingestedAt.localeCompare(left.ingestedAt)
-  })
-
-  const totalEvents = events.length
-  const limitedEvents = events.slice(0, limit)
-
-  return toDashboardSnapshot({
-    events: limitedEvents,
-    topicTreeEvents: events,
-    paths,
-    totalEvents,
-  })
-}
-
-export const dashboardSnapshot = query({
+export const getDashboardSnapshot = query({
   args: {
     volume: v.optional(v.string()),
     topicPrefix: v.optional(v.string()),
-    status: v.optional(v.string()),
-    q: v.optional(v.string()),
-    limit: v.optional(v.number()),
-  },
-  handler: async (ctx, args) => {
-    const userId = await auth.getUserId(ctx)
-    return buildSnapshot(ctx, {
-      ...args,
-      userId: typeof userId === 'string' ? userId : undefined,
-    })
-  },
-})
-
-export const statusSnapshot = query({
-  args: {
-    volume: v.optional(v.string()),
-    topicPrefix: v.optional(v.string()),
+    statusFilter: v.optional(v.string()),
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
@@ -607,3 +274,137 @@ export const statusSnapshot = query({
     })
   },
 })
+
+async function buildSnapshot(
+  ctx: any,
+  args: {
+    userId?: string
+    volume?: string
+    topicPrefix?: string
+    statusFilter?: string
+    limit: number
+  },
+) {
+  const volumeName = normalizeVolume(args.volume)
+  const volumeDoc = await ctx.db
+    .query('volumes')
+    .withIndex('by_user_and_name', (q: any) => q.eq('userId', args.userId).eq('name', volumeName))
+    .first()
+
+  if (!volumeDoc) {
+    return {
+      volume: volumeName,
+      stats: { totalEvents: 0, pathCount: 0, busyCount: 0, idleCount: 0 },
+      events: [],
+      entities: [],
+      topicTree: [],
+    }
+  }
+
+  const volumeId = String(volumeDoc._id)
+  const paths = await ctx.db
+    .query('paths')
+    .withIndex('by_volumeId', (q: any) => q.eq('volumeId', volumeId))
+    .collect()
+
+  const matchedPaths = paths.filter((p: any) => pathMatchesPrefix(p.path, args.topicPrefix))
+  const matchedPathIds = new Set(matchedPaths.map((p: any) => String(p._id)))
+
+  const allEvents = await ctx.db
+    .query('events')
+    .collect()
+
+  const eventsInVolume = allEvents
+    .filter((e: any) => matchedPathIds.has(e.pathId))
+    .sort((a: any, b: any) => b.time.localeCompare(a.time))
+
+  const queryStatus = normalizeQueryStatus(args.statusFilter)
+  const filteredEvents = queryStatus ? eventsInVolume.filter((e: any) => e.status === queryStatus) : eventsInVolume
+
+  const pathMap = new Map(paths.map((p: any) => [String(p._id), p.path]))
+  const displayEvents = filteredEvents.slice(0, args.limit).map((e: any) => ({
+    id: String(e._id),
+    path: pathMap.get(e.pathId) ?? 'unknown',
+    time: e.time,
+    status: e.status,
+    content: e.content,
+  }))
+
+  const entityStates = new Map<string, { lastSeenAt: string; status: 'busy' | 'idle'; lastContent?: string }>()
+  for (const e of eventsInVolume) {
+    const path = pathMap.get(e.pathId) ?? 'unknown'
+    const existing = entityStates.get(path)
+    if (!existing || e.time > existing.lastSeenAt) {
+      entityStates.set(path, { lastSeenAt: e.time, status: e.status, lastContent: e.content })
+    }
+  }
+
+  const entities = Array.from(entityStates.entries())
+    .map(([path, state]) => ({
+      path,
+      entityId: path.split('/').pop() || path,
+      entityType: 'path' as const,
+      ...state,
+    }))
+    .sort((a, b) => {
+      const rankA = statusRank(a.status)
+      const rankB = statusRank(b.status)
+      if (rankA !== rankB) return rankA - rankB
+      return b.lastSeenAt.localeCompare(a.lastSeenAt)
+    })
+
+  const busyCount = Array.from(entityStates.values()).filter((s) => s.status === 'busy').length
+  const idleCount = Array.from(entityStates.values()).filter((s) => s.status === 'idle').length
+
+  return {
+    volume: volumeName,
+    stats: {
+      totalEvents: eventsInVolume.length,
+      pathCount: entityStates.size,
+      busyCount,
+      idleCount,
+    },
+    events: displayEvents,
+    entities,
+    topicTree: buildTopicTree(matchedPaths.map((p: any) => p.path), args.topicPrefix),
+  }
+}
+
+function buildTopicTree(paths: string[], prefix?: string) {
+  const root: any = { name: 'root', children: new Map() }
+  const prefixSegments = prefix ? prefix.split('/').filter(Boolean) : []
+
+  for (const path of paths) {
+    const segments = path.split('/').filter(Boolean)
+    let current = root
+    for (const segment of segments) {
+      if (!current.children.has(segment)) {
+        current.children.set(segment, { name: segment, children: new Map(), fullPath: '' })
+      }
+      current = current.children.get(segment)
+    }
+  }
+
+  let startNode = root
+  for (const segment of prefixSegments) {
+    if (startNode.children.has(segment)) {
+      startNode = startNode.children.get(segment)
+    } else {
+      return []
+    }
+  }
+
+  function convert(node: any, pathAcc: string[]): any {
+    const currentPath = [...pathAcc, node.name].filter((s) => s !== 'root')
+    const fullPath = currentPath.join('/')
+    return {
+      name: node.name,
+      fullPath,
+      children: Array.from(node.children.values())
+        .map((child) => convert(child, currentPath))
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    }
+  }
+
+  return Array.from(startNode.children.values()).map((child) => convert(child, prefixSegments))
+}

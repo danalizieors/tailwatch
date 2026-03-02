@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
 import { useAuthActions } from '@convex-dev/auth/react'
-import { Bell, BellOff, Laptop, Loader2, LogIn, Save, Send, Trash2, Globe, Compass, Terminal, Command, Layout, Monitor, Key } from 'lucide-react'
+import { Bell, BellOff, Laptop, Loader2, LogIn, Save, Send, Trash2, Globe, Compass, Terminal, Command, Layout, Monitor } from 'lucide-react'
 import { useAction, useConvexAuth, useMutation, useQuery } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
 import { AppShellHeader } from '~/components/layout/app-shell-header'
@@ -70,6 +70,14 @@ function DeviceSettingsPage() {
         next[deviceId] = previous[deviceId] ?? device.name
       }
       return next
+    })
+  }, [devices])
+
+  const sortedDevices = useMemo(() => {
+    return [...(devices ?? [])].sort((a, b) => {
+      if (a.isCurrent) return -1
+      if (b.isCurrent) return 1
+      return (b.lastSeenAt ?? '').localeCompare(a.lastSeenAt ?? '')
     })
   }, [devices])
 
@@ -207,14 +215,6 @@ function DeviceSettingsPage() {
     )
   }
 
-  const sortedDevices = useMemo(() => {
-    return [...(devices ?? [])].sort((a, b) => {
-      if (a.isCurrent) return -1
-      if (b.isCurrent) return 1
-      return (b.lastSeenAt ?? '').localeCompare(a.lastSeenAt ?? '')
-    })
-  }, [devices])
-
   return (
     <div className="flex min-h-[100svh] w-full flex-col md:min-h-dvh bg-background">
       <AppShellHeader current="devices" />
@@ -338,7 +338,7 @@ function DeviceSettingsPage() {
                             disabled={busyAction !== null || nameDraft === device.name}
                             className="h-8 px-2 bg-background/50"
                           >
-                            {busyAction?.type === 'save' && isBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                            {busyAction?.type === 'save' && isBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
                           </Button>
                         </div>
                       </div>
