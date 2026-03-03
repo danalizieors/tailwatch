@@ -4,8 +4,6 @@ import { useNavigate } from '@tanstack/react-router'
 import {
   Info,
   ShieldCheck,
-  Volume2,
-  VolumeX,
   Zap,
   LayoutGrid,
   PanelLeft,
@@ -20,7 +18,6 @@ import { StatusBoard } from './status-board'
 import { useDashboardData } from './use-dashboard-data'
 import { AppShellHeader } from '~/components/layout/app-shell-header'
 import { cn } from '~/lib/utils'
-import { NotificationManager } from '~/lib/notifications'
 import { IngestTools } from './ingest-tools'
 import { ControlBar } from './control-bar'
 import { ActionBar } from './action-bar'
@@ -39,7 +36,6 @@ export function DashboardView({ initialMode = 'logs', volume, isAuthLoading, sho
   const [selectedTopic, setSelectedTopic] = useState<string | undefined>(undefined)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<EventStatus | 'all'>('all')
-  const [isSoundEnabled, setIsSoundEnabled] = useState(NotificationManager.isEnabled())
   const [isDebugMode, setIsDebugMode] = useState(false)
   const [isGeneratingRandomEvents, setIsGeneratingRandomEvents] = useState(false)
   const [generatorMessage, setGeneratorMessage] = useState<string | null>(null)
@@ -163,16 +159,6 @@ export function DashboardView({ initialMode = 'logs', volume, isAuthLoading, sho
     setVolumePublishKey(null)
   }, [activeVolume, managedVolumes])
 
-  const toggleSound = () => {
-    if (isSoundEnabled) {
-      NotificationManager.disableSound()
-      setIsSoundEnabled(false)
-    } else {
-      NotificationManager.enableSound()
-      setIsSoundEnabled(true)
-    }
-  }
-
   const switchVolume = (nextVolumeRaw: string) => {
     const nextVolume = nextVolumeRaw.trim() || 'personal'
     void navigate({ 
@@ -228,27 +214,12 @@ export function DashboardView({ initialMode = 'logs', volume, isAuthLoading, sho
     return haystack.includes(q)
   })
 
-  const headerTopRight = (
-    <div className="flex items-center gap-2">
-      <Button
-        size="icon"
-        variant="ghost"
-        className={cn('h-8 w-8', isSoundEnabled ? 'text-primary' : 'text-zinc-500')}
-        onClick={toggleSound}
-        title={isSoundEnabled ? 'Mute beep' : 'Enable beep'}
-      >
-        {isSoundEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
-      </Button>
-    </div>
-  )
-
   return (
     <div className="flex h-dvh min-h-dvh w-full flex-col overflow-hidden text-foreground bg-background">
       {/* Header */}
       <div className="z-50 shrink-0">
         <AppShellHeader
           current="events"
-          topRight={headerTopRight}
         />
       </div>
 
