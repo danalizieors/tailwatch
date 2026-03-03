@@ -21,9 +21,10 @@ export function PathDisplay({ path, className, segmentClassName, onClickSegment 
         }}
         className={cn(
           "px-1 rounded hover:bg-muted font-bold transition-all",
-          segments.length === 0 ? "text-primary" : "text-muted-foreground/40",
+          segments.length === 0 ? "text-primary" : "text-zinc-500",
           segmentClassName
-        )}
+          )
+}
       >
         /
       </button>
@@ -44,14 +45,14 @@ export function PathDisplay({ path, className, segmentClassName, onClickSegment 
               }}
               className={cn(
                 "px-0.5 md:px-1 py-0.5 rounded transition-all whitespace-nowrap",
-                isLast ? "font-bold opacity-90" : "text-muted-foreground/60 hover:text-foreground hover:bg-muted",
+                isLast ? "font-bold" : "text-zinc-400 hover:text-foreground hover:bg-muted",
                 segmentClassName
               )}
               style={{ color: isLast ? color : undefined }}
             >
               {segment}
             </button>
-            <span className="text-muted-foreground/20 px-0.5 select-none opacity-60">/</span>
+            <span className="text-zinc-600 px-0.5 select-none">/</span>
           </div>
         )
       })}

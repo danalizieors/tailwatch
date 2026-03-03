@@ -25,7 +25,7 @@
   --secondary-foreground: oklch(0.92 0.01 40);
   
   --muted: oklch(0.22 0.03 40);
-  --muted-foreground: oklch(0.7 0.02 40);
+  --muted-foreground: oklch(0.75 0.02 40);
   
   --accent: oklch(0.22 0.03 40);
   --accent-foreground: oklch(0.92 0.01 40);
@@ -101,8 +101,8 @@ body {
 }
 
 ::selection {
-  background: color-mix(in oklab, var(--primary) 30%, transparent);
-  color: var(--foreground);
+  background: var(--primary);
+  color: var(--primary-foreground);
 }
 
 .scroll-thin {

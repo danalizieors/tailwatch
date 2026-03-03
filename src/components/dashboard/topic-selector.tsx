@@ -169,7 +169,7 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic, placeholder 
           inputRef.current?.focus()
         }}
       >
-        <Search className="h-3.5 w-3.5 text-muted-foreground/60 mr-1 md:mr-1.5 shrink-0" />
+        <Search className="h-3.5 w-3.5 text-zinc-400 mr-1 md:mr-1.5 shrink-0" />
         
         {/* DRILLDOWN / BREADCRUMBS */}
         <div className="no-scrollbar flex min-w-0 shrink max-w-[55%] items-center sm:max-w-[70%] md:max-w-[80%]">
@@ -185,7 +185,7 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic, placeholder 
           <input
             ref={inputRef}
             type="text"
-            className="w-full bg-transparent text-[10px] md:text-[11px] font-mono focus:outline-none placeholder:text-muted-foreground/50 text-foreground font-medium"
+            className="w-full bg-transparent text-[10px] md:text-[11px] font-mono focus:outline-none placeholder:text-zinc-400 text-foreground font-medium"
             placeholder={!selectedTopic ? placeholder : "..."}
             value={query}
             onChange={(e) => {
@@ -210,7 +210,7 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic, placeholder 
                 inputRef.current?.focus()
               }
             }}
-            className="ml-1 md:ml-2 text-muted-foreground/40 hover:text-destructive p-1 shrink-0"
+            className="ml-1 md:ml-2 text-zinc-500 hover:text-destructive p-1 shrink-0"
           >
             <X className="h-3 w-3" />
           </button>
@@ -238,10 +238,10 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic, placeholder 
                 onMouseEnter={() => setActiveIndex(-1)}
               >
                 <div className="flex flex-col min-w-0">
-                  <span className="truncate text-xs font-mono font-bold text-foreground/90">
+                  <span className="truncate text-xs font-mono font-bold text-foreground">
                     {normalizedQueryPath}
                   </span>
-                  <span className="text-[10px] text-muted-foreground/60 font-bold uppercase tracking-tighter">
+                  <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-tighter">
                     Use custom path
                   </span>
                 </div>
@@ -273,10 +273,10 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic, placeholder 
                   onMouseEnter={() => setActiveIndex(index)}
                 >
                   <div className="flex flex-col min-w-0">
-                    <span className="truncate text-xs font-mono font-bold text-foreground/90" style={{ color: isSelected || isActive ? color : undefined }}>
+                    <span className="truncate text-xs font-mono font-bold text-foreground" style={{ color: isSelected || isActive ? color : undefined }}>
                       {topic.path}
                     </span>
-                    <span className="text-[10px] text-muted-foreground/50 font-bold uppercase tracking-tighter">
+                    <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-tighter">
                       {topic.name}
                     </span>
                   </div>

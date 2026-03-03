@@ -251,7 +251,7 @@ function DeviceSettingsPage() {
           ) : devices.length === 0 ? (
             <div className="col-span-full flex flex-col items-center justify-center py-20 rounded-2xl border border-dashed border-border/60 bg-muted/10 text-muted-foreground">
               <Monitor className="h-8 w-8 mb-2 opacity-20" />
-              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">No devices registered</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">No devices registered</p>
             </div>
           ) : (
             sortedDevices.map((device: any) => {
@@ -283,13 +283,13 @@ function DeviceSettingsPage() {
                           </CardTitle>
                           <div className="flex items-center gap-1.5 mt-0.5">
                             <div className="flex items-center gap-1 shrink-0">
-                              <OSIcon className="h-3 w-3 text-muted-foreground/40" title={device.os} />
-                              <BrowserIcon className="h-3 w-3 text-muted-foreground/40" title={device.browser} />
+                              <OSIcon className="h-3 w-3 text-zinc-500" title={device.os} />
+                              <BrowserIcon className="h-3 w-3 text-zinc-500" title={device.browser} />
                             </div>
                             {device.isCurrent ? (
                               <Badge variant="success" className="text-[8px] h-4 font-black uppercase tracking-widest px-1">You</Badge>
                             ) : (
-                              <span className="text-[9px] font-bold text-muted-foreground/40 whitespace-nowrap">
+                              <span className="text-[9px] font-bold text-zinc-500 whitespace-nowrap">
                                 seen {device.lastSeenAt ? formatRelative(device.lastSeenAt) : 'never'}
                               </span>
                             )}
@@ -304,7 +304,7 @@ function DeviceSettingsPage() {
                           'h-8 w-8 shrink-0 rounded-xl transition-all duration-200',
                           device.enabled 
                             ? 'text-primary bg-primary/5 shadow-sm border border-primary/20' 
-                            : 'text-muted-foreground/20 hover:text-muted-foreground/60 hover:bg-muted/50'
+                            : 'text-zinc-600 hover:text-zinc-400 hover:bg-muted/50'
                         )}
                         onClick={() => void handleToggleNotifications(device)}
                         disabled={busyAction !== null}
@@ -318,7 +318,7 @@ function DeviceSettingsPage() {
                   <CardContent className="p-4 pt-0 flex-1 flex flex-col justify-between space-y-4">
                     <div className="space-y-3">
                       <div className="space-y-1.5">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 leading-none ml-1">Device Name</Label>
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 leading-none ml-1">Device Name</Label>
                         <div className="flex gap-2">
                           <Input
                             value={nameDraft}
@@ -344,8 +344,8 @@ function DeviceSettingsPage() {
                       </div>
 
                       <div className="space-y-1.5">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 leading-none ml-1">Device Key</Label>
-                        <div className="rounded-lg border border-border/40 bg-background/50 px-3 py-2 font-mono text-[9px] text-muted-foreground/60 break-all leading-tight">
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 leading-none ml-1">Device Key</Label>
+                        <div className="rounded-lg border border-border/40 bg-background/50 px-3 py-2 font-mono text-[9px] text-zinc-400 break-all leading-tight">
                           {device.deviceKey}
                         </div>
                       </div>
@@ -367,7 +367,7 @@ function DeviceSettingsPage() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="h-8 w-8 rounded-lg px-0 text-muted-foreground/40 hover:bg-destructive/5 hover:text-destructive transition-all active:scale-95"
+                          className="h-8 w-8 rounded-lg px-0 text-zinc-500 hover:bg-destructive/5 hover:text-destructive transition-all active:scale-95"
                           onClick={() => void handleDeleteDevice(device)}
                           disabled={busyAction !== null}
                         >

@@ -231,7 +231,7 @@ function VolumeSettingsPage() {
           ) : volumes.length === 0 ? (
             <div className="col-span-full flex flex-col items-center justify-center py-20 rounded-2xl border border-dashed border-border/60 bg-muted/10 text-muted-foreground">
               <HardDrive className="h-8 w-8 mb-2 opacity-20" />
-              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">No volumes configured</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">No volumes configured</p>
             </div>
           ) : (
             volumes.map((volume: any) => {
@@ -263,7 +263,7 @@ function VolumeSettingsPage() {
                             ) : null}
                             <Badge 
                               variant={volume.key.enabled ? 'outline' : 'warning'} 
-                              className="text-[8px] h-4 font-black uppercase tracking-widest px-1 border-primary/20 text-primary/80"
+                              className="text-[8px] h-4 font-black uppercase tracking-widest px-1 border-primary/20 text-primary"
                             >
                               {volume.key.enabled ? 'Key Active' : 'Key Disabled'}
                             </Badge>
@@ -275,9 +275,9 @@ function VolumeSettingsPage() {
 
                   <CardContent className="p-4 pt-0 flex-1 flex flex-col justify-between space-y-4">
                     <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 leading-none ml-1">API Key</Label>
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 leading-none ml-1">API Key</Label>
                       <div className="group/key relative flex items-center rounded-lg border border-border/40 bg-background/50 px-3 py-2 font-mono text-[10px] break-all">
-                        <span className={cn("flex-1", !volume.key.enabled && "italic text-muted-foreground/40")}>
+                        <span className={cn("flex-1", !volume.key.enabled && "italic text-zinc-500")}>
                           {volume.key.value || 'No active key'}
                         </span>
                         {volume.key.enabled && (
@@ -333,7 +333,7 @@ function VolumeSettingsPage() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="h-8 w-8 rounded-lg px-0 text-muted-foreground/40 hover:bg-destructive/5 hover:text-destructive transition-all active:scale-95"
+                          className="h-8 w-8 rounded-lg px-0 text-zinc-500 hover:bg-destructive/5 hover:text-destructive transition-all active:scale-95"
                           onClick={() => void handleDeleteVolume(volume)}
                           disabled={busyAction !== null}
                         >

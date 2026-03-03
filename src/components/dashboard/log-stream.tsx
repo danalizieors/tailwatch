@@ -16,12 +16,13 @@ export function LogStream({ events, lastSeenAt }: LogStreamProps) {
           {events.length === 0 ? (
             <div className="flex h-full min-h-[300px] items-center justify-center flex-col gap-2 text-muted-foreground">
               <AlertCircle className="h-5 w-5 opacity-20" />
-              <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">Event log empty</span>
+              <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Event log empty</span>
             </div>
           ) : (
             <div className="divide-y divide-white/5 font-mono text-xs">
               {events.map((event) => {
                 const pathColor = getPathColor(event.path)
+                const pathColorDim = `oklch(from ${pathColor} 0.65 0.05 h)`
                 const isBusy = event.status === 'busy'
                 const isUnread = new Date(event.time).getTime() > lastSeenAt
                 const eventDate = new Date(event.time)
@@ -48,7 +49,7 @@ export function LogStream({ events, lastSeenAt }: LogStreamProps) {
                     )}
                     {/* Meta Row (Timestamp & Level) */}
                     <div className="flex items-center justify-between gap-3 md:contents">
-                      <div className="text-muted-foreground/60 text-[10px] tabular-nums whitespace-nowrap self-center font-bold tracking-tighter">
+                      <div className="text-zinc-400 text-[10px] tabular-nums whitespace-nowrap self-center font-bold tracking-tighter">
                         <span className="md:hidden">
                           {eventDate.toLocaleTimeString(undefined, { hour12: false })}
                         </span>
@@ -68,13 +69,13 @@ export function LogStream({ events, lastSeenAt }: LogStreamProps) {
                     <div className="mt-0.5 w-full min-w-0 self-center md:mt-0 md:w-auto">
                       <div className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-1 md:mb-0.5 md:overflow-hidden">
                         <span 
-                          className="min-w-0 max-w-full truncate text-[10px] font-black tracking-widest uppercase opacity-80"
+                          className="min-w-0 max-w-full truncate text-[10px] font-black tracking-widest uppercase"
                           style={{ color: pathColor }}
                         >
                           {event.path}
                         </span>
                         {event.entityId && (
-                          <span className="shrink-0 text-[10px] font-black tracking-widest opacity-50 uppercase" style={{ color: pathColor }}>
+                          <span className="shrink-0 text-[10px] font-black tracking-widest uppercase" style={{ color: pathColorDim }}>
                             @{event.entityId}
                           </span>
                         )}
@@ -86,8 +87,8 @@ export function LogStream({ events, lastSeenAt }: LogStreamProps) {
                     </div>
 
                     {/* Path (Desktop Only) */}
-                    <div className="hidden md:flex flex-col items-end justify-center opacity-40 group-hover:opacity-100 overflow-hidden">
-                      <span className="text-[10px] truncate font-black uppercase tracking-widest text-muted-foreground/60 max-w-[90px]">{event.path.split('/').slice(-1)[0]}</span>
+                    <div className="hidden md:flex flex-col items-end justify-center overflow-hidden">
+                      <span className="text-[10px] truncate font-black uppercase tracking-widest text-zinc-500 group-hover:text-zinc-400 max-w-[90px] transition-colors">{event.path.split('/').slice(-1)[0]}</span>
                     </div>
                   </div>
                 )
@@ -104,6 +105,6 @@ function eventStatusColors(status: EventStatus) {
   switch (status) {
     case 'busy': return 'text-amber-300 border-amber-400/40 bg-amber-400/10'
     case 'idle': return 'text-info border-info/30 bg-info/10'
-    default: return 'text-foreground/60 border-white/10 bg-white/5'
+    default: return 'text-zinc-400 border-white/10 bg-white/5'
   }
 }

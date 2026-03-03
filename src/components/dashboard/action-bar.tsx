@@ -30,7 +30,7 @@ export function ActionBar({
     <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between py-2 border-b border-border/40 mb-2">
       <div className="flex items-center gap-4">
         <div className="flex flex-col">
-          <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 leading-none mb-1.5 ml-1">Context View</span>
+          <span className="text-[10px] font-black uppercase tracking-widest text-zinc-300 leading-none mb-1.5 ml-1">Context View</span>
           <div className="flex items-center gap-2 h-8">
             <h2 className="text-[11px] font-black text-foreground uppercase tracking-widest px-1">
               {mode === 'logs' ? 'Event Log' : 'Status Registry'}
@@ -45,7 +45,7 @@ export function ActionBar({
 
         {/* Global Acknowledge */}
         <div className="flex flex-col">
-          <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 leading-none mb-1.5 ml-1">Actions</span>
+          <span className="text-[10px] font-black uppercase tracking-widest text-zinc-300 leading-none mb-1.5 ml-1">Actions</span>
           <Button
             size="sm"
             variant="ghost"
@@ -62,12 +62,12 @@ export function ActionBar({
         {mode === 'logs' && (
           <div className="flex items-center gap-2 shrink-0">
             <div className="flex flex-col">
-              <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 leading-none mb-1.5 ml-1">Filter</span>
+              <span className="text-[10px] font-black uppercase tracking-widest text-zinc-300 leading-none mb-1.5 ml-1">Filter</span>
               <div className="flex items-center gap-2">
                 <div className="group relative w-32 md:w-48 lg:w-64">
-                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/60 group-focus-within:text-primary transition-colors" />
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-400 group-focus-within:text-primary transition-colors" />
                   <input
-                    className="h-8 w-full rounded-lg border border-border/40 bg-background/50 pl-8 pr-4 text-[10px] font-black uppercase tracking-widest placeholder:text-muted-foreground/60 focus:ring-1 focus:ring-primary/40 focus:border-primary/40 outline-none transition-all"
+                    className="h-8 w-full rounded-lg border border-border/40 bg-background/50 pl-8 pr-4 text-[10px] font-black uppercase tracking-widest placeholder:text-zinc-400 focus:ring-1 focus:ring-primary/40 focus:border-primary/40 outline-none transition-all"
                     placeholder="Search..."
                     value={search}
                     onChange={(e) => onSearchChange(e.target.value)}
@@ -75,9 +75,9 @@ export function ActionBar({
                 </div>
 
                 <div className="flex h-8 items-center gap-2 rounded-lg border border-border/40 bg-background/50 px-2.5 shadow-sm">
-                  <Filter className="h-3.5 w-3.5 text-muted-foreground/60" />
+                  <Filter className="h-3.5 w-3.5 text-zinc-400" />
                   <select
-                    className="bg-transparent text-[10px] font-black uppercase tracking-widest outline-none cursor-pointer text-foreground/80"
+                    className="bg-transparent text-[10px] font-black uppercase tracking-widest outline-none cursor-pointer text-zinc-200"
                     value={statusFilter}
                     onChange={(e) => onStatusFilterChange(e.target.value as EventStatus | 'all')}
                   >

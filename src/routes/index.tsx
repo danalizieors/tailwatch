@@ -234,7 +234,7 @@ function TailwatchLandingPage() {
               </div>
               <div className="flex min-w-0 flex-col leading-none">
                 <span className="text-sm font-black uppercase tracking-tight text-foreground">Tailwatch</span>
-                <span className="truncate text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 mt-1">
+                <span className="truncate text-[10px] font-black uppercase tracking-widest text-zinc-400 mt-1">
                   Event Monitor
                 </span>
               </div>
@@ -272,13 +272,13 @@ function TailwatchLandingPage() {
                 <Badge variant="outline" className="border-border/70 bg-card/70 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-foreground">
                   Realtime event telemetry
                 </Badge>
-                <Badge variant="outline" className="border-border/70 bg-card/70 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
+                <Badge variant="outline" className="border-border/70 bg-card/70 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-zinc-400">
                   Built for agents, jobs, services
                 </Badge>
               </div>
 
               <div className="space-y-4">
-                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">Overview</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Overview</p>
                 <h1 className="text-balance text-4xl font-black leading-tight tracking-tight text-foreground sm:text-5xl lg:text-6xl uppercase">
                   See every agent, job, and service
                   <span className="block text-primary">with real-time status visibility.</span>
@@ -291,20 +291,20 @@ function TailwatchLandingPage() {
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="rounded-xl border border-border/60 bg-card/80 p-4">
-                  <div className="mb-2 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
+                  <div className="mb-2 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-zinc-400">
                     <Webhook className="h-3.5 w-3.5 text-primary" />
                     Zero SDK Ingestion
                   </div>
-                  <p className="text-sm leading-6 text-foreground/90">
+                  <p className="text-sm leading-6 text-foreground">
                     Just a simple HTTP POST. curl, Python, Node, Go—all supported out of the box.
                   </p>
                 </div>
                 <div className="rounded-xl border border-border/60 bg-card/80 p-4">
-                  <div className="mb-2 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
+                  <div className="mb-2 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-zinc-400">
                     <Bell className="h-3.5 w-3.5 text-primary" />
                     Push Everywhere
                   </div>
-                  <p className="text-sm leading-6 text-foreground/90">
+                  <p className="text-sm leading-6 text-foreground">
                     Cross-platform alerts on Desktop, iOS, and Android via native Web Push.
                   </p>
                 </div>
@@ -321,7 +321,7 @@ function TailwatchLandingPage() {
                       <Activity className="h-4 w-4" />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Live status</p>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Live status</p>
                       <p className="truncate text-[11px] font-black uppercase tracking-widest text-foreground">Volume `production`</p>
                     </div>
                   </div>
@@ -347,7 +347,7 @@ function TailwatchLandingPage() {
                       </div>
                       <div className="rounded-lg border border-border/60 bg-card/60 p-2">
                         <p className="break-all text-[10px] font-black uppercase tracking-widest text-foreground">agents/vision</p>
-                        <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/60">message • "Detected 3 objects"</p>
+                        <p className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">message • "Detected 3 objects"</p>
                       </div>
                       <div className="rounded-lg border border-destructive/25 bg-destructive/10 p-2">
                         <p className="break-all text-[10px] font-black uppercase tracking-widest text-foreground">ops/db-backup</p>
@@ -383,8 +383,8 @@ function TailwatchLandingPage() {
 
                   <div className="min-w-0 rounded-2xl border border-border/60 bg-background/70 p-4">
                   <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Publish with HTTP</p>
-                    <span className="rounded-full border border-border/60 bg-card/70 px-2 py-1 text-[9px] font-black uppercase tracking-widest text-muted-foreground/40">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Publish with HTTP</p>
+                    <span className="rounded-full border border-border/60 bg-card/70 px-2 py-1 text-[9px] font-black uppercase tracking-widest text-zinc-500">
                       No SDK
                     </span>
                   </div>
@@ -402,7 +402,7 @@ function TailwatchLandingPage() {
               return (
                 <div key={stat.label} className="rounded-xl border border-border/60 bg-card/80 p-4 group hover:bg-card transition-colors">
                   <div className="mb-3 flex items-center justify-between">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
                       {stat.label}
                     </span>
                     <Icon className="h-4 w-4 text-primary group-hover:scale-110 transition-transform" />
@@ -416,7 +416,7 @@ function TailwatchLandingPage() {
 
           <section id="problem" className="space-y-6">
             <div className="space-y-3">
-              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">Problem</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Problem</p>
               <h2 className="text-balance text-3xl font-black tracking-tight text-foreground md:text-4xl uppercase">
                 When everything emits events, nobody sees the status.
               </h2>
@@ -446,7 +446,7 @@ function TailwatchLandingPage() {
 
           <section id="how-it-works" className="space-y-6">
             <div className="space-y-3">
-              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">Workflow</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Workflow</p>
               <h2 className="text-balance text-3xl font-black tracking-tight text-foreground md:text-4xl uppercase">
                 A topic path becomes your monitoring map.
               </h2>
@@ -471,7 +471,7 @@ function TailwatchLandingPage() {
                   ].map((path) => (
                     <div
                       key={path}
-                      className="rounded-lg border border-border/60 bg-background/60 px-3 py-2 text-foreground/90 font-bold"
+                      className="rounded-lg border border-border/60 bg-background/60 px-3 py-2 text-foreground font-bold"
                     >
                       {path}
                     </div>
@@ -503,7 +503,7 @@ function TailwatchLandingPage() {
 
           <section id="features" className="space-y-6">
             <div className="space-y-3">
-              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">Capabilities</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Capabilities</p>
               <h2 className="text-balance text-3xl font-black tracking-tight text-foreground md:text-4xl uppercase">
                 One dashboard, one event source, faster decisions.
               </h2>
@@ -532,7 +532,7 @@ function TailwatchLandingPage() {
 
           <section className="space-y-6">
             <div className="space-y-3">
-              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">Use Cases</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Use Cases</p>
               <h2 className="text-balance text-3xl font-black tracking-tight text-foreground md:text-4xl uppercase">
                 Built for the workflows teams already have.
               </h2>
@@ -560,7 +560,7 @@ function TailwatchLandingPage() {
 
           <section id="faq" className="space-y-6">
             <div className="space-y-3">
-              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">FAQ</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">FAQ</p>
               <h2 className="text-3xl font-black tracking-tight text-foreground md:text-4xl uppercase">
                 Questions teams ask before they wire it in
               </h2>
@@ -585,7 +585,7 @@ function TailwatchLandingPage() {
           <section className="relative overflow-hidden rounded-2xl border border-border/70 bg-card/80 p-6 md:p-8">
             <div className="relative grid gap-6 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
               <div className="space-y-4">
-                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">Get started</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Get started</p>
                 <h2 className="text-balance text-3xl font-black tracking-tight text-foreground md:text-4xl uppercase">
                   Deploy Tailwatch quickly and standardize system visibility.
                 </h2>
@@ -594,7 +594,7 @@ function TailwatchLandingPage() {
                 </p>
               </div>
 
-              <div className="rounded-xl border border-border/60 bg-background/60 px-4 py-3 text-[11px] font-black uppercase tracking-widest text-muted-foreground/60">
+              <div className="rounded-xl border border-border/60 bg-background/60 px-4 py-3 text-[11px] font-black uppercase tracking-widest text-zinc-400">
                 Single entry point: use the <span className="text-foreground">Open Dashboard</span> button in the header.
               </div>
             </div>
@@ -602,10 +602,10 @@ function TailwatchLandingPage() {
         </main>
 
         <footer className="border-t border-border/40 bg-background/50">
-          <div className="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-4 px-4 py-6 text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 md:flex-row md:items-center md:justify-between md:px-6">
+          <div className="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-4 px-4 py-6 text-[10px] font-black uppercase tracking-widest text-zinc-500 md:flex-row md:items-center md:justify-between md:px-6">
             <div className="flex flex-wrap items-center gap-2">
               <Terminal className="h-4 w-4 text-primary" />
-              <span className="text-foreground/60">Tailwatch</span>
+              <span className="text-zinc-400">Tailwatch</span>
               <span>Realtime event monitor</span>
             </div>
             <div className="flex flex-wrap items-center gap-4">

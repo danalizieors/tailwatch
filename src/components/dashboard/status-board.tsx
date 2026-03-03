@@ -15,7 +15,7 @@ export function StatusBoard({ rows, lastSeenAt }: StatusBoardProps) {
         {rows.length === 0 ? (
           <div className="flex h-full min-h-[300px] items-center justify-center flex-col gap-2 text-muted-foreground">
             <AlertCircle className="h-5 w-5 opacity-20" />
-            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">Status Board empty</span>
+            <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Status Board empty</span>
           </div>
         ) : (
           <div className="grid gap-3 px-1 pb-6 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 2xl:grid-cols-4">
@@ -24,6 +24,7 @@ export function StatusBoard({ rows, lastSeenAt }: StatusBoardProps) {
               const jewelBg = `oklch(from ${pathColor} 0.16 0.12 h / 0.9)`
               const jewelBorder = `oklch(from ${pathColor} 0.45 0.18 h / 0.5)`
               const jewelText = `oklch(from ${pathColor} 0.98 0.01 h)`
+              const jewelTextDim = `oklch(from ${pathColor} 0.65 0.05 h)`
               const isUnread = new Date(row.lastSeenAt).getTime() > lastSeenAt
               
               return (
@@ -51,7 +52,7 @@ export function StatusBoard({ rows, lastSeenAt }: StatusBoardProps) {
                       <span className="text-lg font-black truncate tracking-tight" style={{ color: jewelText }}>
                         {row.entityId}
                       </span>
-                      <span className="text-[10px] font-black uppercase tracking-widest mt-1 opacity-40" style={{ color: jewelText }}>
+                      <span className="text-[10px] font-black uppercase tracking-widest mt-1" style={{ color: jewelTextDim }}>
                         {row.entityType}
                       </span>
                     </div>
@@ -66,12 +67,12 @@ export function StatusBoard({ rows, lastSeenAt }: StatusBoardProps) {
                   
                   <div className="space-y-3.5 text-[11px] font-semibold">
                     <div className="flex flex-col items-start gap-1 border-b border-white/5 pb-2 sm:flex-row sm:items-center sm:justify-between">
-                      <span className="opacity-40 uppercase text-[10px] font-black tracking-widest" style={{ color: jewelText }}>Path</span>
-                      <span className="max-w-full break-all font-mono opacity-90 sm:max-w-[160px] sm:truncate" style={{ color: jewelText }}>{row.path}</span>
+                      <span className="uppercase text-[10px] font-black tracking-widest" style={{ color: jewelTextDim }}>Path</span>
+                      <span className="max-w-full break-all font-mono sm:max-w-[160px] sm:truncate" style={{ color: jewelText }}>{row.path}</span>
                     </div>
                     <div className="flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:justify-between">
-                      <span className="opacity-40 uppercase text-[10px] font-black tracking-widest" style={{ color: jewelText }}>Last Seen</span>
-                      <span className="text-[11px] opacity-90" style={{ color: jewelText }}>{formatRelative(row.lastSeenAt)}</span>
+                      <span className="uppercase text-[10px] font-black tracking-widest" style={{ color: jewelTextDim }}>Last Seen</span>
+                      <span className="text-[11px]" style={{ color: jewelText }}>{formatRelative(row.lastSeenAt)}</span>
                     </div>
                     
                     <div className="mt-4 pt-4 border-t border-white/5">
@@ -83,7 +84,7 @@ export function StatusBoard({ rows, lastSeenAt }: StatusBoardProps) {
                           border: `1px solid oklch(from ${pathColor} 0.25 0.08 h / 0.3)`
                         }}
                       >
-                        {row.lastContent ?? <span className="italic opacity-20 uppercase tracking-widest text-[9px]">No Payload</span>}
+                        {row.lastContent ?? <span className="italic uppercase tracking-widest text-[9px] text-zinc-500">No Payload</span>}
                       </div>
                     </div>
                   </div>

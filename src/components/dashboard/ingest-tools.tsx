@@ -102,7 +102,7 @@ export function IngestTools({
           className="p-4 pb-2 cursor-pointer hover:bg-muted/30 transition-colors"
           onClick={() => setIsCurlExpanded(!isCurlExpanded)}
         >
-          <CardTitle className="flex items-center justify-between gap-2 text-[10px] font-black uppercase tracking-widest text-foreground/70">
+          <CardTitle className="flex items-center justify-between gap-2 text-[10px] font-black uppercase tracking-widest text-zinc-300">
             <div className="flex items-center gap-2">
               <Terminal className="h-3.5 w-3.5" />
               Ingest via Curl
@@ -131,7 +131,7 @@ export function IngestTools({
               <div className="space-y-4">
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">Auth Header</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-zinc-300">Auth Header</span>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -142,14 +142,14 @@ export function IngestTools({
                       {copiedVariant === 'header' ? 'Copied' : 'Copy'}
                     </Button>
                   </div>
-                  <pre className="overflow-x-auto rounded-lg border border-border/40 bg-background/50 p-2.5 font-mono text-[10px] leading-relaxed text-foreground/90">
+                  <pre className="overflow-x-auto rounded-lg border border-border/40 bg-background/50 p-2.5 font-mono text-[10px] leading-relaxed text-foreground">
                     <code>{curlCommands?.header}</code>
                   </pre>
                 </div>
 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">URL Key (Legacy)</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-zinc-300">URL Key (Legacy)</span>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -160,7 +160,7 @@ export function IngestTools({
                       {copiedVariant === 'url' ? 'Copied' : 'Copy'}
                     </Button>
                   </div>
-                  <pre className="overflow-x-auto rounded-lg border border-border/40 bg-background/50 p-2.5 font-mono text-[10px] leading-relaxed text-foreground/90">
+                  <pre className="overflow-x-auto rounded-lg border border-border/40 bg-background/50 p-2.5 font-mono text-[10px] leading-relaxed text-foreground">
                     <code>{curlCommands?.url}</code>
                   </pre>
                 </div>

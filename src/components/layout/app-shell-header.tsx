@@ -84,7 +84,7 @@ export function AppShellHeader({
                     'group relative flex items-center gap-2.5 text-[10px] font-black uppercase tracking-widest transition-all duration-300',
                     active
                       ? 'text-primary'
-                      : 'text-muted-foreground/60 hover:text-foreground',
+                      : 'text-zinc-400 hover:text-foreground',
                   )}
                 >
                   <div className={cn(
@@ -93,7 +93,7 @@ export function AppShellHeader({
                   )}>
                     <Icon className={cn(
                       "h-4 w-4 transition-colors",
-                      active ? "text-primary" : "text-muted-foreground/40 group-hover:text-foreground"
+                      active ? "text-primary" : "text-zinc-500 group-hover:text-foreground"
                     )} />
                   </div>
                   <span className={cn("relative z-10 transition-all duration-300", active && "text-primary font-black")}>{item.label}</span>
@@ -185,7 +185,7 @@ export function AppShellHeader({
               </div>
               <div className="flex flex-col min-w-0">
                 <p className="truncate text-[10px] font-black uppercase tracking-widest text-foreground">{displayName}</p>
-                {user.email ? <p className="truncate text-[10px] text-muted-foreground/60">{user.email}</p> : null}
+                {user.email ? <p className="truncate text-[10px] text-zinc-400">{user.email}</p> : null}
               </div>
             </div>
           )}
@@ -237,7 +237,7 @@ export function AppShellHeader({
               <Button
                 variant="ghost"
                 size="sm"
-                className="gap-2 text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 h-9 text-[10px] font-black uppercase tracking-widest"
+                className="gap-2 text-zinc-400 hover:text-destructive hover:bg-destructive/10 h-9 text-[10px] font-black uppercase tracking-widest"
                 onClick={async () => {
                   setIsMenuOpen(false)
                   await signOut()
