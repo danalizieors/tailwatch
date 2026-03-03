@@ -163,24 +163,27 @@ export function AppShellHeader({
             </Button>
           )}
 
-          {/* Hamburger / Sidebar Toggle */}
+          {/* Sidebar Toggle (Only if onSidebarToggle is provided) */}
+          {onSidebarToggle && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 md:hidden"
+              onClick={onSidebarToggle}
+              title="Toggle sidebar"
+            >
+              {isSidebarOpen ? <PanelLeftClose className="h-5 w-5" /> : <PanelLeft className="h-5 w-5" />}
+            </Button>
+          )}
+
+          {/* Hamburger Toggle (Mobile Menu) */}
           <Button
             variant="ghost"
             size="icon"
             className="h-8 w-8 md:hidden"
-            onClick={() => {
-              if (onSidebarToggle) {
-                onSidebarToggle()
-              } else {
-                setIsMenuOpen(!isMenuOpen)
-              }
-            }}
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
           >
-            {onSidebarToggle ? (
-              isSidebarOpen ? <PanelLeftClose className="h-5 w-5" /> : <PanelLeft className="h-5 w-5" />
-            ) : (
-              isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />
-            )}
+            {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </Button>
         </div>
       </div>
