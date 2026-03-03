@@ -305,12 +305,7 @@ export function DashboardView({ initialMode = 'logs', volume, isAuthLoading, sho
 
               {/* Log Header - Sticky when in logs mode */}
               {mode === 'logs' && (
-                <div className="hidden md:grid grid-cols-[100px_80px_minmax(0,1fr)_100px] gap-4 px-6 py-2 bg-primary/5 rounded-xl text-xs uppercase font-black tracking-widest text-zinc-500 border border-white/5 shadow-sm">
-                  <div>Timestamp</div>
-                  <div>Status</div>
-                  <div>Message</div>
-                  <div className="text-right">Path</div>
-                </div>
+                <div className="hidden md:grid grid-cols-[100px_80px_minmax(0,1fr)_100px] gap-4 px-6 py-2 bg-primary/5 rounded-xl border border-white/5 shadow-sm min-h-[12px]" />
               )}
             </div>
 
@@ -319,10 +314,7 @@ export function DashboardView({ initialMode = 'logs', volume, isAuthLoading, sho
                 <div className="min-h-0">
                   {isLoading && !data ? (
                     <div className="flex flex-col items-center justify-center py-20 rounded-2xl border border-border/40 bg-card/20 backdrop-blur-sm">
-                      <Zap className="h-8 w-8 text-primary mb-4 animate-pulse" />
-                      <div className="text-zinc-400 text-xs font-black uppercase tracking-widest">
-                        Synchronizing Stream...
-                      </div>
+                      <Zap className="h-8 w-8 text-primary animate-pulse" />
                     </div>
                   ) : data ? (
                     mode === 'logs' ? (

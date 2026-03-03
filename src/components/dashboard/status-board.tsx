@@ -15,7 +15,6 @@ export function StatusBoard({ rows, lastSeenAt }: StatusBoardProps) {
         {rows.length === 0 ? (
           <div className="flex h-full min-h-[300px] items-center justify-center flex-col gap-2 text-muted-foreground">
             <AlertCircle className="h-5 w-5 opacity-20" />
-            <span className="text-xs font-black uppercase tracking-widest text-zinc-500">Status Board empty</span>
           </div>
         ) : (
           <div className="grid gap-3 px-1 pb-6 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 2xl:grid-cols-4">
@@ -52,9 +51,6 @@ export function StatusBoard({ rows, lastSeenAt }: StatusBoardProps) {
                       <span className="text-lg font-black truncate tracking-tight" style={{ color: jewelText }}>
                         {row.entityId}
                       </span>
-                      <span className="text-xs font-black uppercase tracking-widest mt-1" style={{ color: jewelTextDim }}>
-                        {row.entityType}
-                      </span>
                     </div>
                     <div className={cn(
                       "inline-flex w-fit items-center gap-2 rounded-lg border-2 px-3 py-1.5 text-xs font-black uppercase tracking-widest",
@@ -67,11 +63,9 @@ export function StatusBoard({ rows, lastSeenAt }: StatusBoardProps) {
                   
                   <div className="space-y-3.5 text-xs font-semibold">
                     <div className="flex flex-col items-start gap-1 border-b border-white/5 pb-2 sm:flex-row sm:items-center sm:justify-between">
-                      <span className="uppercase text-xs font-black tracking-widest" style={{ color: jewelTextDim }}>Path</span>
                       <span className="max-w-full break-all font-mono sm:max-w-[160px] sm:truncate" style={{ color: jewelText }}>{row.path}</span>
                     </div>
                     <div className="flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:justify-between">
-                      <span className="uppercase text-xs font-black tracking-widest" style={{ color: jewelTextDim }}>Last Seen</span>
                       <span className="text-xs" style={{ color: jewelText }}>{formatRelative(row.lastSeenAt)}</span>
                     </div>
                     

@@ -225,7 +225,7 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic, placeholder 
               <button
                 type="button"
                 className={cn(
-                  "w-full flex items-center justify-between px-3 py-2.5 text-left transition-colors",
+                  "w-full flex items-center justify-between px-3 py-2 text-left transition-colors",
                   activeIndex === -1 ? "bg-accent" : "hover:bg-accent/30"
                 )}
                 onClick={(e) => {
@@ -237,15 +237,10 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic, placeholder 
                 }}
                 onMouseEnter={() => setActiveIndex(-1)}
               >
-                <div className="flex flex-col min-w-0">
-                  <span className="truncate text-xs font-mono font-bold text-foreground">
-                    {normalizedQueryPath}
-                  </span>
-                  <span className="text-xs text-zinc-400 font-bold uppercase tracking-tighter">
-                    Use custom path
-                  </span>
-                </div>
-                <Badge variant="secondary" className="text-xs font-mono opacity-50">
+                <span className="truncate text-xs font-mono font-bold text-foreground">
+                  {normalizedQueryPath}
+                </span>
+                <Badge variant="secondary" className="text-xs font-mono opacity-50 scale-75">
                   New
                 </Badge>
               </button>
@@ -260,7 +255,7 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic, placeholder 
                   key={topic.path || index}
                   type="button"
                   className={cn(
-                    "w-full flex items-center justify-between px-3 py-2.5 text-left transition-colors",
+                    "w-full flex items-center justify-between px-3 py-2 text-left transition-colors",
                     isActive ? "bg-accent" : isSelected ? "bg-accent/50" : "hover:bg-accent/30"
                   )}
                   onClick={(e) => {
@@ -272,15 +267,10 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic, placeholder 
                   }}
                   onMouseEnter={() => setActiveIndex(index)}
                 >
-                  <div className="flex flex-col min-w-0">
-                    <span className="truncate text-xs font-mono font-bold text-foreground" style={{ color: isSelected || isActive ? color : undefined }}>
-                      {topic.path}
-                    </span>
-                    <span className="text-xs text-zinc-400 font-bold uppercase tracking-tighter">
-                      {topic.name}
-                    </span>
-                  </div>
-                  <Badge variant="secondary" className="text-xs tabular-nums font-mono opacity-40">
+                  <span className="truncate text-xs font-mono font-bold text-foreground" style={{ color: isSelected || isActive ? color : undefined }}>
+                    {topic.path}
+                  </span>
+                  <Badge variant="secondary" className="text-xs tabular-nums font-mono opacity-40 scale-75">
                     {topic.count}
                   </Badge>
                 </button>

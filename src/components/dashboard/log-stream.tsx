@@ -16,7 +16,6 @@ export function LogStream({ events, lastSeenAt }: LogStreamProps) {
           {events.length === 0 ? (
             <div className="flex h-full min-h-[300px] items-center justify-center flex-col gap-2 text-muted-foreground">
               <AlertCircle className="h-5 w-5 opacity-20" />
-              <span className="text-xs font-black uppercase tracking-widest text-zinc-500">Event log empty</span>
             </div>
           ) : (
             <div className="divide-y divide-white/5 font-mono text-xs">

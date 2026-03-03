@@ -130,8 +130,7 @@ export function IngestTools({
             ) : (
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-black uppercase tracking-widest text-zinc-300">Auth Header</span>
+                  <div className="flex items-center justify-end">
                     <Button
                       variant="ghost"
                       size="sm"
@@ -148,8 +147,7 @@ export function IngestTools({
                 </div>
 
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-black uppercase tracking-widest text-zinc-300">URL Key (Legacy)</span>
+                  <div className="flex items-center justify-end">
                     <Button
                       variant="ghost"
                       size="sm"

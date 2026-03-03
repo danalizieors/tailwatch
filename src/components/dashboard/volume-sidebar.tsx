@@ -81,7 +81,6 @@ export function VolumeSidebar({
       <div className="flex flex-col gap-4">
         <div className="flex items-center px-1">
           <HardDrive className="h-4 w-4 text-primary" />
-          <h3 className="text-xs font-black uppercase tracking-widest text-zinc-300 ml-2">Volumes</h3>
         </div>
 
         <nav className="flex flex-col gap-2">
@@ -162,7 +161,6 @@ export function VolumeSidebar({
         <div className="flex flex-col gap-4">
           <div className="flex items-center px-1">
             <Laptop className="h-4 w-4 text-primary" />
-            <h3 className="text-xs font-black uppercase tracking-widest text-zinc-300 ml-2">Devices</h3>
           </div>
 
           <div className="flex flex-col gap-2">
