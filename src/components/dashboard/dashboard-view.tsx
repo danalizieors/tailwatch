@@ -311,8 +311,10 @@ export function DashboardView({ initialMode = 'logs', volume, isAuthLoading, sho
       {/* Single Mobile Backdrop Overlay */}
       <div 
         className={cn(
-          "fixed inset-0 z-[90] backdrop-blur-sm lg:hidden transition-all duration-300 ease-in-out",
-          isSidebarOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+          "fixed inset-0 z-[90] lg:hidden transition-[opacity,backdrop-filter,background-color] duration-500 ease-in-out",
+          isSidebarOpen 
+            ? "opacity-100 backdrop-blur-sm bg-background/20 pointer-events-auto visible" 
+            : "opacity-0 backdrop-blur-none bg-background/0 pointer-events-none invisible"
         )} 
         onClick={() => setIsSidebarOpen(false)}
       />
