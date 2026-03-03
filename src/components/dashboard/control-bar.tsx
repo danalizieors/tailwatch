@@ -19,7 +19,7 @@ export function ControlBar({
   onSelectTopic,
 }: ControlBarProps) {
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-border/40 bg-card/30 p-3 md:flex-row md:items-center md:gap-4 md:px-4 md:py-2 backdrop-blur-sm">
+    <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4 backdrop-blur-sm">
       {/* Topic Selector */}
       <div className="flex-1 min-w-0">
         <TopicSelector

@@ -269,11 +269,6 @@ export function DashboardView({ initialMode = 'logs', volume, isAuthLoading, sho
                   onSelectTopic={(topic) => setSelectedTopic(normalizeTopicPath(topic))}
                 />
               </div>
-
-              {/* Log Header - Sticky when in logs mode */}
-              {mode === 'logs' && (
-                <div className="hidden md:grid grid-cols-[100px_80px_minmax(0,1fr)_100px] gap-4 px-6 py-2 bg-primary/5 rounded-xl border border-white/5 shadow-sm min-h-[12px]" />
-              )}
             </div>
 
             <div className="flex flex-col gap-4 py-4 pb-12">

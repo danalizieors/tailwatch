@@ -79,8 +79,9 @@ export function VolumeSidebar({
 
       {/* VOLUMES SECTION */}
       <div className="flex flex-col gap-4">
-        <div className="flex items-center px-1">
+        <div className="flex items-center gap-2 px-1">
           <HardDrive className="h-4 w-4 text-primary" />
+          <span className="text-xs font-black uppercase tracking-widest text-foreground/70">Volumes</span>
         </div>
 
         <nav className="flex flex-col gap-2">
@@ -159,8 +160,9 @@ export function VolumeSidebar({
       {/* DEVICES SECTION */}
       {isAuthenticated && (
         <div className="flex flex-col gap-4">
-          <div className="flex items-center px-1">
+          <div className="flex items-center gap-2 px-1">
             <Laptop className="h-4 w-4 text-primary" />
+            <span className="text-xs font-black uppercase tracking-widest text-foreground/70">Devices</span>
           </div>
 
           <div className="flex flex-col gap-2">
