@@ -174,25 +174,34 @@ async function publishResolved(
         volumeDoc.userId.trim().length > 0
           ? volumeDoc.userId.trim()
           : undefined
-      const payload: {
-        volume: string
-        path: string
-        status: 'busy' | 'idle'
-        content?: string
-        userId?: string
-      } = {
-        volume: volumeName,
-        path: finalPath,
-        status,
-        content: input.content,
-      }
-      if (ownerUserId) payload.userId = ownerUserId
 
-      await ctx.scheduler.runAfter(
-        0,
-        internal.push.sendPushForEventInternal,
-        payload,
-      )
+      const targets = ownerUserId
+        ? await ctx.db
+            .query('devices')
+            .withIndex('by_user', (q: any) => q.eq('userId', ownerUserId))
+            .collect()
+        : await ctx.db.query('devices').collect()
+
+      const title = `Tailwatch ${status === 'busy' ? 'Busy' : 'Idle'}`
+      const bodyText = input.content?.trim()
+        ? `${finalPath}: ${input.content}`
+        : `${finalPath} is ${status}`
+      const tag = `tailwatch:${volumeName}:${finalPath}`
+      const url = `/${volumeName}?path=${encodeURIComponent(finalPath)}`
+
+      for (const target of targets) {
+        if (!target.notifications || !target.subscription) continue
+
+        await ctx.scheduler.runAfter(0, internal.push.sendPushNotification, {
+          deviceId: target._id,
+          payload: { title, body: bodyText, tag, url },
+          options: {
+            ttl: 300,
+            topic: tag,
+            urgency: status === 'busy' ? 'high' : 'normal',
+          },
+        })
+      }
     } catch (error) {
       console.warn('Failed to schedule push notification delivery', error)
     }

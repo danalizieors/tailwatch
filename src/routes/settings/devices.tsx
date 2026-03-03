@@ -77,7 +77,7 @@ function DeviceSettingsPage() {
 
   const updateDevice = useMutation(api.devices.updateDevice)
   const deleteDevice = useMutation(api.devices.deleteDevice)
-  const sendTestPush = useAction(api.push.sendTestPush)
+  const sendPushNotification = useAction(api.push.sendPushNotification)
   const updatePushSubscription = useMutation(api.devices.updatePushSubscription)
 
   useEffect(() => {
@@ -252,7 +252,20 @@ function DeviceSettingsPage() {
         )
       }
 
-      await sendTestPush({ deviceId: device.id })
+      await sendPushNotification({
+        deviceId: device.id,
+        payload: {
+          title: 'Tailwatch Test',
+          body: `Test notification for ${device.name}`,
+          tag: 'aa:test',
+          url: '/',
+        },
+        options: {
+          ttl: 300,
+          topic: 'bb:test',
+          urgency: 'high',
+        },
+      })
 
       setNotice(`Test notification sent to "${device.name}".`)
     } catch (testError) {

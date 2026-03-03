@@ -35,19 +35,7 @@ export default defineSchema(
       deviceKey: v.string(),
       lastSeenAt: v.optional(v.string()),
       notifications: v.boolean(),
-      subscription: v.optional(
-        v.union(
-          v.object({
-            endpoint: v.string(),
-            expirationTime: v.optional(v.number()),
-            keys: v.object({
-              p256dh: v.string(),
-              auth: v.string(),
-            }),
-          }),
-          v.null(),
-        ),
-      ),
+      subscription: v.any(),
     })
       .index('by_user', ['userId'])
       .index('by_user_and_deviceKey', ['userId', 'deviceKey']),
