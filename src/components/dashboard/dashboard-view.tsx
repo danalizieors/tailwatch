@@ -237,6 +237,8 @@ export function DashboardView({ initialMode = 'logs', volume, isAuthLoading, sho
       <AppShellHeader
         current="events"
         topRight={headerTopRight}
+        onSidebarToggle={() => setIsSidebarOpen(!isSidebarOpen)}
+        isSidebarOpen={isSidebarOpen}
       />
 
       <div className="flex-1 min-h-0 flex relative overflow-hidden">
@@ -280,7 +282,6 @@ export function DashboardView({ initialMode = 'logs', volume, isAuthLoading, sho
                   topicTree={data?.topicTree ?? []}
                   selectedTopic={selectedTopic}
                   onSelectTopic={(topic) => setSelectedTopic(normalizeTopicPath(topic))}
-                  onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
                 />
               </div>
 

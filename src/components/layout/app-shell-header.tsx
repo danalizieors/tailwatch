@@ -2,7 +2,7 @@ import { useAuthActions } from '@convex-dev/auth/react'
 import { useConvexAuth, useQuery } from 'convex/react'
 import { useMemo, useState, type ComponentType, type ReactNode } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { Activity, HardDrive, Laptop, LogIn, LogOut, Menu, Terminal, X } from 'lucide-react'
+import { Activity, HardDrive, Laptop, LogIn, LogOut, Menu, Terminal, X, PanelLeft, PanelLeftClose } from 'lucide-react'
 import { api } from '../../../convex/_generated/api'
 import { Button } from '~/components/ui/button'
 import { cn } from '~/lib/utils'
@@ -12,6 +12,8 @@ type HeaderSection = 'events' | 'volumes' | 'devices'
 interface AppShellHeaderProps {
   current?: HeaderSection
   topRight?: ReactNode
+  onSidebarToggle?: () => void
+  isSidebarOpen?: boolean
 }
 
 type NavItem = {
@@ -29,6 +31,8 @@ function currentPathForRedirect() {
 export function AppShellHeader({
   current,
   topRight,
+  onSidebarToggle,
+  isSidebarOpen,
 }: AppShellHeaderProps) {
   const { isAuthenticated, isLoading } = useConvexAuth()
   const { signIn, signOut } = useAuthActions()
@@ -159,14 +163,24 @@ export function AppShellHeader({
             </Button>
           )}
 
-          {/* Hamburger Toggle */}
+          {/* Hamburger / Sidebar Toggle */}
           <Button
             variant="ghost"
             size="icon"
             className="h-8 w-8 md:hidden"
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            onClick={() => {
+              if (onSidebarToggle) {
+                onSidebarToggle()
+              } else {
+                setIsMenuOpen(!isMenuOpen)
+              }
+            }}
           >
-            {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            {onSidebarToggle ? (
+              isSidebarOpen ? <PanelLeftClose className="h-5 w-5" /> : <PanelLeft className="h-5 w-5" />
+            ) : (
+              isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />
+            )}
           </Button>
         </div>
       </div>
