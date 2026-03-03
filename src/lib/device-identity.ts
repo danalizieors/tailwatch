@@ -1,5 +1,5 @@
+import Bowser from 'bowser'
 import { nanoid } from 'nanoid'
-import { UAParser } from 'ua-parser-js'
 
 const DEVICE_KEY_STORAGE = 'tailwatch.device.key'
 const DEVICE_NAME_STORAGE = 'tailwatch.device.name'
@@ -12,24 +12,13 @@ export function getUAInfo() {
   if (typeof navigator === 'undefined') {
     return { system: 'Device', browser: 'Browser' }
   }
-  const parser = new UAParser(navigator.userAgent)
-  const result = parser.getResult()
+
+  const bowser = Bowser.parse(window.navigator.userAgent)
+
   return {
-    system: result.os.name || 'Device',
-    browser: result.browser.name || 'Browser',
+    system: bowser.os.name || 'Device',
+    browser: bowser.browser.name || 'Browser',
   }
-}
-
-/** @deprecated Use getUAInfo instead */
-export function inferBrowserName(userAgent: string) {
-  const parser = new UAParser(userAgent)
-  return parser.getBrowser().name || 'Browser'
-}
-
-/** @deprecated Use getUAInfo instead */
-export function inferPlatformName() {
-  const { system } = getUAInfo()
-  return system
 }
 
 function defaultDeviceName() {
