@@ -160,7 +160,7 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic, placeholder 
     <div className={cn("relative flex-1 min-w-0", className)} ref={dropdownRef}>
       <div 
         className={cn(
-          "flex items-center min-h-[38px] md:min-h-[34px] px-2 md:px-3 bg-secondary/30 border rounded-lg transition-all gap-0.5",
+          "flex items-center h-10 md:h-9 px-2 md:px-3 bg-secondary/30 border rounded-lg transition-all gap-0.5",
           isOpen ? "border-primary/50 ring-2 ring-primary/10 bg-background shadow-sm" : "border-border/60 hover:border-border",
           className?.includes('!bg-transparent') && !isOpen && "bg-transparent border-transparent"
         )}
@@ -176,7 +176,7 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic, placeholder 
            <PathDisplay 
              path={selectedTopic || ''} 
              onClickSegment={handleSelectTopic} 
-             segmentClassName="text-[10px] md:text-[11px]"
+             segmentClassName="text-xs"
            />
         </div>
 
@@ -185,7 +185,7 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic, placeholder 
           <input
             ref={inputRef}
             type="text"
-            className="w-full bg-transparent text-[10px] md:text-[11px] font-mono focus:outline-none placeholder:text-zinc-400 text-foreground font-medium"
+            className="w-full bg-transparent text-xs font-mono focus:outline-none placeholder:text-zinc-400 text-foreground font-medium"
             placeholder={!selectedTopic ? placeholder : "..."}
             value={query}
             onChange={(e) => {
@@ -219,8 +219,8 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic, placeholder 
 
       {/* DROPDOWN */}
       {isOpen && (filteredTopics.length > 0 || Boolean(normalizedQueryPath && !hasExactQueryMatch)) && (
-        <div className="absolute top-full left-0 right-0 z-[100] mt-2 overflow-hidden rounded-xl border border-border bg-popover shadow-2xl animate-in fade-in slide-in-from-top-1 duration-200">
-          <div role="listbox" className="max-h-[min(60dvh,20rem)] overflow-y-auto scroll-thin py-1" ref={listRef}>
+        <div className="absolute top-full left-0 right-0 z-50 mt-2 overflow-hidden rounded-xl border border-border bg-popover shadow-2xl animate-in fade-in slide-in-from-top-1 duration-200">
+          <div role="listbox" className="max-h-80 overflow-y-auto scroll-thin py-1" ref={listRef}>
             {normalizedQueryPath && !hasExactQueryMatch ? (
               <button
                 type="button"
@@ -241,11 +241,11 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic, placeholder 
                   <span className="truncate text-xs font-mono font-bold text-foreground">
                     {normalizedQueryPath}
                   </span>
-                  <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-tighter">
+                  <span className="text-xs text-zinc-400 font-bold uppercase tracking-tighter">
                     Use custom path
                   </span>
                 </div>
-                <Badge variant="secondary" className="text-[10px] font-mono opacity-50">
+                <Badge variant="secondary" className="text-xs font-mono opacity-50">
                   New
                 </Badge>
               </button>
@@ -276,11 +276,11 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic, placeholder 
                     <span className="truncate text-xs font-mono font-bold text-foreground" style={{ color: isSelected || isActive ? color : undefined }}>
                       {topic.path}
                     </span>
-                    <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-tighter">
+                    <span className="text-xs text-zinc-400 font-bold uppercase tracking-tighter">
                       {topic.name}
                     </span>
                   </div>
-                  <Badge variant="secondary" className="text-[10px] tabular-nums font-mono opacity-40">
+                  <Badge variant="secondary" className="text-xs tabular-nums font-mono opacity-40">
                     {topic.count}
                   </Badge>
                 </button>

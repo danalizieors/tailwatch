@@ -56,7 +56,7 @@ export function VolumeSidebar({
 
   return (
     <aside className={cn(
-      "fixed inset-y-0 left-0 z-[60] w-[280px] flex flex-col gap-8 border-r border-border/40 bg-background/95 backdrop-blur-xl px-6 py-6 transition-all duration-300 ease-in-out lg:static lg:inset-auto lg:flex lg:translate-x-0 overflow-y-auto no-scrollbar",
+      "fixed inset-y-0 left-0 z-50 w-72 flex flex-col gap-8 border-r border-border/40 bg-background/95 backdrop-blur-xl px-6 py-6 transition-all duration-300 ease-in-out lg:static lg:inset-auto lg:flex lg:translate-x-0 overflow-y-auto no-scrollbar",
       isOpen ? "translate-x-0 shadow-2xl opacity-100" : "-translate-x-full opacity-0 lg:opacity-100"
     )}>
       {/* Mobile Close Button */}
@@ -81,7 +81,7 @@ export function VolumeSidebar({
       <div className="flex flex-col gap-4">
         <div className="flex items-center px-1">
           <HardDrive className="h-4 w-4 text-primary" />
-          <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-300 ml-2">Volumes</h3>
+          <h3 className="text-xs font-black uppercase tracking-widest text-zinc-300 ml-2">Volumes</h3>
         </div>
 
         <nav className="flex flex-col gap-2">
@@ -118,7 +118,7 @@ export function VolumeSidebar({
                   
                   <div className="flex flex-col min-w-0">
                     <span className={cn(
-                      "text-[11px] font-black uppercase tracking-[0.1em] truncate leading-none mb-1.5 transition-colors",
+                      "text-xs font-black uppercase tracking-widest truncate leading-none mb-1.5 transition-colors",
                       isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
                     )}>
                       {vol.name}
@@ -127,7 +127,7 @@ export function VolumeSidebar({
                       "flex items-center gap-1.5 transition-colors",
                       isActive ? "text-primary" : "text-zinc-500 group-hover:text-zinc-400"
                     )}>
-                      <span className="text-[9px] font-mono font-bold tracking-tighter truncate">
+                      <span className="text-[0.625rem] font-mono font-bold tracking-tighter truncate">
                         {vol.key || 'no_key'}
                       </span>
                     </div>
@@ -162,7 +162,7 @@ export function VolumeSidebar({
         <div className="flex flex-col gap-4">
           <div className="flex items-center px-1">
             <Laptop className="h-4 w-4 text-primary" />
-            <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-300 ml-2">Devices</h3>
+            <h3 className="text-xs font-black uppercase tracking-widest text-zinc-300 ml-2">Devices</h3>
           </div>
 
           <div className="flex flex-col gap-2">
@@ -173,7 +173,7 @@ export function VolumeSidebar({
                  ))}
                </div>
             ) : devices.length === 0 ? (
-              <p className="px-2 text-[10px] font-black uppercase tracking-widest text-zinc-400 italic">No devices</p>
+              <p className="px-2 text-xs font-black uppercase tracking-widest text-zinc-400 italic">No devices</p>
             ) : (
               sortedDevices.map((device) => {
                 const OSIcon = getOSIcon(device.os);
@@ -208,7 +208,7 @@ export function VolumeSidebar({
                             <BrowserIcon className="h-3 w-3 text-zinc-400" title={device.browser} />
                           </div>
                           <span className={cn(
-                            "text-[11px] font-black uppercase tracking-[0.1em] truncate leading-none transition-colors",
+                            "text-xs font-black uppercase tracking-widest truncate leading-none transition-colors",
                             device.isCurrent ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
                           )}>
                             {device.name}
@@ -216,9 +216,9 @@ export function VolumeSidebar({
                         </div>
                         <div className="flex items-center gap-1.5 mt-1.5 transition-colors">
                           {device.isCurrent ? (
-                            <span className="text-[8px] font-black text-primary bg-primary/10 px-1.5 py-0.5 rounded-[4px] uppercase tracking-tighter border border-primary/20">You</span>
+                            <span className="text-[0.625rem] font-black text-primary bg-primary/10 px-1.5 py-0.5 rounded uppercase tracking-tighter border border-primary/20">You</span>
                           ) : (
-                            <span className="text-[9px] font-bold text-zinc-400 group-hover:text-zinc-300">
+                            <span className="text-[0.625rem] font-bold text-zinc-400 group-hover:text-zinc-300">
                               {device.lastSeenAt ? formatRelative(device.lastSeenAt) : 'never seen'}
                             </span>
                           )}
@@ -255,7 +255,7 @@ export function VolumeSidebar({
         <div className="mt-auto rounded-xl border border-dashed border-border/60 bg-muted/20 p-4">
           <div className="flex items-start gap-2 text-zinc-300">
             <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-            <p className="text-[10px] font-black uppercase tracking-widest leading-relaxed">
+            <p className="text-xs font-black uppercase tracking-widest leading-relaxed">
               Sign in to manage custom volumes and device alerts.
             </p>
           </div>

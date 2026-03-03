@@ -179,7 +179,7 @@ function DeviceSettingsPage() {
 
   if (authLoading) {
     return (
-      <div className="flex min-h-[100svh] w-full flex-col md:min-h-dvh">
+      <div className="flex min-h-dvh w-full flex-col md:min-h-dvh">
         <AppShellHeader current="devices" />
         <main className="mx-auto flex w-full max-w-4xl flex-1 items-center px-4 py-10 md:px-8">
           <Card className="w-full border-border/70 bg-card/85 backdrop-blur">
@@ -195,7 +195,7 @@ function DeviceSettingsPage() {
 
   if (!isAuthenticated) {
     return (
-      <div className="flex min-h-[100svh] w-full flex-col md:min-h-dvh">
+      <div className="flex min-h-dvh w-full flex-col md:min-h-dvh">
         <AppShellHeader current="devices" />
         <main className="mx-auto flex w-full max-w-4xl flex-1 items-center px-4 py-10 md:px-8">
           <Card className="w-full border-border/70 bg-card/85 backdrop-blur">
@@ -216,7 +216,7 @@ function DeviceSettingsPage() {
   }
 
   return (
-    <div className="flex min-h-[100svh] w-full flex-col md:min-h-dvh bg-background">
+    <div className="flex min-h-dvh w-full flex-col md:min-h-dvh bg-background">
       <AppShellHeader current="devices" />
       <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-4 py-6 md:px-8 md:py-10">
         
@@ -231,13 +231,13 @@ function DeviceSettingsPage() {
         </div>
 
         {error ? (
-          <div className="rounded-xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-destructive animate-in fade-in slide-in-from-top-1">
+          <div className="rounded-xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-xs font-black uppercase tracking-widest text-destructive animate-in fade-in slide-in-from-top-1">
             {error}
           </div>
         ) : null}
 
         {notice ? (
-          <div className="rounded-xl border border-success/20 bg-success/10 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-success animate-in fade-in slide-in-from-top-1">
+          <div className="rounded-xl border border-success/20 bg-success/10 px-4 py-3 text-xs font-black uppercase tracking-widest text-success animate-in fade-in slide-in-from-top-1">
             {notice}
           </div>
         ) : null}
@@ -251,7 +251,7 @@ function DeviceSettingsPage() {
           ) : devices.length === 0 ? (
             <div className="col-span-full flex flex-col items-center justify-center py-20 rounded-2xl border border-dashed border-border/60 bg-muted/10 text-muted-foreground">
               <Monitor className="h-8 w-8 mb-2 opacity-20" />
-              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">No devices registered</p>
+              <p className="text-xs font-black uppercase tracking-widest text-zinc-500">No devices registered</p>
             </div>
           ) : (
             sortedDevices.map((device: any) => {
@@ -278,7 +278,7 @@ function DeviceSettingsPage() {
                           style={{ backgroundColor: color }}
                         />
                         <div className="flex flex-col min-w-0">
-                          <CardTitle className="text-[11px] font-black uppercase tracking-widest text-foreground truncate">
+                          <CardTitle className="text-xs font-black uppercase tracking-widest text-foreground truncate">
                             {device.name}
                           </CardTitle>
                           <div className="flex items-center gap-1.5 mt-0.5">
@@ -287,9 +287,9 @@ function DeviceSettingsPage() {
                               <BrowserIcon className="h-3 w-3 text-zinc-500" title={device.browser} />
                             </div>
                             {device.isCurrent ? (
-                              <Badge variant="success" className="text-[8px] h-4 font-black uppercase tracking-widest px-1">You</Badge>
+                              <Badge variant="success" className="text-[0.625rem] h-4 font-black uppercase tracking-widest px-1">You</Badge>
                             ) : (
-                              <span className="text-[9px] font-bold text-zinc-500 whitespace-nowrap">
+                              <span className="text-[0.625rem] font-bold text-zinc-500 whitespace-nowrap">
                                 seen {device.lastSeenAt ? formatRelative(device.lastSeenAt) : 'never'}
                               </span>
                             )}
@@ -318,7 +318,7 @@ function DeviceSettingsPage() {
                   <CardContent className="p-4 pt-0 flex-1 flex flex-col justify-between space-y-4">
                     <div className="space-y-3">
                       <div className="space-y-1.5">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 leading-none ml-1">Device Name</Label>
+                        <Label className="text-xs font-black uppercase tracking-widest text-zinc-400 leading-none ml-1">Device Name</Label>
                         <div className="flex gap-2">
                           <Input
                             value={nameDraft}
@@ -328,7 +328,7 @@ function DeviceSettingsPage() {
                                 [deviceId]: event.target.value,
                               }))
                             }
-                            className="h-8 text-[10px] bg-background/50 font-black uppercase tracking-widest"
+                            className="h-8 text-xs bg-background/50 font-black uppercase tracking-widest"
                             disabled={busyAction !== null}
                           />
                           <Button
@@ -344,8 +344,8 @@ function DeviceSettingsPage() {
                       </div>
 
                       <div className="space-y-1.5">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 leading-none ml-1">Device Key</Label>
-                        <div className="rounded-lg border border-border/40 bg-background/50 px-3 py-2 font-mono text-[9px] text-zinc-400 break-all leading-tight">
+                        <Label className="text-xs font-black uppercase tracking-widest text-zinc-400 leading-none ml-1">Device Key</Label>
+                        <div className="rounded-lg border border-border/40 bg-background/50 px-3 py-2 font-mono text-[0.625rem] text-zinc-400 break-all leading-tight">
                           {device.deviceKey}
                         </div>
                       </div>
@@ -355,7 +355,7 @@ function DeviceSettingsPage() {
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="flex-1 h-8 rounded-lg px-2 text-[10px] font-black uppercase tracking-widest gap-2 hover:bg-primary/5 hover:text-primary transition-all active:scale-95"
+                        className="flex-1 h-8 rounded-lg px-2 text-xs font-black uppercase tracking-widest gap-2 hover:bg-primary/5 hover:text-primary transition-all active:scale-95"
                         onClick={() => void handleTestNotification(device)}
                         disabled={busyAction !== null || !device.enabled || !device.hasSubscription}
                       >

@@ -16,7 +16,7 @@ export function LogStream({ events, lastSeenAt }: LogStreamProps) {
           {events.length === 0 ? (
             <div className="flex h-full min-h-[300px] items-center justify-center flex-col gap-2 text-muted-foreground">
               <AlertCircle className="h-5 w-5 opacity-20" />
-              <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Event log empty</span>
+              <span className="text-xs font-black uppercase tracking-widest text-zinc-500">Event log empty</span>
             </div>
           ) : (
             <div className="divide-y divide-white/5 font-mono text-xs">
@@ -31,7 +31,7 @@ export function LogStream({ events, lastSeenAt }: LogStreamProps) {
                   <div 
                     key={event.id} 
                     className={cn(
-                      "group relative flex flex-col gap-2 border-l-[4px] px-4 py-3 pr-8 md:grid md:grid-cols-[100px_80px_minmax(0,1fr)_100px] md:gap-4 md:px-6 md:py-2 md:pr-6",
+                      "group relative flex flex-col gap-2 border-l-4 px-4 py-3 pr-8 md:grid md:grid-cols-[100px_80px_minmax(0,1fr)_100px] md:gap-4 md:px-6 md:py-2 md:pr-6",
                       isBusy ? "opacity-100" : "opacity-90",
                       isUnread && "bg-amber-500/[0.08]"
                     )}
@@ -49,7 +49,7 @@ export function LogStream({ events, lastSeenAt }: LogStreamProps) {
                     )}
                     {/* Meta Row (Timestamp & Level) */}
                     <div className="flex items-center justify-between gap-3 md:contents">
-                      <div className="text-zinc-400 text-[10px] tabular-nums whitespace-nowrap self-center font-bold tracking-tighter">
+                      <div className="text-zinc-400 text-xs tabular-nums whitespace-nowrap self-center font-bold tracking-tighter">
                         <span className="md:hidden">
                           {eventDate.toLocaleTimeString(undefined, { hour12: false })}
                         </span>
@@ -59,7 +59,7 @@ export function LogStream({ events, lastSeenAt }: LogStreamProps) {
                       </div>
 
                       <div className="flex items-center">
-                        <span className={cn('font-black text-[8px] px-1.5 py-0.5 rounded border leading-none uppercase tracking-widest', eventStatusColors(event.status))}>
+                        <span className={cn('font-black text-[0.625rem] px-1.5 py-0.5 rounded border leading-none uppercase tracking-widest', eventStatusColors(event.status))}>
                           {event.status}
                         </span>
                       </div>
@@ -69,26 +69,26 @@ export function LogStream({ events, lastSeenAt }: LogStreamProps) {
                     <div className="mt-0.5 w-full min-w-0 self-center md:mt-0 md:w-auto">
                       <div className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-1 md:mb-0.5 md:overflow-hidden">
                         <span 
-                          className="min-w-0 max-w-full truncate text-[10px] font-black tracking-widest uppercase"
+                          className="min-w-0 max-w-full truncate text-xs font-black tracking-widest uppercase"
                           style={{ color: pathColor }}
                         >
                           {event.path}
                         </span>
                         {event.entityId && (
-                          <span className="shrink-0 text-[10px] font-black tracking-widest uppercase" style={{ color: pathColorDim }}>
+                          <span className="shrink-0 text-xs font-black tracking-widest uppercase" style={{ color: pathColorDim }}>
                             @{event.entityId}
                           </span>
                         )}
                       </div>
                       <Markdown 
-                        className={cn('break-words leading-5 text-[11px] tracking-tight text-foreground font-medium', event.status === 'busy' && 'text-amber-200 font-bold')}
+                        className={cn('break-words leading-5 text-xs tracking-tight text-foreground font-medium', event.status === 'busy' && 'text-amber-200 font-bold')}
                         content={event.content ?? 'empty_payload'}
                       />
                     </div>
 
                     {/* Path (Desktop Only) */}
                     <div className="hidden md:flex flex-col items-end justify-center overflow-hidden">
-                      <span className="text-[10px] truncate font-black uppercase tracking-widest text-zinc-500 group-hover:text-zinc-400 max-w-[90px] transition-colors">{event.path.split('/').slice(-1)[0]}</span>
+                      <span className="text-xs truncate font-black uppercase tracking-widest text-zinc-500 group-hover:text-zinc-400 max-w-[90px] transition-colors">{event.path.split('/').slice(-1)[0]}</span>
                     </div>
                   </div>
                 )

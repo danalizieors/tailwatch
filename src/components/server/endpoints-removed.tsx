@@ -9,7 +9,7 @@ interface EndpointsRemovedProps {
 
 export function EndpointsRemoved({ title, description }: EndpointsRemovedProps) {
   return (
-    <main className="mx-auto flex min-h-[100svh] w-full max-w-3xl items-center px-4 py-10 md:min-h-dvh">
+    <main className="mx-auto flex min-h-dvh w-full max-w-3xl items-center px-4 py-10 md:min-h-dvh">
       <Card className="w-full border-border/70 bg-card/85 backdrop-blur">
         <CardHeader className="space-y-3">
           <div className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-warning/35 bg-warning/10 text-warning">

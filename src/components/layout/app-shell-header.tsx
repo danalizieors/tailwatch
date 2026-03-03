@@ -63,10 +63,10 @@ export function AppShellHeader({
       <div className="flex h-14 items-center justify-between gap-4 md:gap-8">
         <div className="flex items-center gap-6 md:gap-8">
           <Link to="/" className="group relative inline-flex shrink-0 items-center gap-2.5">
-            <div className="relative z-10 flex h-8 w-8 items-center justify-center rounded-lg border border-primary/25 bg-primary/10 text-primary transition-all duration-300 group-hover:border-primary/40 group-hover:bg-primary/20 group-hover:shadow-[0_0_15px_-3px_rgba(var(--primary-rgb),0.3)]">
-              <Terminal className="h-4 w-4" />
+            <div className="relative z-10 flex h-9 w-9 items-center justify-center rounded-lg border border-primary/25 bg-primary/10 text-primary transition-all duration-300 group-hover:border-primary/40 group-hover:bg-primary/20 group-hover:shadow-[0_0_15px_-3px_rgba(var(--primary-rgb),0.3)]">
+              <Terminal className="h-5 w-5" />
             </div>
-            <p className="text-sm font-black uppercase tracking-tight text-foreground transition-colors group-hover:text-primary">Tailwatch</p>
+            <p className="text-base font-black uppercase tracking-tight text-foreground transition-colors group-hover:text-primary">Tailwatch</p>
           </Link>
 
           <div className="hidden h-5 w-px bg-border/60 md:block" />
@@ -81,7 +81,7 @@ export function AppShellHeader({
                   key={item.id}
                   to={item.href as any}
                   className={cn(
-                    'group relative flex items-center gap-2.5 text-[10px] font-black uppercase tracking-widest transition-all duration-300',
+                    'group relative flex items-center gap-2.5 text-xs font-black uppercase tracking-widest transition-all duration-300',
                     active
                       ? 'text-primary'
                       : 'text-zinc-400 hover:text-foreground',
@@ -130,7 +130,7 @@ export function AppShellHeader({
                 <div className="absolute right-0 top-10 z-50 w-52 rounded-md border border-border/70 bg-card/95 p-1.5 shadow-lg backdrop-blur">
                   <div className="border-b border-border/60 px-2 py-2">
                     <p className="truncate text-xs font-semibold text-foreground">{displayName}</p>
-                    {user?.email ? <p className="truncate text-[10px] text-muted-foreground">{user.email}</p> : null}
+                    {user?.email ? <p className="truncate text-xs text-muted-foreground">{user.email}</p> : null}
                   </div>
                   <button
                     type="button"
@@ -152,7 +152,7 @@ export function AppShellHeader({
               size="sm"
               variant="outline"
               onClick={() => void signIn('github')}
-              className="hidden gap-1.5 md:flex text-[10px] font-black uppercase tracking-widest"
+              className="hidden gap-1.5 md:flex text-xs font-black uppercase tracking-widest"
             >
               <LogIn className="h-3.5 w-3.5" />
               Sign in
@@ -184,8 +184,8 @@ export function AppShellHeader({
                 )}
               </div>
               <div className="flex flex-col min-w-0">
-                <p className="truncate text-[10px] font-black uppercase tracking-widest text-foreground">{displayName}</p>
-                {user.email ? <p className="truncate text-[10px] text-zinc-400">{user.email}</p> : null}
+                <p className="truncate text-xs font-black uppercase tracking-widest text-foreground">{displayName}</p>
+                {user.email ? <p className="truncate text-xs text-zinc-400">{user.email}</p> : null}
               </div>
             </div>
           )}
@@ -201,7 +201,7 @@ export function AppShellHeader({
                     to={item.href as any}
                     onClick={() => setIsMenuOpen(false)}
                     className={cn(
-                      'flex items-center gap-3 rounded-lg px-3 py-2.5 text-[10px] font-black uppercase tracking-widest transition-colors',
+                      'flex items-center gap-3 rounded-lg px-3 py-2.5 text-xs font-black uppercase tracking-widest transition-colors',
                       active
                         ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20'
                         : 'text-muted-foreground hover:bg-muted hover:text-foreground',
@@ -216,7 +216,7 @@ export function AppShellHeader({
               <Button
                 variant="outline"
                 size="sm"
-                className="justify-start gap-3 h-11 text-[10px] font-black uppercase tracking-widest text-primary border-primary/20"
+                className="justify-start gap-3 h-11 text-xs font-black uppercase tracking-widest text-primary border-primary/20"
                 onClick={() => {
                   setIsMenuOpen(false)
                   void signIn('github')
@@ -237,7 +237,7 @@ export function AppShellHeader({
               <Button
                 variant="ghost"
                 size="sm"
-                className="gap-2 text-zinc-400 hover:text-destructive hover:bg-destructive/10 h-9 text-[10px] font-black uppercase tracking-widest"
+                className="gap-2 text-zinc-400 hover:text-destructive hover:bg-destructive/10 h-9 text-xs font-black uppercase tracking-widest"
                 onClick={async () => {
                   setIsMenuOpen(false)
                   await signOut()
@@ -255,7 +255,7 @@ export function AppShellHeader({
                   setIsMenuOpen(false)
                   void signIn('github')
                 }}
-                className="gap-2 h-9 px-4 text-[10px] font-black uppercase tracking-widest"
+                className="gap-2 h-9 px-4 text-xs font-black uppercase tracking-widest"
               >
                 <LogIn className="h-4 w-4" />
                 <span>Sign in</span>
