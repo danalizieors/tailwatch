@@ -18,6 +18,7 @@ import { StatusBoard } from './status-board'
 import { useDashboardData } from './use-dashboard-data'
 import { AppShellHeader } from '~/components/layout/app-shell-header'
 import { cn } from '~/lib/utils'
+import { NotificationManager } from '~/lib/notifications'
 import { IngestTools } from './ingest-tools'
 import { ControlBar } from './control-bar'
 import { ActionBar } from './action-bar'
@@ -217,7 +218,7 @@ export function DashboardView({ initialMode = 'logs', volume, isAuthLoading, sho
   return (
     <div className="flex h-dvh min-h-dvh w-full flex-col overflow-hidden text-foreground bg-background">
       {/* Header */}
-      <div className="z-50 shrink-0">
+      <div className="z-[100] shrink-0">
         <AppShellHeader
           current="events"
         />

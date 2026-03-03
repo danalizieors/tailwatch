@@ -72,10 +72,7 @@ export function useDashboardData({ mode, volume, topicPrefix, pollMs = 4000 }: U
       const newest = Math.max(...data.events.map((event) => new Date(event.time).getTime()))
 
       if (hasInitialLoadRef.current && newest > lastKnownTsRef.current) {
-        const newEvents = data.events.filter((event) => new Date(event.time).getTime() > lastKnownTsRef.current)
-        if (newEvents.length > 0) {
-          NotificationManager.playBeep()
-        }
+        // New events found, but we no longer play a sound
       }
 
       lastKnownTsRef.current = newest

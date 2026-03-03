@@ -1,6 +1,6 @@
 import { useAuthActions } from '@convex-dev/auth/react'
 import { useConvexAuth, useQuery } from 'convex/react'
-import { useMemo, useState, type ComponentType, type ReactNode } from 'react'
+import { useMemo, useState, useEffect, type ComponentType, type ReactNode } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { Activity, HardDrive, Laptop, LogIn, LogOut, Menu, Terminal, X, PanelLeft, PanelLeftClose } from 'lucide-react'
 import { api } from '../../../convex/_generated/api'
@@ -38,6 +38,7 @@ export function AppShellHeader({
   const { signIn, signOut } = useAuthActions()
   const navigate = useNavigate()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [isProfileOpen, setIsProfileOpen] = useState(false)
 
   const user = useQuery((api as any).users.currentUser, isAuthenticated ? {} : 'skip') as
     | {
@@ -58,6 +59,17 @@ export function AppShellHeader({
       { id: 'devices', label: 'Devices', href: '/settings/devices', icon: Laptop },
     ]
   }, [])
+
+  useEffect(() => {
+    if (!isProfileOpen) return
+    const handleDown = (e: MouseEvent) => {
+      if (!(e.target as HTMLElement).closest('.profile-dropdown-container')) {
+        setIsProfileOpen(false)
+      }
+    }
+    window.addEventListener('mousedown', handleDown)
+    return () => window.removeEventListener('mousedown', handleDown)
+  }, [isProfileOpen])
 
   return (
     <header 
@@ -118,43 +130,49 @@ export function AppShellHeader({
             </div>
           ) : isAuthenticated ? (
             <div className="hidden items-center gap-2 md:flex">
-              <details className="group relative">
-                <summary className="list-none cursor-pointer rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
-                  <div className="inline-flex h-8 w-8 items-center justify-center overflow-hidden rounded-full border border-border/70 bg-muted/40 text-xs font-bold text-foreground transition-all group-hover:bg-muted/60 group-hover:ring-2 group-hover:ring-primary/20">
-                    {user?.image ? (
-                      <img src={user.image} alt={displayName} className="h-full w-full object-cover" />
-                    ) : (
-                      <span>{avatarInitial}</span>
-                    )}
-                  </div>
-                </summary>
-                <div className="absolute right-0 top-12 z-50 w-64 rounded-xl border border-border/70 bg-card/95 p-3 shadow-2xl backdrop-blur animate-in fade-in slide-in-from-top-2">
-                  <div className="flex items-center gap-3 border-b border-border/40 pb-3 mb-2">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border/70 bg-muted/40">
-                      {user?.image ? (
-                        <img src={user.image} alt={displayName} className="h-full w-full object-cover" />
-                      ) : (
-                        <span className="text-sm font-bold">{avatarInitial}</span>
-                      )}
+              <div className="profile-dropdown-container relative">
+                <button
+                  type="button"
+                  onClick={() => setIsProfileOpen(!isProfileOpen)}
+                  className="flex h-8 w-8 cursor-pointer items-center justify-center overflow-hidden rounded-full border border-border/70 bg-muted/40 transition-all hover:bg-muted/60 hover:ring-2 hover:ring-primary/20 focus:outline-none focus:ring-2 focus:ring-primary/40"
+                >
+                  {user?.image ? (
+                    <img src={user.image} alt={displayName} className="h-full w-full object-cover" />
+                  ) : (
+                    <span className="text-xs font-bold text-foreground">{avatarInitial}</span>
+                  )}
+                </button>
+                
+                {isProfileOpen && (
+                  <div className="absolute right-0 top-12 z-[100] w-64 rounded-xl border border-border/70 bg-card/98 p-3 shadow-2xl backdrop-blur-xl animate-in fade-in slide-in-from-top-2">
+                    <div className="flex items-center gap-3 border-b border-border/40 pb-3 mb-2">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border/70 bg-muted/40">
+                        {user?.image ? (
+                          <img src={user.image} alt={displayName} className="h-full w-full object-cover" />
+                        ) : (
+                          <span className="text-sm font-bold">{avatarInitial}</span>
+                        )}
+                      </div>
+                      <div className="flex flex-col min-w-0">
+                        <p className="truncate text-xs font-black uppercase tracking-widest text-foreground">{displayName}</p>
+                        {user?.email ? <p className="truncate text-xs text-zinc-500">{user.email}</p> : null}
+                      </div>
                     </div>
-                    <div className="flex flex-col min-w-0">
-                      <p className="truncate text-xs font-black uppercase tracking-widest text-foreground">{displayName}</p>
-                      {user?.email ? <p className="truncate text-xs text-zinc-500">{user.email}</p> : null}
-                    </div>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        setIsProfileOpen(false)
+                        await signOut()
+                        void navigate({ to: '/', replace: true })
+                      }}
+                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-black uppercase tracking-widest text-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+                    >
+                      <LogOut className="h-3.5 w-3.5" />
+                      Sign out
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      await signOut()
-                      void navigate({ to: '/', replace: true })
-                    }}
-                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-black uppercase tracking-widest text-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
-                  >
-                    <LogOut className="h-3.5 w-3.5" />
-                    Sign out
-                  </button>
-                </div>
-              </details>
+                )}
+              </div>
             </div>
           ) : (
             <Button
