@@ -1,15 +1,16 @@
 'use node'
 
+import { getAuthUserId } from '@convex-dev/auth/server'
 import { buildPushHTTPRequest } from '@pushforge/builder'
 import { v } from 'convex/values'
 import { internal } from './_generated/api'
 import { action, internalAction } from './_generated/server'
-import { auth } from './auth'
+import { env } from './env'
 
 const internalApi = internal as any
 
 async function requireUserId(ctx: any) {
-  const userId = await auth.getUserId(ctx)
+  const userId = await getAuthUserId(ctx)
   if (!userId) throw new Error('Sign in required')
   return userId
 }
@@ -48,19 +49,11 @@ export const sendPushForEventInternal = internalAction({
     deviceId: v.optional(v.id('devices')),
   },
   handler: async (ctx, args) => {
-    const rawVapidKey = process.env.VAPID_PRIVATE_KEY
-    const adminContact = process.env.VAPID_SUBJECT
-
-    if (!rawVapidKey || !adminContact) {
-      console.error(
-        'Missing VAPID_PRIVATE_KEY or VAPID_SUBJECT environment variables',
-      )
-      return { ok: false, reason: 'missing_env_vars' }
-    }
+    const { VAPID_PRIVATE_KEY, VAPID_SUBJECT } = env
 
     let privateJWK
     try {
-      privateJWK = JSON.parse(rawVapidKey)
+      privateJWK = JSON.parse(VAPID_PRIVATE_KEY)
     } catch (e) {
       console.error('Failed to parse VAPID_PRIVATE_KEY as JSON (JWK)')
       return { ok: false, reason: 'invalid_vapid_key' }
@@ -90,7 +83,7 @@ export const sendPushForEventInternal = internalAction({
     const url = `/${args.volume}?path=${encodeURIComponent(args.path)}`
 
     // Ensure adminContact is mailto: or https:
-    let finalAdminContact = adminContact
+    let finalAdminContact = VAPID_SUBJECT
     if (
       !finalAdminContact.startsWith('mailto:') &&
       !finalAdminContact.startsWith('https:')
@@ -121,7 +114,6 @@ export const sendPushForEventInternal = internalAction({
             options: {
               ttl: 300,
               urgency: args.status === 'busy' ? 'high' : 'normal',
-              // Temporarily remove topic to avoid Firefox/Autopush restrictions
             },
           },
         })
