@@ -7,7 +7,6 @@ import {
   ArrowRight,
   Bell,
   ChevronRight,
-  CircleAlert,
   Clock3,
   Database,
   GitBranch,
@@ -64,15 +63,15 @@ const problemCards = [
     icon: ListTree,
   },
   {
-    title: 'Failures are silent',
+    title: 'Manual steps are missed',
     description:
-      'Jobs fail in the background and go unnoticed for hours. You need to be alerted the moment a process hits an error.',
+      'Background tasks often stall when waiting for human input. You need to be alerted the moment your attention is required.',
     icon: Bell,
   },
   {
     title: 'State drifts away',
     description:
-      'An event says “started”, but nobody can tell what is still running, failed, idle, or stopped right now.',
+      'An event says “started”, but nobody can tell what is still running, stalled, or waiting for review right now.',
     icon: LayoutGrid,
   },
 ]
@@ -94,14 +93,14 @@ const workflowSteps = [
     step: '03',
     title: 'Derive system status',
     description:
-      'The Status Board summarizes event sequences into entity snapshots: busy, idle, or error.',
+      'The Status Board summarizes event sequences into entity snapshots: busy or idle.',
     icon: LayoutGrid,
   },
   {
     step: '04',
     title: 'Alert everywhere',
     description:
-      'Enable browser push notifications to receive instant alerts on desktop or mobile when systems change state.',
+      'Enable browser push notifications to receive instant alerts on desktop or mobile when systems require human intervention.',
     icon: Bell,
   },
 ]
@@ -137,12 +136,12 @@ const featureCards = [
 const useCases = [
   {
     title: 'Agent orchestration',
-    body: 'Watch an agent’s "chain of thought" and get a push notification when it hits a roadblock.',
+    body: 'Watch an agent’s "chain of thought" and get a push notification when it moves between tasks.',
     icon: Sparkles,
   },
   {
-    title: 'Critical Alerts',
-    body: 'Get notified immediately on your phone when a production pipeline fails or a backup stalls.',
+    title: 'Human-in-the-Loop',
+    body: 'Get notified immediately on your phone when a process reaches a step that requires manual review or approval.',
     icon: Bell,
   },
   {
@@ -326,8 +325,8 @@ function TailwatchLandingPage() {
                       <p className="truncate text-xs font-black uppercase tracking-widest text-foreground">Volume `production`</p>
                     </div>
                   </div>
-                  <div className="inline-flex w-fit items-center gap-2 rounded-full border border-success/20 bg-success/10 px-3 py-1 text-xs font-black uppercase tracking-widest text-success">
-                    <span className="h-2 w-2 rounded-full bg-success" />
+                  <div className="inline-flex w-fit items-center gap-2 rounded-full border border-info/20 bg-info/10 px-3 py-1 text-xs font-black uppercase tracking-widest text-info">
+                    <span className="h-2 w-2 rounded-full bg-info" />
                     Operational
                   </div>
                 </div>
@@ -344,15 +343,15 @@ function TailwatchLandingPage() {
                     <CardContent className="space-y-2 pb-4">
                       <div className="rounded-lg border border-border/60 bg-card/60 p-2">
                         <p className="break-all text-xs font-black uppercase tracking-widest text-foreground">agents/vision</p>
-                        <p className="text-xxs font-bold uppercase tracking-widest text-success">busy • Analyzing frame #420</p>
+                        <p className="text-xxs font-bold uppercase tracking-widest text-amber-500">busy • Analyzing frame #420</p>
                       </div>
                       <div className="rounded-lg border border-border/60 bg-card/60 p-2">
                         <p className="break-all text-xs font-black uppercase tracking-widest text-foreground">agents/vision</p>
                         <p className="text-xxs font-bold uppercase tracking-widest text-zinc-400">message • "Detected 3 objects"</p>
                       </div>
-                      <div className="rounded-lg border border-destructive/25 bg-destructive/10 p-2">
-                        <p className="break-all text-xs font-black uppercase tracking-widest text-foreground">ops/db-backup</p>
-                        <p className="text-xxs font-bold uppercase tracking-widest text-destructive">error • snapshot timeout</p>
+                      <div className="rounded-lg border border-info/25 bg-info/10 p-2">
+                        <p className="break-all text-xs font-black uppercase tracking-widest text-foreground">agents/approver</p>
+                        <p className="text-xxs font-bold uppercase tracking-widest text-info">idle • Waiting for review</p>
                       </div>
                     </CardContent>
                   </Card>
@@ -366,17 +365,17 @@ function TailwatchLandingPage() {
                       <CardDescription className="text-xs font-medium leading-normal">High-density snapshot of busy and idle tasks.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-2 pb-4">
-                      <div className="rounded-lg border border-success/20 bg-success/10 p-2">
+                      <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-2">
                         <p className="text-xs font-black uppercase tracking-widest text-foreground">vision-agent</p>
-                        <p className="text-xxs font-bold uppercase tracking-widest text-success">busy • active for 00:23</p>
+                        <p className="text-xxs font-bold uppercase tracking-widest text-amber-500">busy • active for 00:23</p>
                       </div>
-                      <div className="rounded-lg border border-warning/25 bg-warning/10 p-2">
+                      <div className="rounded-lg border border-info/25 bg-info/10 p-2">
                         <p className="text-xs font-black uppercase tracking-widest text-foreground">file-ingestor</p>
-                        <p className="text-xxs font-bold uppercase tracking-widest text-warning">idle • last seen 2m ago</p>
+                        <p className="text-xxs font-bold uppercase tracking-widest text-info">idle • last seen 2m ago</p>
                       </div>
-                      <div className="rounded-lg border border-destructive/25 bg-destructive/10 p-2">
-                        <p className="text-xs font-black uppercase tracking-widest text-foreground">nightly-backup</p>
-                        <p className="text-xxs font-bold uppercase tracking-widest text-destructive">error • snapshot timeout</p>
+                      <div className="rounded-lg border border-info/25 bg-info/10 p-2">
+                        <p className="text-xs font-black uppercase tracking-widest text-foreground">approver-task</p>
+                        <p className="text-xxs font-bold uppercase tracking-widest text-info">idle • input required</p>
                       </div>
                     </CardContent>
                   </Card>

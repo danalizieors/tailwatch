@@ -22,7 +22,6 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--foreground);
-  --color-success: var(--success);
   --color-warning: var(--warning);
   --color-info: var(--info);
   --color-border: var(--border);
@@ -63,7 +62,6 @@
   --accent-foreground: oklch(0.92 0.01 40);
   
   /* Refined state colors */
-  --success: oklch(0.75 0.15 160); /* Electric Mint */
   --warning: oklch(0.82 0.16 85);  /* Golden Sulfur */
   --destructive: oklch(0.68 0.18 30); /* Vivid Crimson */
   --info: oklch(0.72 0.14 210);      /* Azure Sky */

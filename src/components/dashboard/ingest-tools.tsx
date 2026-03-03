@@ -88,7 +88,7 @@ export function IngestTools({
           {generatorMessage && (
             <p className={cn(
               "text-xs font-black uppercase tracking-widest text-center",
-              generatorMessage.includes('Failed') ? "text-destructive" : "text-success"
+              generatorMessage.includes('Failed') ? "text-destructive" : "text-info"
             )}>
               {generatorMessage}
             </p>

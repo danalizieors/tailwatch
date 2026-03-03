@@ -217,7 +217,7 @@ function VolumeSettingsPage() {
         ) : null}
 
         {notice ? (
-          <div className="rounded-xl border border-success/20 bg-success/10 px-4 py-3 text-xs font-black uppercase tracking-widest text-success animate-in fade-in slide-in-from-top-1">
+          <div className="rounded-xl border border-info/20 bg-info/10 px-4 py-3 text-xs font-black uppercase tracking-widest text-info animate-in fade-in slide-in-from-top-1">
             {notice}
           </div>
         ) : null}
@@ -259,7 +259,7 @@ function VolumeSettingsPage() {
                           </CardTitle>
                           <div className="flex items-center gap-1.5 mt-0.5">
                             {volume.isDefault ? (
-                              <Badge variant="success" className="text-xxs h-4 font-black uppercase tracking-widest px-1">Default</Badge>
+                              <Badge variant="info" className="text-xxs h-4 font-black uppercase tracking-widest px-1">Default</Badge>
                             ) : null}
                             <Badge 
                               variant={volume.key.enabled ? 'outline' : 'warning'} 
@@ -287,7 +287,7 @@ function VolumeSettingsPage() {
                             className="h-6 w-6 ml-2 shrink-0 text-muted-foreground hover:text-primary transition-colors"
                             onClick={() => copyToClipboard(volume.key.value, volume.id)}
                           >
-                            {copiedKey === volume.id ? <Check className="h-3 w-3 text-success" /> : <Copy className="h-3 w-3" />}
+                            {copiedKey === volume.id ? <Check className="h-3 w-3 text-info" /> : <Copy className="h-3 w-3" />}
                           </Button>
                         )}
                       </div>
@@ -320,7 +320,7 @@ function VolumeSettingsPage() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="flex-1 h-8 rounded-lg px-2 text-xs font-black uppercase tracking-widest gap-2 hover:bg-success/5 hover:text-success transition-all active:scale-95"
+                          className="flex-1 h-8 rounded-lg px-2 text-xs font-black uppercase tracking-widest gap-2 hover:bg-primary/5 hover:text-primary transition-all active:scale-95"
                           onClick={() => void handleRotateKey(volume)}
                           disabled={busyAction !== null}
                         >

@@ -12,7 +12,7 @@ export function StatCards({ stats, orientation = 'horizontal' }: StatCardsProps)
     { label: 'Events', value: stats.totalEvents, icon: Binary, color: 'text-primary', bgColor: 'bg-primary/10' },
     { label: 'Paths', value: stats.pathCount, icon: Shapes, color: 'text-info', bgColor: 'bg-info/10' },
     { label: 'Busy', value: stats.busyCount, icon: AlertTriangle, color: 'text-amber-300', bgColor: 'bg-amber-300/10' },
-    { label: 'Idle', value: stats.idleCount ?? 0, icon: Activity, color: 'text-success', bgColor: 'bg-success/10' },
+    { label: 'Idle', value: stats.idleCount ?? 0, icon: Activity, color: 'text-info', bgColor: 'bg-info/10' },
   ]
 
   return (

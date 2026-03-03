@@ -1,23 +1,32 @@
 #!/bin/bash
 
-# Default host
-HOST=${1:-"http://localhost:3000"}
+# Seed the Tailwatch DB with Markdown-rich event content
+# Usage: ./seed-markdown.sh [BASE_URL]
 
-echo "--- Seeding Tailwatch Markdown Events ---"
-echo "Target: $HOST"
+BASE_URL=${1:-"http://localhost:3000"}
+VOLUME="personal"
 
-function publish() {
+publish() {
   local path=$1
   local payload=$2
-  echo ">> Publishing to $path"
-  curl -s -X POST "$HOST/api/publish/$path" -H "Content-Type: application/json" -d "$payload"
-  echo ""
+  echo "Publishing to $path..."
+  curl -X POST "$BASE_URL/api/publish/$path" \
+    -H "Content-Type: application/json" \
+    -H "x-tailwatch-volume: $VOLUME" \
+    -d "$payload"
+  echo -e "\n"
 }
 
-# Markdown-style logs
-publish "system/updates" '{"type":"log", "level":"info", "content":"**Update successful**: Version `1.4.2` deployed."}'
-publish "docs/build" '{"type":"log", "level":"info", "content":"Building documentation:\n- [x] API Reference\n- [ ] Tutorials\n- [ ] Guides"}'
-publish "security/audit" '{"type":"error", "level":"error", "content":"Critical vulnerability found in `openssl` package!\n\n```bash\n# Recommended action:\napt-get update && apt-get upgrade\n```"}'
-publish "agents/writer" '{"type":"log", "level":"info", "content":"Drafting post: # The Future of AI Monitoring\n\nTailwatch is the *best* tool for the job."}'
+# 1. Multi-step research task with a data table
+publish "agents/planner" '{"status":"busy", "content":"Plan for **Project Alpha** synthesis:\n\n| Step | Description | Status |\n| :--- | :--- | :--- |\n| 1 | Research | Active |\n| 2 | Drafting | Waiting |\n| 3 | Review | Pending |"}'
 
-echo "--- Seeding Complete ---"
+# 2. System update log with code blocks
+publish "system/updates" '{"status":"idle", "content":"**Update complete**: Version `1.4.2` deployed. Waiting for human verification."}'
+
+# 3. Security scan with formatted highlights
+publish "security/audit" '{"status":"busy", "content":"Security audit in progress. Reviewing open ports.\n\n> [!IMPORTANT]\n> Manual confirmation required for external exposure on port `8080`."}'
+
+# 4. Process checklist
+publish "ops/deploy/backend" '{"status":"busy", "content":"Deployment checklist:\n- [x] Pre-flight checks\n- [ ] Database migration (Waiting for human input)\n- [ ] Asset rollout"}'
+
+echo "Markdown seeding complete!"

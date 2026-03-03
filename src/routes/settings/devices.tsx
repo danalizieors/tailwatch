@@ -237,7 +237,7 @@ function DeviceSettingsPage() {
         ) : null}
 
         {notice ? (
-          <div className="rounded-xl border border-success/20 bg-success/10 px-4 py-3 text-xs font-black uppercase tracking-widest text-success animate-in fade-in slide-in-from-top-1">
+          <div className="rounded-xl border border-info/20 bg-info/10 px-4 py-3 text-xs font-black uppercase tracking-widest text-info animate-in fade-in slide-in-from-top-1">
             {notice}
           </div>
         ) : null}
@@ -287,7 +287,7 @@ function DeviceSettingsPage() {
                               <BrowserIcon className="h-3 w-3 text-zinc-500" title={device.browser} />
                             </div>
                             {device.isCurrent ? (
-                              <Badge variant="success" className="text-xxs h-4 font-black uppercase tracking-widest px-1">You</Badge>
+                              <Badge variant="info" className="text-xxs h-4 font-black uppercase tracking-widest px-1">You</Badge>
                             ) : (
                               <span className="text-xxs font-bold text-zinc-500 whitespace-nowrap">
                                 seen {device.lastSeenAt ? formatRelative(device.lastSeenAt) : 'never'}
