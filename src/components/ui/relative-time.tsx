@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { formatRelative, formatAbsolute } from '~/lib/format'
+import { formatAbsolute, formatRelative } from '~/lib/format'
+import { cn } from '~/lib/utils'
 
 interface RelativeTimeProps {
   time: string | number | Date
@@ -21,21 +22,22 @@ export function RelativeTime({ time, className, title }: RelativeTimeProps) {
   const absolute = formatAbsolute(time)
 
   return (
-    <span 
-      className={cn("inline-flex flex-wrap items-center gap-x-2 tabular-nums", className)} 
+    <span
+      className={cn(
+        'inline-flex flex-wrap items-center gap-x-2 tabular-nums',
+        className,
+      )}
       title={title}
     >
-      <span 
+      <span
         key={relative}
-        className="whitespace-nowrap font-bold text-zinc-400 animate-flash"
+        className='animate-flash font-bold whitespace-nowrap text-zinc-400'
       >
         {relative}
       </span>
-      <span className="text-zinc-500 font-medium whitespace-nowrap">
+      <span className='font-medium whitespace-nowrap text-zinc-500'>
         {absolute}
       </span>
     </span>
   )
 }
-
-import { cn } from '~/lib/utils'

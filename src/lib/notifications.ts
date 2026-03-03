@@ -1,4 +1,7 @@
-import { getClientDeviceKey as getIdentityDeviceKey, getClientDeviceName as getIdentityDeviceName } from './device-identity'
+import {
+  getClientDeviceKey as getIdentityDeviceKey,
+  getClientDeviceName as getIdentityDeviceName,
+} from './device-identity'
 
 const SEEN_KEY = 'tailwatch_last_seen'
 
@@ -36,7 +39,13 @@ export class NotificationManager {
 
     try {
       if (!this.audioCtx) {
-        const AudioContextClass = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+        const AudioContextClass =
+          window.AudioContext ||
+          (
+            window as Window & {
+              webkitAudioContext?: typeof AudioContext
+            }
+          ).webkitAudioContext
         if (!AudioContextClass) return
         this.audioCtx = new AudioContextClass()
       }
@@ -50,8 +59,14 @@ export class NotificationManager {
       gainNode.connect(this.audioCtx.destination)
 
       gainNode.gain.setValueAtTime(0, this.audioCtx.currentTime)
-      gainNode.gain.linearRampToValueAtTime(0.05, this.audioCtx.currentTime + 0.01)
-      gainNode.gain.exponentialRampToValueAtTime(0.0001, this.audioCtx.currentTime + 0.3)
+      gainNode.gain.linearRampToValueAtTime(
+        0.05,
+        this.audioCtx.currentTime + 0.01,
+      )
+      gainNode.gain.exponentialRampToValueAtTime(
+        0.0001,
+        this.audioCtx.currentTime + 0.3,
+      )
 
       oscillator.start(this.audioCtx.currentTime)
       oscillator.stop(this.audioCtx.currentTime + 0.3)
@@ -70,7 +85,8 @@ export class NotificationManager {
   }
 
   static async requestPushPermission(): Promise<boolean> {
-    if (typeof window === 'undefined' || !('Notification' in window)) return false
+    if (typeof window === 'undefined' || !('Notification' in window))
+      return false
     if (window.Notification.permission === 'granted') return true
     const permission = await window.Notification.requestPermission()
     return permission === 'granted'
@@ -92,8 +108,11 @@ export class NotificationManager {
 
       const key = getWebPushPublicKey()
       if (!key) {
-        this.lastPushError = 'Web Push Public Key is missing in client configuration.'
-        console.error('Missing VITE_WEB_PUSH_PUBLIC_KEY / VITE_VAPID_PUBLIC_KEY')
+        this.lastPushError =
+          'Web Push Public Key is missing in client configuration.'
+        console.error(
+          'Missing VITE_WEB_PUSH_PUBLIC_KEY / VITE_VAPID_PUBLIC_KEY',
+        )
         return false
       }
 
@@ -106,7 +125,10 @@ export class NotificationManager {
       return true
     } catch (error) {
       console.error('Service Worker Subscribe Error:', error)
-      this.lastPushError = error instanceof Error ? `Browser Error: ${error.message}` : 'Failed to create push subscription.'
+      this.lastPushError =
+        error instanceof Error
+          ? `Browser Error: ${error.message}`
+          : 'Failed to create push subscription.'
       return false
     }
   }
@@ -137,7 +159,10 @@ export class NotificationManager {
       await subscription.unsubscribe()
       return true
     } catch (error) {
-      this.lastPushError = error instanceof Error ? error.message : 'Failed to disable push subscription.'
+      this.lastPushError =
+        error instanceof Error
+          ? error.message
+          : 'Failed to disable push subscription.'
       return false
     }
   }
@@ -155,7 +180,10 @@ function getWebPushPublicKey() {
 }
 
 function base64UrlToUint8Array(value: string) {
-  const padded = value.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(value.length / 4) * 4, '=')
+  const padded = value
+    .replace(/-/g, '+')
+    .replace(/_/g, '/')
+    .padEnd(Math.ceil(value.length / 4) * 4, '=')
   const raw = atob(padded)
   const bytes = new Uint8Array(raw.length)
   for (let index = 0; index < raw.length; index += 1) {

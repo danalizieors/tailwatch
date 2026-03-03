@@ -2,7 +2,10 @@ const DEVICE_KEY_STORAGE = 'tailwatch.device.key'
 const DEVICE_NAME_STORAGE = 'tailwatch.device.name'
 
 function randomDeviceKey() {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+  if (
+    typeof crypto !== 'undefined' &&
+    typeof crypto.randomUUID === 'function'
+  ) {
     return `device_${crypto.randomUUID()}`
   }
   return `device_${Math.random().toString(36).slice(2, 10)}`
@@ -21,8 +24,13 @@ export function inferBrowserName(userAgent: string) {
 export function inferPlatformName() {
   if (typeof navigator === 'undefined') return 'Device'
 
-  const userAgentDataPlatform = (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData?.platform
-  if (typeof userAgentDataPlatform === 'string' && userAgentDataPlatform.trim()) {
+  const userAgentDataPlatform = (
+    navigator as Navigator & { userAgentData?: { platform?: string } }
+  ).userAgentData?.platform
+  if (
+    typeof userAgentDataPlatform === 'string' &&
+    userAgentDataPlatform.trim()
+  ) {
     return userAgentDataPlatform.trim()
   }
 
@@ -65,4 +73,3 @@ export function setClientDeviceName(value: string) {
   if (!next) return
   window.localStorage.setItem(DEVICE_NAME_STORAGE, next)
 }
-

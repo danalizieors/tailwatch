@@ -1,7 +1,12 @@
-import { useEffect, useRef } from 'react'
 import { useConvexAuth, useMutation } from 'convex/react'
+import { useEffect, useRef } from 'react'
+import {
+  getClientDeviceKey,
+  getClientDeviceName,
+  inferBrowserName,
+  inferPlatformName,
+} from '~/lib/device-identity'
 import { api } from '../../../convex/_generated/api'
-import { getClientDeviceKey, getClientDeviceName, inferBrowserName, inferPlatformName } from '~/lib/device-identity'
 
 export function DeviceRegistrationBootstrap() {
   const { isLoading, isAuthenticated } = useConvexAuth()
@@ -32,7 +37,10 @@ export function DeviceRegistrationBootstrap() {
       ensurePersonalVolume(),
     ]).catch((error) => {
       hasRegisteredRef.current = false
-      console.warn('Failed to bootstrap device registration or personal volume', error)
+      console.warn(
+        'Failed to bootstrap device registration or personal volume',
+        error,
+      )
     })
   }, [isAuthenticated, isLoading, registerDevice, ensurePersonalVolume])
 

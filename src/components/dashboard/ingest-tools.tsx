@@ -1,5 +1,13 @@
-import { useState, useEffect, useMemo } from 'react'
-import { Check, Copy, ChevronDown, Shuffle, Info, Terminal, Box } from 'lucide-react'
+import {
+  Box,
+  Check,
+  ChevronDown,
+  Copy,
+  Info,
+  Shuffle,
+  Terminal,
+} from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
 import { Button } from '~/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
 import { cn } from '~/lib/utils'
@@ -20,19 +28,24 @@ export function IngestTools({
   generatorMessage,
 }: IngestToolsProps) {
   const [isCurlExpanded, setIsCurlExpanded] = useState(true)
-  const [copiedVariant, setCopiedVariant] = useState<'header' | 'url' | null>(null)
+  const [copiedVariant, setCopiedVariant] = useState<'header' | 'url' | null>(
+    null,
+  )
 
   const curlCommands = useMemo(() => {
     if (!selectedTopic || !volumePublishKey) return null
-    
-    const baseUrl = typeof window === 'undefined' ? 'http://localhost:3000' : window.location.origin
+
+    const baseUrl =
+      typeof window === 'undefined'
+        ? 'http://localhost:3000'
+        : window.location.origin
     const encodedKey = encodeURIComponent(volumePublishKey)
     const encodedPath = selectedTopic
       .split('/')
       .filter(Boolean)
       .map((segment) => encodeURIComponent(segment))
       .join('/')
-    
+
     const body = `busy --- Synthetic signal (${Math.random().toString(36).slice(2, 8)})`
     const escapedBody = body.replace(/'/g, `'"'"'`)
 
@@ -54,42 +67,47 @@ export function IngestTools({
   }
 
   return (
-    <div className="space-y-4">
+    <div className='space-y-4'>
       {/* Test Event Section */}
-      <Card className="border-primary/20 bg-primary/5 shadow-sm overflow-hidden">
-        <CardHeader className="p-4 pb-2">
-          <CardTitle className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-primary">
-            <Shuffle className="h-3.5 w-3.5" />
+      <Card className='border-primary/20 bg-primary/5 overflow-hidden shadow-sm'>
+        <CardHeader className='p-4 pb-2'>
+          <CardTitle className='text-primary flex items-center gap-2 text-xs font-black tracking-widest uppercase'>
+            <Shuffle className='h-3.5 w-3.5' />
             Quick Test
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-4 pt-0 space-y-3">
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            Push a randomized event to the current volume to verify your integration.
+        <CardContent className='space-y-3 p-4 pt-0'>
+          <p className='text-muted-foreground text-xs leading-relaxed'>
+            Push a randomized event to the current volume to verify your
+            integration.
           </p>
           <Button
-            size="sm"
-            className="w-full h-9 rounded-lg font-black uppercase tracking-widest text-xs gap-2 shadow-sm"
+            size='sm'
+            className='h-9 w-full gap-2 rounded-lg text-xs font-black tracking-widest uppercase shadow-sm'
             onClick={onSendTest}
             disabled={isGeneratingRandomEvents}
           >
             {isGeneratingRandomEvents ? (
-              <span className="flex items-center gap-2">
-                <div className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
+              <span className='flex items-center gap-2'>
+                <div className='h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent' />
                 Sending...
               </span>
             ) : (
               <>
-                <Shuffle className="h-3.5 w-3.5" />
+                <Shuffle className='h-3.5 w-3.5' />
                 Send Test Event
               </>
             )}
           </Button>
           {generatorMessage && (
-            <p className={cn(
-              "text-xs font-black uppercase tracking-widest text-center",
-              generatorMessage.includes('Failed') ? "text-destructive" : "text-info"
-            )}>
+            <p
+              className={cn(
+                'text-center text-xs font-black tracking-widest uppercase',
+                generatorMessage.includes('Failed')
+                  ? 'text-destructive'
+                  : 'text-info',
+              )}
+            >
               {generatorMessage}
             </p>
           )}
@@ -97,68 +115,88 @@ export function IngestTools({
       </Card>
 
       {/* Curl Instructions */}
-      <Card className="border-border/60 bg-card/50 shadow-sm overflow-hidden">
-        <CardHeader 
-          className="p-4 pb-2 cursor-pointer hover:bg-muted/30 transition-colors"
+      <Card className='border-border/60 bg-card/50 overflow-hidden shadow-sm'>
+        <CardHeader
+          className='hover:bg-muted/30 cursor-pointer p-4 pb-2 transition-colors'
           onClick={() => setIsCurlExpanded(!isCurlExpanded)}
         >
-          <CardTitle className="flex items-center justify-between gap-2 text-xs font-black uppercase tracking-widest text-zinc-300">
-            <div className="flex items-center gap-2">
-              <Terminal className="h-3.5 w-3.5" />
+          <CardTitle className='flex items-center justify-between gap-2 text-xs font-black tracking-widest text-zinc-300 uppercase'>
+            <div className='flex items-center gap-2'>
+              <Terminal className='h-3.5 w-3.5' />
               Ingest via Curl
             </div>
-            <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", isCurlExpanded && "rotate-180")} />
+            <ChevronDown
+              className={cn(
+                'h-4 w-4 transition-transform duration-200',
+                isCurlExpanded && 'rotate-180',
+              )}
+            />
           </CardTitle>
         </CardHeader>
-        
+
         {isCurlExpanded && (
-          <CardContent className="p-4 pt-2 space-y-4 animate-in fade-in slide-in-from-top-1 duration-200">
+          <CardContent className='animate-in fade-in slide-in-from-top-1 space-y-4 p-4 pt-2 duration-200'>
             {!selectedTopic ? (
-              <div className="flex items-start gap-2 rounded-lg bg-muted/40 p-3">
-                <Info className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
-                <p className="text-xs text-muted-foreground font-medium leading-normal">
-                  Select a topic/path in the navigator above to see your customized ingest commands.
+              <div className='bg-muted/40 flex items-start gap-2 rounded-lg p-3'>
+                <Info className='text-muted-foreground mt-0.5 h-3.5 w-3.5 shrink-0' />
+                <p className='text-muted-foreground text-xs leading-normal font-medium'>
+                  Select a topic/path in the navigator above to see your
+                  customized ingest commands.
                 </p>
               </div>
             ) : !volumePublishKey ? (
-              <div className="flex items-start gap-2 rounded-lg bg-warning/10 border border-warning/20 p-3">
-                <Box className="h-3.5 w-3.5 text-warning mt-0.5 shrink-0" />
-                <p className="text-xs text-warning font-black uppercase tracking-widest leading-normal">
-                  No API key found for this volume. Please check your volume settings to enable publishing.
+              <div className='bg-warning/10 border-warning/20 flex items-start gap-2 rounded-lg border p-3'>
+                <Box className='text-warning mt-0.5 h-3.5 w-3.5 shrink-0' />
+                <p className='text-warning text-xs leading-normal font-black tracking-widest uppercase'>
+                  No API key found for this volume. Please check your volume
+                  settings to enable publishing.
                 </p>
               </div>
             ) : (
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-end">
+              <div className='space-y-4'>
+                <div className='space-y-2'>
+                  <div className='flex items-center justify-end'>
                     <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 px-2 text-xs font-black uppercase tracking-widest gap-1.5"
-                      onClick={() => curlCommands && copyToClipboard(curlCommands.header, 'header')}
+                      variant='ghost'
+                      size='sm'
+                      className='h-6 gap-1.5 px-2 text-xs font-black tracking-widest uppercase'
+                      onClick={() =>
+                        curlCommands &&
+                        copyToClipboard(curlCommands.header, 'header')
+                      }
                     >
-                      {copiedVariant === 'header' ? <Check className="h-3 w-3 text-success" /> : <Copy className="h-3 w-3" />}
+                      {copiedVariant === 'header' ? (
+                        <Check className='text-success h-3 w-3' />
+                      ) : (
+                        <Copy className='h-3 w-3' />
+                      )}
                       {copiedVariant === 'header' ? 'Copied' : 'Copy'}
                     </Button>
                   </div>
-                  <pre className="overflow-x-auto rounded-lg border border-border/40 bg-background/50 p-2.5 font-mono text-xs leading-relaxed text-foreground">
+                  <pre className='border-border/40 bg-background/50 text-foreground overflow-x-auto rounded-lg border p-2.5 font-mono text-xs leading-relaxed'>
                     <code>{curlCommands?.header}</code>
                   </pre>
                 </div>
 
-                <div className="space-y-2">
-                  <div className="flex items-center justify-end">
+                <div className='space-y-2'>
+                  <div className='flex items-center justify-end'>
                     <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 px-2 text-xs font-black uppercase tracking-widest gap-1.5"
-                      onClick={() => curlCommands && copyToClipboard(curlCommands.url, 'url')}
+                      variant='ghost'
+                      size='sm'
+                      className='h-6 gap-1.5 px-2 text-xs font-black tracking-widest uppercase'
+                      onClick={() =>
+                        curlCommands && copyToClipboard(curlCommands.url, 'url')
+                      }
                     >
-                      {copiedVariant === 'url' ? <Check className="h-3 w-3 text-success" /> : <Copy className="h-3 w-3" />}
+                      {copiedVariant === 'url' ? (
+                        <Check className='text-success h-3 w-3' />
+                      ) : (
+                        <Copy className='h-3 w-3' />
+                      )}
                       {copiedVariant === 'url' ? 'Copied' : 'Copy'}
                     </Button>
                   </div>
-                  <pre className="overflow-x-auto rounded-lg border border-border/40 bg-background/50 p-2.5 font-mono text-xs leading-relaxed text-foreground">
+                  <pre className='border-border/40 bg-background/50 text-foreground overflow-x-auto rounded-lg border p-2.5 font-mono text-xs leading-relaxed'>
                     <code>{curlCommands?.url}</code>
                   </pre>
                 </div>

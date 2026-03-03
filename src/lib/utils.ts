@@ -15,17 +15,17 @@ export function getPathColor(path: string) {
   for (let i = 0; i < path.length; i++) {
     hash = path.charCodeAt(i) + ((hash << 5) - hash)
   }
-  
+
   // Golden Ratio Hue Distribution
-  // Multiplying by the golden ratio conjugate (~0.618) ensures that 
+  // Multiplying by the golden ratio conjugate (~0.618) ensures that
   // hues are spread as far apart as possible across the spectrum.
   const phiConjugate = 0.618033988749895
   const h = (Math.abs(hash) * phiConjugate * 360) % 360
-  
-  // Maintain the "Jewel Tone" look but add slight variations in 
+
+  // Maintain the "Jewel Tone" look but add slight variations in
   // Lightness and Chroma based on the hash to help differentiate similar hues.
-  const l = 0.82 + (Math.abs(hash >> 4) % 6) / 100   // Range: 0.82 - 0.88
-  const c = 0.28 + (Math.abs(hash >> 8) % 10) / 100  // Range: 0.28 - 0.38
+  const l = 0.82 + (Math.abs(hash >> 4) % 6) / 100 // Range: 0.82 - 0.88
+  const c = 0.28 + (Math.abs(hash >> 8) % 10) / 100 // Range: 0.28 - 0.38
 
   return `oklch(${l.toFixed(3)} ${c.toFixed(3)} ${h.toFixed(2)})`
 }

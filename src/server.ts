@@ -1,8 +1,8 @@
+import type { Register } from '@tanstack/react-router'
 import {
   createStartHandler,
   defaultStreamHandler,
 } from '@tanstack/react-start/server'
-import type { Register } from '@tanstack/react-router'
 import type { RequestHandler } from '@tanstack/react-start/server'
 
 const NO_INDEX_HEADER_VALUE =
@@ -27,7 +27,7 @@ export function createServerEntry(entry: ServerEntry): ServerEntry {
   return {
     async fetch(request, ...args) {
       const url = new URL(request.url)
-      
+
       const response = await entry.fetch(request, ...args)
       return withNoIndexHeader(response)
     },

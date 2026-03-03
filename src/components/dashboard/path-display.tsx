@@ -7,24 +7,33 @@ interface PathDisplayProps {
   onClickSegment?: (partialPath: string) => void
 }
 
-export function PathDisplay({ path, className, segmentClassName, onClickSegment }: PathDisplayProps) {
+export function PathDisplay({
+  path,
+  className,
+  segmentClassName,
+  onClickSegment,
+}: PathDisplayProps) {
   const segments = path.split('/').filter(Boolean)
-  
+
   return (
-    <div className={cn("flex min-w-0 items-center overflow-hidden font-mono", className)}>
+    <div
+      className={cn(
+        'flex min-w-0 items-center overflow-hidden font-mono',
+        className,
+      )}
+    >
       {/* ROOT */}
       <button
-        type="button"
+        type='button'
         onClick={(e) => {
           e.stopPropagation()
           onClickSegment?.('')
         }}
         className={cn(
-          "px-1 rounded hover:bg-muted font-bold transition-all",
-          segments.length === 0 ? "text-primary" : "text-zinc-500",
-          segmentClassName
-          )
-}
+          'hover:bg-muted rounded px-1 font-bold transition-all',
+          segments.length === 0 ? 'text-primary' : 'text-zinc-500',
+          segmentClassName,
+        )}
       >
         /
       </button>
@@ -36,23 +45,25 @@ export function PathDisplay({ path, className, segmentClassName, onClickSegment 
         const isLast = idx === segments.length - 1
 
         return (
-          <div key={idx} className="flex items-center shrink-0">
+          <div key={idx} className='flex shrink-0 items-center'>
             <button
-              type="button"
+              type='button'
               onClick={(e) => {
                 e.stopPropagation()
                 onClickSegment?.(partialPath)
               }}
               className={cn(
-                "px-0.5 md:px-1 py-0.5 rounded transition-all whitespace-nowrap",
-                isLast ? "font-bold" : "text-zinc-400 hover:text-foreground hover:bg-muted",
-                segmentClassName
+                'rounded px-0.5 py-0.5 whitespace-nowrap transition-all md:px-1',
+                isLast
+                  ? 'font-bold'
+                  : 'hover:text-foreground hover:bg-muted text-zinc-400',
+                segmentClassName,
               )}
               style={{ color: isLast ? color : undefined }}
             >
               {segment}
             </button>
-            <span className="text-zinc-600 px-0.5 select-none">/</span>
+            <span className='px-0.5 text-zinc-600 select-none'>/</span>
           </div>
         )
       })}

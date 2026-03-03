@@ -1,29 +1,29 @@
-import { useDeferredValue, useState, useEffect, useMemo } from 'react'
-import { useConvexAuth, useMutation, useQuery } from 'convex/react'
 import { useNavigate } from '@tanstack/react-router'
+import { useConvexAuth, useMutation, useQuery } from 'convex/react'
 import {
   Info,
-  ShieldCheck,
-  Zap,
   LayoutGrid,
   PanelLeft,
   PanelLeftClose,
+  ShieldCheck,
+  Zap,
 } from 'lucide-react'
-import { Card, CardContent } from '~/components/ui/card'
+import { useDeferredValue, useEffect, useMemo, useState } from 'react'
+import { AppShellHeader } from '~/components/layout/app-shell-header'
 import { Button } from '~/components/ui/button'
+import { Card, CardContent } from '~/components/ui/card'
+import { inferBrowserName, inferPlatformName } from '~/lib/device-identity'
+import { NotificationManager } from '~/lib/notifications'
 import type { EventStatus } from '~/lib/types'
+import { cn } from '~/lib/utils'
 import { api } from '../../../convex/_generated/api'
+import { ActionBar } from './action-bar'
+import { ControlBar } from './control-bar'
+import { IngestTools } from './ingest-tools'
 import { LogStream } from './log-stream'
 import { StatusBoard } from './status-board'
 import { useDashboardData } from './use-dashboard-data'
-import { AppShellHeader } from '~/components/layout/app-shell-header'
-import { cn } from '~/lib/utils'
-import { NotificationManager } from '~/lib/notifications'
-import { IngestTools } from './ingest-tools'
-import { ControlBar } from './control-bar'
-import { ActionBar } from './action-bar'
 import { VolumeSidebar } from './volume-sidebar'
-import { inferBrowserName, inferPlatformName } from '~/lib/device-identity'
 
 interface DashboardViewProps {
   initialMode?: 'logs' | 'status'
@@ -32,38 +32,58 @@ interface DashboardViewProps {
   showAuthLoading?: boolean
 }
 
-export function DashboardView({ initialMode = 'logs', volume, isAuthLoading, showAuthLoading }: DashboardViewProps) {
+export function DashboardView({
+  initialMode = 'logs',
+  volume,
+  isAuthLoading,
+  showAuthLoading,
+}: DashboardViewProps) {
   const [mode, setMode] = useState<'logs' | 'status'>(initialMode)
-  const [selectedTopic, setSelectedTopic] = useState<string | undefined>(undefined)
+  const [selectedTopic, setSelectedTopic] = useState<string | undefined>(
+    undefined,
+  )
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<EventStatus | 'all'>('all')
   const [isDebugMode, setIsDebugMode] = useState(false)
-  const [isGeneratingRandomEvents, setIsGeneratingRandomEvents] = useState(false)
+  const [isGeneratingRandomEvents, setIsGeneratingRandomEvents] =
+    useState(false)
   const [generatorMessage, setGeneratorMessage] = useState<string | null>(null)
   const [volumePublishKey, setVolumePublishKey] = useState<string | null>(null)
   const [volumeOptions, setVolumeOptions] = useState<string[]>(['personal'])
   const [isHydratingFilter, setIsHydratingFilter] = useState(true)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-  
+
   const { isAuthenticated } = useConvexAuth()
   const navigate = useNavigate()
-  
+
   const publish = useMutation(api.events.publish)
   const publishByKey = useMutation(api.events.publishByKey)
   const updateDevice = useMutation(api.devices.updateDevice)
   const setVolumeNotifications = useMutation(api.volumes.setVolumeNotifications)
   const registerDevice = useMutation(api.devices.registerDevice)
 
-  const managedVolumes = useQuery(api.volumes.listManagedVolumes, isAuthenticated ? {} : 'skip') as
-    | Array<{ id: any; name: string; isDefault?: boolean; notificationsEnabled: boolean; key?: { value?: string } }>
+  const managedVolumes = useQuery(
+    api.volumes.listManagedVolumes,
+    isAuthenticated ? {} : 'skip',
+  ) as
+    | Array<{
+        id: any
+        name: string
+        isDefault?: boolean
+        notificationsEnabled: boolean
+        key?: { value?: string }
+      }>
     | undefined
 
   const currentDeviceKey = useMemo(() => NotificationManager.getDeviceKey(), [])
-  const devices = useQuery(api.devices.listDevices, isAuthenticated ? { currentDeviceKey } : 'skip')
+  const devices = useQuery(
+    api.devices.listDevices,
+    isAuthenticated ? { currentDeviceKey } : 'skip',
+  )
 
   useEffect(() => {
     if (isAuthenticated && currentDeviceKey) {
-      void registerDevice({ 
+      void registerDevice({
         deviceKey: currentDeviceKey,
         os: inferPlatformName(),
         browser: inferBrowserName(navigator.userAgent),
@@ -73,11 +93,12 @@ export function DashboardView({ initialMode = 'logs', volume, isAuthLoading, sho
 
   const deferredSearch = useDeferredValue(search)
 
-  const { data, error, isLoading, markAllSeen, lastSeenAt, refresh } = useDashboardData({
-    mode,
-    volume,
-    topicPrefix: selectedTopic,
-  })
+  const { data, error, isLoading, markAllSeen, lastSeenAt, refresh } =
+    useDashboardData({
+      mode,
+      volume,
+      topicPrefix: selectedTopic,
+    })
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -85,7 +106,7 @@ export function DashboardView({ initialMode = 'logs', volume, isAuthLoading, sho
       const urlParams = new URLSearchParams(window.location.search)
       const debugParam = urlParams.get('debug') === 'true'
       const debugStorage = localStorage.getItem('debug_auth') === 'true'
-      
+
       if (enableDebug && (debugParam || debugStorage)) {
         setIsDebugMode(true)
         if (debugParam && !debugStorage) {
@@ -96,7 +117,9 @@ export function DashboardView({ initialMode = 'logs', volume, isAuthLoading, sho
       setIsHydratingFilter(true)
 
       const params = new URLSearchParams(window.location.search)
-      const filterPath = normalizeTopicPath(params.get('filter') ?? params.get('path') ?? undefined)
+      const filterPath = normalizeTopicPath(
+        params.get('filter') ?? params.get('path') ?? undefined,
+      )
       setSelectedTopic(filterPath)
       setIsHydratingFilter(false)
     }
@@ -120,7 +143,13 @@ export function DashboardView({ initialMode = 'logs', volume, isAuthLoading, sho
 
   const activeVolume = volume?.trim() || 'personal'
   const volumeChoices = useMemo(() => {
-    const values = Array.from(new Set(['personal', ...volumeOptions, activeVolume].map((value) => value.trim()).filter(Boolean)))
+    const values = Array.from(
+      new Set(
+        ['personal', ...volumeOptions, activeVolume]
+          .map((value) => value.trim())
+          .filter(Boolean),
+      ),
+    )
     return values.sort((left, right) => {
       if (left === 'personal') return -1
       if (right === 'personal') return 1
@@ -144,7 +173,9 @@ export function DashboardView({ initialMode = 'logs', volume, isAuthLoading, sho
     const matchedVolume =
       volumes.find((row) => row.key?.value?.trim() === volumeToken) ??
       volumes.find((row) => row.name === volumeToken) ??
-      (volumeToken === 'personal' ? volumes.find((row) => row.isDefault) : undefined)
+      (volumeToken === 'personal'
+        ? volumes.find((row) => row.isDefault)
+        : undefined)
 
     const key = matchedVolume?.key?.value?.trim()
     if (key && key.length > 0) {
@@ -162,10 +193,10 @@ export function DashboardView({ initialMode = 'logs', volume, isAuthLoading, sho
 
   const switchVolume = (nextVolumeRaw: string) => {
     const nextVolume = nextVolumeRaw.trim() || 'personal'
-    void navigate({ 
-      to: '/$volumeId', 
+    void navigate({
+      to: '/$volumeId',
       params: { volumeId: nextVolume },
-      search: (prev: any) => prev 
+      search: (prev: any) => prev,
     })
   }
 
@@ -203,92 +234,105 @@ export function DashboardView({ initialMode = 'logs', volume, isAuthLoading, sho
     if (statusFilter !== 'all' && event.status !== statusFilter) return false
     if (!deferredSearch.trim()) return true
     const q = deferredSearch.toLowerCase()
-    const haystack = `${event.path} ${event.content ?? ''} ${event.entityId ?? ''}`.toLowerCase()
+    const haystack =
+      `${event.path} ${event.content ?? ''} ${event.entityId ?? ''}`.toLowerCase()
     return haystack.includes(q)
   })
 
   const filteredEntities = (data?.entities ?? []).filter((entity) => {
-    if (statusFilter !== 'all' && entity.currentStatus !== statusFilter) return false
+    if (statusFilter !== 'all' && entity.currentStatus !== statusFilter)
+      return false
     if (!deferredSearch.trim()) return true
     const q = deferredSearch.toLowerCase()
-    const haystack = `${entity.path} ${entity.lastContent ?? ''} ${entity.entityId ?? ''}`.toLowerCase()
+    const haystack =
+      `${entity.path} ${entity.lastContent ?? ''} ${entity.entityId ?? ''}`.toLowerCase()
     return haystack.includes(q)
   })
 
   return (
-    <div className="flex h-dvh min-h-dvh w-full flex-col overflow-hidden text-foreground bg-background">
+    <div className='text-foreground bg-background flex h-dvh min-h-dvh w-full flex-col overflow-hidden'>
       {/* Header */}
-      <div className="z-[100] shrink-0">
-        <AppShellHeader
-          current="events"
-        />
+      <div className='z-[100] shrink-0'>
+        <AppShellHeader current='events' />
       </div>
 
-      <div className="flex-1 min-h-0 flex relative overflow-hidden">
+      <div className='relative flex min-h-0 flex-1 overflow-hidden'>
         {/* LEFT: Volume Sidebar - Always sharp and accessible */}
         <VolumeSidebar
           activeVolume={activeVolume}
-          volumeChoices={(managedVolumes ?? []).map(v => ({ 
-            id: v.id, 
-            name: v.name, 
+          volumeChoices={(managedVolumes ?? []).map((v) => ({
+            id: v.id,
+            name: v.name,
             notificationsEnabled: v.notificationsEnabled,
-            key: v.key?.value
+            key: v.key?.value,
           }))}
           onVolumeChange={(v) => {
             switchVolume(v)
             setIsSidebarOpen(false)
           }}
-          onToggleVolumeNotifications={(volumeId, enabled) => void setVolumeNotifications({ volumeId, enabled })}
+          onToggleVolumeNotifications={(volumeId, enabled) =>
+            void setVolumeNotifications({ volumeId, enabled })
+          }
           isAuthenticated={isAuthenticated}
           devices={devices}
-          onToggleDeviceMute={(deviceId, enabled) => void updateDevice({ deviceId, enabled })}
+          onToggleDeviceMute={(deviceId, enabled) =>
+            void updateDevice({ deviceId, enabled })
+          }
           isOpen={isSidebarOpen}
           onClose={() => setIsSidebarOpen(false)}
         />
 
         {/* CENTER: Main Content */}
-        <main className="flex-1 min-w-0 flex flex-col overflow-y-auto no-scrollbar">
-          <div className="max-w-[1400px] w-full mx-auto px-4 md:px-8 flex flex-col">
+        <main className='no-scrollbar flex min-w-0 flex-1 flex-col overflow-y-auto'>
+          <div className='mx-auto flex w-full max-w-[1400px] flex-col px-4 md:px-8'>
             {/* Sticky Header Section */}
-            <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm pt-4 md:pt-6 pb-2 space-y-4">
+            <div className='bg-background/95 sticky top-0 z-50 space-y-4 pt-4 pb-2 backdrop-blur-sm md:pt-6'>
               {error && (
-                <Card className="border-destructive/20 bg-destructive/10 text-destructive-foreground">
-                  <CardContent className="p-3 text-xs font-medium flex items-center gap-3">
-                    <Info className="h-4 w-4" />
+                <Card className='border-destructive/20 bg-destructive/10 text-destructive-foreground'>
+                  <CardContent className='flex items-center gap-3 p-3 text-xs font-medium'>
+                    <Info className='h-4 w-4' />
                     Error syncing dashboard: {error}
                   </CardContent>
                 </Card>
               )}
 
-              <div className="relative z-20">
+              <div className='relative z-20'>
                 <ControlBar
                   mode={mode}
                   onModeChange={setMode}
                   topicTree={data?.topicTree ?? []}
                   selectedTopic={selectedTopic}
-                  onSelectTopic={(topic) => setSelectedTopic(normalizeTopicPath(topic))}
+                  onSelectTopic={(topic) =>
+                    setSelectedTopic(normalizeTopicPath(topic))
+                  }
                 />
               </div>
             </div>
 
-            <div className="flex flex-col gap-4 py-4 pb-12">
-              <div className="grid grid-cols-1 gap-6">
-                <div className="min-h-0">
+            <div className='flex flex-col gap-4 py-4 pb-12'>
+              <div className='grid grid-cols-1 gap-6'>
+                <div className='min-h-0'>
                   {isLoading && !data ? (
-                    <div className="flex flex-col items-center justify-center py-20 rounded-2xl border border-border/40 bg-card/20 backdrop-blur-sm">
-                      <Zap className="h-8 w-8 text-primary animate-pulse" />
+                    <div className='border-border/40 bg-card/20 flex flex-col items-center justify-center rounded-2xl border py-20 backdrop-blur-sm'>
+                      <Zap className='text-primary h-8 w-8 animate-pulse' />
                     </div>
                   ) : data ? (
                     mode === 'logs' ? (
-                      <LogStream events={filteredEvents} lastSeenAt={lastSeenAt} />
+                      <LogStream
+                        events={filteredEvents}
+                        lastSeenAt={lastSeenAt}
+                      />
                     ) : (
-                      <StatusBoard rows={filteredEntities} lastSeenAt={lastSeenAt} />
+                      <StatusBoard
+                        rows={filteredEntities}
+                        lastSeenAt={lastSeenAt}
+                      />
                     )
                   ) : null}
                 </div>
 
                 {/* Ingest Tools */}
-                <div className="mt-4">
+                <div className='mt-4'>
                   <IngestTools
                     volumePublishKey={volumePublishKey}
                     selectedTopic={selectedTopic}
@@ -304,31 +348,35 @@ export function DashboardView({ initialMode = 'logs', volume, isAuthLoading, sho
       </div>
 
       {/* Single Mobile Backdrop Overlay */}
-      <div 
+      <div
         className={cn(
-          "fixed inset-0 z-[90] lg:hidden transition-[opacity,backdrop-filter,background-color] duration-500 ease-in-out",
-          isSidebarOpen 
-            ? "opacity-100 backdrop-blur-sm bg-background/20 pointer-events-auto visible" 
-            : "opacity-0 backdrop-blur-none bg-background/0 pointer-events-none invisible"
-        )} 
+          'fixed inset-0 z-[90] transition-[opacity,backdrop-filter,background-color] duration-500 ease-in-out lg:hidden',
+          isSidebarOpen
+            ? 'bg-background/20 pointer-events-auto visible opacity-100 backdrop-blur-sm'
+            : 'bg-background/0 pointer-events-none invisible opacity-0 backdrop-blur-none',
+        )}
         onClick={() => setIsSidebarOpen(false)}
       />
 
       {/* Floating Action Button (Mobile Sidebar Toggle) */}
-      <div className="fixed bottom-6 right-6 z-[110] lg:hidden">
+      <div className='fixed right-6 bottom-6 z-[110] lg:hidden'>
         <Button
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-          className="h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-primary-glow transition-all active:scale-95 flex items-center justify-center border-none backdrop-blur-md"
-          title="Toggle Volumes & Devices"
+          className='bg-primary text-primary-foreground shadow-primary-glow flex h-14 w-14 items-center justify-center rounded-full border-none backdrop-blur-md transition-all active:scale-95'
+          title='Toggle Volumes & Devices'
         >
-          {isSidebarOpen ? <PanelLeftClose className="h-6 w-6" /> : <PanelLeft className="h-6 w-6" />}
+          {isSidebarOpen ? (
+            <PanelLeftClose className='h-6 w-6' />
+          ) : (
+            <PanelLeft className='h-6 w-6' />
+          )}
         </Button>
       </div>
 
       {isDebugMode && (
-        <div className="fixed bottom-4 left-3 z-[100] md:left-4">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-warning/20 border border-warning/30 text-warning text-xs font-bold uppercase tracking-widest backdrop-blur-md shadow-lg">
-            <ShieldCheck className="h-3 w-3" />
+        <div className='fixed bottom-4 left-3 z-[100] md:left-4'>
+          <div className='bg-warning/20 border-warning/30 text-warning flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-bold tracking-widest uppercase shadow-lg backdrop-blur-md'>
+            <ShieldCheck className='h-3 w-3' />
             Debug Mode Active
           </div>
         </div>

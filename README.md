@@ -6,7 +6,7 @@ It sits in the sweet spot between messy, overwhelming logs and complex, heavy mo
 
 ## The Vision: Instant Clarity
 
-When running complex systems—like multi-step AI agents, long-running deployment pipelines, or human-in-the-loop tasks—it's easy to lose the thread. You know something is happening, but is it *stuck*? Is it *busy*? Or is it *idle*?
+When running complex systems—like multi-step AI agents, long-running deployment pipelines, or human-in-the-loop tasks—it's easy to lose the thread. You know something is happening, but is it _stuck_? Is it _busy_? Or is it _idle_?
 
 Tailwatch transforms a stream of raw data into a living **Status Board**. Instead of tailing logs and searching for specific markers, you glance at the board to see the state of every component at once.
 
@@ -23,13 +23,17 @@ Tailwatch's **native push notification system** is built for real-time collabora
 Tailwatch provides two complementary views that work together to show you the full picture.
 
 ### 1. The Status Board (The "Now" View)
+
 A live snapshot of your entire system's health.
+
 - **Identify Stalls**: Spot jobs that have been "busy" for longer than expected.
 - **Visualize Flow**: Watch as different components switch from idle to busy in a coordinated sequence.
 - **Second-Monitor Ready**: A high-level dashboard designed to be kept open and visible.
 
 ### 2. The Log Stream (The "Timeline" View)
+
 A real-time feed of every message as it arrives.
+
 - **Watch the Thinking**: Follow the step-by-step logic of an AI agent or a manual approval process.
 - **Contextual Details**: See the specific messages or state changes as they happen.
 - **Coordinated Tracking**: Color-coded paths make it easy to follow multiple interleaved streams.
@@ -46,7 +50,7 @@ Tailwatch is built on three core ideas that make monitoring feel natural:
 
 ## Perfect For...
 
-*   **AI Agents**: Watch an agent's "chain of thought" and get notified when it moves between tasks.
-*   **Human-in-the-Loop**: Get a push notification the moment a background process reaches a step that requires manual input or review.
-*   **Background Jobs**: Monitor scheduled tasks and see their progress in real-time.
-*   **CI/CD Pipelines**: Track builds and deployments, receiving a push notification the moment a stage starts or finishes.
+- **AI Agents**: Watch an agent's "chain of thought" and get notified when it moves between tasks.
+- **Human-in-the-Loop**: Get a push notification the moment a background process reaches a step that requires manual input or review.
+- **Background Jobs**: Monitor scheduled tasks and see their progress in real-time.
+- **CI/CD Pipelines**: Track builds and deployments, receiving a push notification the moment a stage starts or finishes.

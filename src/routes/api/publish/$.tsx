@@ -1,5 +1,5 @@
-import { ConvexHttpClient } from 'convex/browser'
 import { createFileRoute } from '@tanstack/react-router'
+import { ConvexHttpClient } from 'convex/browser'
 import { api } from '../../../../convex/_generated/api'
 
 type PublishStatus = 'idle' | 'busy'
@@ -34,7 +34,8 @@ export const Route = createFileRoute('/api/publish/$')({
           const urlParts = splat.split('/').filter(Boolean)
 
           const headerVolumeKey = request.headers.get('x-volume-key')?.trim()
-          const headerVolume = request.headers.get('x-tailwatch-volume')?.trim() || undefined
+          const headerVolume =
+            request.headers.get('x-tailwatch-volume')?.trim() || undefined
 
           const url = new URL(request.url)
           const queryStatusRaw = url.searchParams.get('status')?.trim()
@@ -59,14 +60,19 @@ export const Route = createFileRoute('/api/publish/$')({
               subpath: splat,
               ...payload,
             })
-            return Response.json({ ...event, volume: headerVolumeKey }, { status: 201 })
+            return Response.json(
+              { ...event, volume: headerVolumeKey },
+              { status: 201 },
+            )
           }
 
           if (!headerVolume) {
             const [urlKey, ...subpathParts] = urlParts
             if (!urlKey) {
               return Response.json(
-                { error: 'Volume key is required in URL or x-volume-key header' },
+                {
+                  error: 'Volume key is required in URL or x-volume-key header',
+                },
                 { status: 400 },
               )
             }
@@ -89,7 +95,10 @@ export const Route = createFileRoute('/api/publish/$')({
           console.error('[API/Publish] Error:', error)
           return Response.json(
             {
-              error: error instanceof Error ? error.message : 'Failed to publish event',
+              error:
+                error instanceof Error
+                  ? error.message
+                  : 'Failed to publish event',
             },
             { status: statusCodeForError(error) },
           )
@@ -136,20 +145,27 @@ async function parsePayload(request: Request): Promise<PublishPayload> {
   return next
 }
 
-function normalizeEventStatus(value?: string | null): PublishStatus | undefined {
+function normalizeEventStatus(
+  value?: string | null,
+): PublishStatus | undefined {
   const normalized = value?.trim().toLowerCase()
   if (!normalized) return undefined
   if (normalized === 'idle' || normalized === 'busy') return normalized
   return undefined
 }
 
-function extractStatusFrontmatter(rawBody: string): { content: string; status?: PublishStatus } {
+function extractStatusFrontmatter(rawBody: string): {
+  content: string
+  status?: PublishStatus
+} {
   const firstDelimiterIndex = rawBody.indexOf('---')
   if (firstDelimiterIndex === -1) {
     return { content: rawBody }
   }
 
-  const frontmatterStatus = normalizeEventStatus(rawBody.slice(0, firstDelimiterIndex))
+  const frontmatterStatus = normalizeEventStatus(
+    rawBody.slice(0, firstDelimiterIndex),
+  )
   if (!frontmatterStatus) {
     return { content: rawBody }
   }

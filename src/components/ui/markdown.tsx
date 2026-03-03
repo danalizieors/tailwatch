@@ -15,9 +15,7 @@ export function Markdown({ content, className }: MarkdownProps) {
         className,
       )}
     >
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>
-        {content}
-      </ReactMarkdown>
+      <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
     </div>
   )
 }

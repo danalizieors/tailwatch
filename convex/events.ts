@@ -1,5 +1,5 @@
-import { adjectives, nouns } from 'human-id'
 import { v } from 'convex/values'
+import { adjectives, nouns } from 'human-id'
 import { internal } from './_generated/api'
 import { mutation, query } from './_generated/server'
 import { auth } from './auth'
@@ -19,7 +19,8 @@ function splitTopicPath(value: string) {
   const clean = normalizeTopicPath(value)
   const segments = clean.split('/').filter(Boolean)
   for (const segment of segments) {
-    if (segment === '.' || segment === '..') throw new Error('Invalid path segment')
+    if (segment === '.' || segment === '..')
+      throw new Error('Invalid path segment')
   }
   return segments
 }
@@ -37,7 +38,13 @@ function pickRandomItem(values: readonly string[]) {
 function singularizeNoun(value: string) {
   const word = value.toLowerCase()
   if (word.endsWith('ies')) return `${word.slice(0, -3)}y`
-  if (word.endsWith('ches') || word.endsWith('shes') || word.endsWith('xes') || word.endsWith('zes') || word.endsWith('ses')) {
+  if (
+    word.endsWith('ches') ||
+    word.endsWith('shes') ||
+    word.endsWith('xes') ||
+    word.endsWith('zes') ||
+    word.endsWith('ses')
+  ) {
     return word.slice(0, -2)
   }
   if (word.endsWith('s') && !word.endsWith('ss')) return word.slice(0, -1)
@@ -45,7 +52,10 @@ function singularizeNoun(value: string) {
 }
 
 function nextPrefix(prefix: string) {
-  return prefix.slice(0, -1) + String.fromCharCode(prefix.charCodeAt(prefix.length - 1) + 1)
+  return (
+    prefix.slice(0, -1) +
+    String.fromCharCode(prefix.charCodeAt(prefix.length - 1) + 1)
+  )
 }
 
 function generateHumanReadableKey() {
@@ -67,11 +77,20 @@ async function generateUniqueVolumeKey(ctx: any) {
   throw new Error('Failed to generate a unique volume key')
 }
 
-async function ensureVolumeExists(ctx: any, volumeName: string, userId?: string) {
-  const ownerId = typeof userId === 'string' && userId.trim().length > 0 ? userId.trim() : undefined
+async function ensureVolumeExists(
+  ctx: any,
+  volumeName: string,
+  userId?: string,
+) {
+  const ownerId =
+    typeof userId === 'string' && userId.trim().length > 0
+      ? userId.trim()
+      : undefined
   const existing = await ctx.db
     .query('volumes')
-    .withIndex('by_user_and_name', (q: any) => q.eq('userId', ownerId).eq('name', volumeName))
+    .withIndex('by_user_and_name', (q: any) =>
+      q.eq('userId', ownerId).eq('name', volumeName),
+    )
     .first()
   if (existing) return existing
 
@@ -91,7 +110,9 @@ async function ensureVolumeExists(ctx: any, volumeName: string, userId?: string)
 async function ensurePathExists(ctx: any, volumeId: string, path: string) {
   const existing = await ctx.db
     .query('paths')
-    .withIndex('by_volumeId_and_path', (q: any) => q.eq('volumeId', volumeId).eq('path', path))
+    .withIndex('by_volumeId_and_path', (q: any) =>
+      q.eq('volumeId', volumeId).eq('path', path),
+    )
     .first()
   if (existing) return existing
 
@@ -149,7 +170,8 @@ async function publishResolved(
   if (volumeDoc.notificationsEnabled !== false) {
     try {
       const ownerUserId =
-        typeof volumeDoc.userId === 'string' && volumeDoc.userId.trim().length > 0
+        typeof volumeDoc.userId === 'string' &&
+        volumeDoc.userId.trim().length > 0
           ? volumeDoc.userId.trim()
           : undefined
       const payload: {
@@ -166,7 +188,11 @@ async function publishResolved(
       }
       if (ownerUserId) payload.userId = ownerUserId
 
-      await ctx.scheduler.runAfter(0, internal.push.sendPushForEventInternal, payload)
+      await ctx.scheduler.runAfter(
+        0,
+        internal.push.sendPushForEventInternal,
+        payload,
+      )
     } catch (error) {
       console.warn('Failed to schedule push notification delivery', error)
     }
@@ -290,7 +316,9 @@ async function buildSnapshot(
   const volumeName = normalizeVolume(args.volume)
   const volumeDoc = await ctx.db
     .query('volumes')
-    .withIndex('by_user_and_name', (q: any) => q.eq('userId', args.userId).eq('name', volumeName))
+    .withIndex('by_user_and_name', (q: any) =>
+      q.eq('userId', args.userId).eq('name', volumeName),
+    )
     .first()
 
   if (!volumeDoc) {
@@ -311,12 +339,17 @@ async function buildSnapshot(
     const subpathPrefix = prefix + '/'
     const exact = await ctx.db
       .query('paths')
-      .withIndex('by_volumeId_and_path', (q: any) => q.eq('volumeId', volumeId).eq('path', prefix))
+      .withIndex('by_volumeId_and_path', (q: any) =>
+        q.eq('volumeId', volumeId).eq('path', prefix),
+      )
       .first()
     const subpaths = await ctx.db
       .query('paths')
       .withIndex('by_volumeId_and_path', (q: any) =>
-        q.eq('volumeId', volumeId).gte('path', subpathPrefix).lt('path', nextPrefix(subpathPrefix)),
+        q
+          .eq('volumeId', volumeId)
+          .gte('path', subpathPrefix)
+          .lt('path', nextPrefix(subpathPrefix)),
       )
       .collect()
     matchedPaths = exact ? [exact, ...subpaths] : subpaths
@@ -341,7 +374,9 @@ async function buildSnapshot(
     .sort((a: any, b: any) => b.time.localeCompare(a.time))
 
   const queryStatus = normalizeQueryStatus(args.statusFilter)
-  const filteredEvents = queryStatus ? eventsInVolume.filter((e: any) => e.status === queryStatus) : eventsInVolume
+  const filteredEvents = queryStatus
+    ? eventsInVolume.filter((e: any) => e.status === queryStatus)
+    : eventsInVolume
 
   const pathMap = new Map(matchedPaths.map((p: any) => [String(p._id), p.path]))
   const displayEvents = filteredEvents.slice(0, args.limit).map((e: any) => ({
@@ -352,12 +387,19 @@ async function buildSnapshot(
     content: e.content,
   }))
 
-  const entityStates = new Map<string, { lastSeenAt: string; status: 'busy' | 'idle'; lastContent?: string }>()
+  const entityStates = new Map<
+    string,
+    { lastSeenAt: string; status: 'busy' | 'idle'; lastContent?: string }
+  >()
   for (const e of eventsInVolume) {
     const path = pathMap.get(e.pathId) ?? 'unknown'
     const existing = entityStates.get(path)
     if (!existing || e.time > existing.lastSeenAt) {
-      entityStates.set(path, { lastSeenAt: e.time, status: e.status, lastContent: e.content })
+      entityStates.set(path, {
+        lastSeenAt: e.time,
+        status: e.status,
+        lastContent: e.content,
+      })
     }
   }
 
@@ -382,8 +424,12 @@ async function buildSnapshot(
       }
     })
 
-  const busyCount = Array.from(entityStates.values()).filter((s) => s.status === 'busy').length
-  const idleCount = Array.from(entityStates.values()).filter((s) => s.status === 'idle').length
+  const busyCount = Array.from(entityStates.values()).filter(
+    (s) => s.status === 'busy',
+  ).length
+  const idleCount = Array.from(entityStates.values()).filter(
+    (s) => s.status === 'idle',
+  ).length
 
   return {
     volume: volumeName,
@@ -395,7 +441,10 @@ async function buildSnapshot(
     },
     events: displayEvents,
     entities,
-    topicTree: buildTopicTree(matchedPaths.map((p: any) => p.path), args.topicPrefix),
+    topicTree: buildTopicTree(
+      matchedPaths.map((p: any) => p.path),
+      args.topicPrefix,
+    ),
   }
 }
 
@@ -408,7 +457,11 @@ function buildTopicTree(paths: string[], prefix?: string) {
     let current = root
     for (const segment of segments) {
       if (!current.children.has(segment)) {
-        current.children.set(segment, { name: segment, children: new Map(), fullPath: '' })
+        current.children.set(segment, {
+          name: segment,
+          children: new Map(),
+          fullPath: '',
+        })
       }
       current = current.children.get(segment)
     }
@@ -437,5 +490,7 @@ function buildTopicTree(paths: string[], prefix?: string) {
     }
   }
 
-  return Array.from(startNode.children.values()).map((child) => convert(child, prefixSegments))
+  return Array.from(startNode.children.values()).map((child) =>
+    convert(child, prefixSegments),
+  )
 }

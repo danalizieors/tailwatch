@@ -12,16 +12,16 @@ export function formatAbsolute(value?: string | number | Date) {
   if (!value) return '—'
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return value
-  
+
   const pad = (n: number) => n.toString().padStart(2, '0')
-  
+
   const y = date.getFullYear()
   const m = pad(date.getMonth() + 1)
   const d = pad(date.getDate())
   const hh = pad(date.getHours())
   const mm = pad(date.getMinutes())
   const ss = pad(date.getSeconds())
-  
+
   return `${y}-${m}-${d} ${hh}:${mm}:${ss}`
 }
 
@@ -61,4 +61,3 @@ export function formatDuration(ms?: number) {
   const remMinutes = minutes % 60
   return `${hours}h ${remMinutes}m`
 }
-

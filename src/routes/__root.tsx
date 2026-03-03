@@ -1,10 +1,16 @@
 /// <reference types="vite/client" />
-import { useEffect } from 'react'
-import { HeadContent, Outlet, Scripts, createRootRoute } from '@tanstack/react-router'
-import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
-import appCss from '~/styles/app.css?url'
+import '~/styles/app.css'
+
 import { ConvexAuthProvider } from '@convex-dev/auth/react'
+import {
+  createRootRoute,
+  HeadContent,
+  Outlet,
+  Scripts,
+} from '@tanstack/react-router'
+import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 import { ConvexReactClient } from 'convex/react'
+import { useEffect } from 'react'
 import { DeviceRegistrationBootstrap } from '~/components/device/device-registration-bootstrap'
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string)
@@ -13,20 +19,32 @@ export const Route = createRootRoute({
   head: () => ({
     meta: [
       { charSet: 'utf-8' },
-      { name: 'viewport', content: 'width=device-width, initial-scale=1, viewport-fit=cover' },
+      {
+        name: 'viewport',
+        content: 'width=device-width, initial-scale=1, viewport-fit=cover',
+      },
       { title: 'Tailwatch | Event Monitor' },
-      { name: 'robots', content: 'noindex, nofollow, noarchive, nosnippet, noimageindex' },
-      { name: 'googlebot', content: 'noindex, nofollow, noarchive, nosnippet, noimageindex' },
+      {
+        name: 'robots',
+        content: 'noindex, nofollow, noarchive, nosnippet, noimageindex',
+      },
+      {
+        name: 'googlebot',
+        content: 'noindex, nofollow, noarchive, nosnippet, noimageindex',
+      },
       {
         name: 'description',
-        content: 'Hierarchical event, task, and message dashboard with log and status views.',
+        content:
+          'Hierarchical event, task, and message dashboard with log and status views.',
       },
       { name: 'theme-color', content: '#1a1410' },
       { name: 'apple-mobile-web-app-capable', content: 'yes' },
-      { name: 'apple-mobile-web-app-status-bar-style', content: 'default' },
+      {
+        name: 'apple-mobile-web-app-status-bar-style',
+        content: 'default',
+      },
     ],
     links: [
-      { rel: 'stylesheet', href: appCss },
       { rel: 'manifest', href: '/manifest.webmanifest' },
       { rel: 'apple-touch-icon', href: '/pwa-192x192.png' },
     ],
@@ -36,11 +54,15 @@ export const Route = createRootRoute({
 
 function RootDocument() {
   useEffect(() => {
-    console.info(`[Tailwatch] build ${import.meta.env.VITE_APP_COMMIT_SHA || 'unknown'}`)
+    console.info(
+      `[Tailwatch] build ${import.meta.env.VITE_APP_COMMIT_SHA || 'unknown'}`,
+    )
 
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
       if (!window.isSecureContext) {
-        console.warn('[Tailwatch] Service Worker registration skipped: Not a secure context')
+        console.warn(
+          '[Tailwatch] Service Worker registration skipped: Not a secure context',
+        )
         return
       }
 
@@ -57,23 +79,27 @@ function RootDocument() {
           console.error('SW registration error:', error)
           // Alert specifically for insecure or 404 errors during transition
           if (error.name !== 'AbortError') {
-            alert(`Service Worker registration failed: ${error.message || error}`)
+            alert(
+              `Service Worker registration failed: ${error.message || error}`,
+            )
           }
         })
     }
   }, [])
 
   return (
-    <html lang="en" className="dark">
+    <html lang='en' className='dark'>
       <head>
         <HeadContent />
       </head>
-      <body className="antialiased selection:bg-primary/30 min-h-dvh w-full min-w-0 overflow-x-hidden bg-background text-foreground flex">
+      <body className='selection:bg-primary/30 bg-background text-foreground flex min-h-dvh w-full min-w-0 overflow-x-hidden antialiased'>
         <ConvexAuthProvider client={convex}>
           <DeviceRegistrationBootstrap />
           <Outlet />
         </ConvexAuthProvider>
-        {typeof document !== 'undefined' ? <TanStackRouterDevtools position="bottom-right" /> : null}
+        {typeof document !== 'undefined' ? (
+          <TanStackRouterDevtools position='bottom-right' />
+        ) : null}
         <Scripts />
       </body>
     </html>

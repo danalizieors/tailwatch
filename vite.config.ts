@@ -1,19 +1,25 @@
-import { defineConfig, loadEnv } from 'vite'
 import { execSync } from 'node:child_process'
-import tsConfigPaths from 'vite-tsconfig-paths'
-import { tanstackStart } from '@tanstack/react-start/plugin/vite'
+
+import { cloudflare } from '@cloudflare/vite-plugin'
 import tailwindcss from '@tailwindcss/vite'
+import { tanstackStart } from '@tanstack/react-start/plugin/vite'
 import viteReact from '@vitejs/plugin-react'
+import { defineConfig, loadEnv } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
-import { cloudflare } from "@cloudflare/vite-plugin"
+import tsConfigPaths from 'vite-tsconfig-paths'
 
 function resolveCommitHash() {
   try {
-    return execSync('git rev-parse --short=12 HEAD', { stdio: ['ignore', 'pipe', 'ignore'] })
+    return execSync('git rev-parse --short=12 HEAD', {
+      stdio: ['ignore', 'pipe', 'ignore'],
+    })
       .toString()
       .trim()
   } catch {
-    const fallback = process.env.GITHUB_SHA || process.env.CI_COMMIT_SHA || process.env.COMMIT_SHA
+    const fallback =
+      process.env.GITHUB_SHA ||
+      process.env.CI_COMMIT_SHA ||
+      process.env.COMMIT_SHA
     return fallback ? String(fallback).slice(0, 12) : 'unknown'
   }
 }
@@ -28,10 +34,12 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       port: 3000,
-      allowedHosts: env.VITE_ALLOWED_HOSTS ? env.VITE_ALLOWED_HOSTS.split(',') : undefined,
+      allowedHosts: env.VITE_ALLOWED_HOSTS
+        ? env.VITE_ALLOWED_HOSTS.split(',')
+        : undefined,
     },
     plugins: [
-      cloudflare({ viteEnvironment: { name: "ssr" } }),
+      cloudflare({ viteEnvironment: { name: 'ssr' } }),
       tsConfigPaths(),
       tanstackStart(),
       viteReact(),
@@ -43,7 +51,8 @@ export default defineConfig(({ mode }) => {
           id: '/',
           name: 'Tailwatch',
           short_name: 'Tailwatch',
-          description: 'Hierarchical event, task, and message dashboard with log and status views.',
+          description:
+            'Hierarchical event, task, and message dashboard with log and status views.',
           lang: 'en',
           start_url: '/',
           scope: '/',

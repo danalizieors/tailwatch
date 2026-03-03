@@ -1,8 +1,13 @@
-import { adjectives, nouns } from 'human-id'
 import { v } from 'convex/values'
-import { auth } from './auth'
+import { adjectives, nouns } from 'human-id'
 import type { Doc, Id } from './_generated/dataModel'
-import { mutation, query, type MutationCtx, type QueryCtx } from './_generated/server'
+import {
+  mutation,
+  query,
+  type MutationCtx,
+  type QueryCtx,
+} from './_generated/server'
+import { auth } from './auth'
 
 const DEFAULT_VOLUME_NAME = 'personal'
 const MAX_VOLUME_NAME_LENGTH = 120
@@ -35,7 +40,9 @@ function normalizeVolumeName(value: string) {
   const next = value.trim()
   if (next.length === 0) throw new Error('Volume name is required')
   if (next.length > MAX_VOLUME_NAME_LENGTH) {
-    throw new Error(`Volume name must be ${MAX_VOLUME_NAME_LENGTH} characters or fewer`)
+    throw new Error(
+      `Volume name must be ${MAX_VOLUME_NAME_LENGTH} characters or fewer`,
+    )
   }
   if (next.includes('/')) throw new Error('Volume name cannot contain "/"')
   return next
@@ -49,7 +56,13 @@ function pickRandomItem(values: readonly string[]) {
 function singularizeNoun(value: string) {
   const word = value.toLowerCase()
   if (word.endsWith('ies')) return `${word.slice(0, -3)}y`
-  if (word.endsWith('ches') || word.endsWith('shes') || word.endsWith('xes') || word.endsWith('zes') || word.endsWith('ses')) {
+  if (
+    word.endsWith('ches') ||
+    word.endsWith('shes') ||
+    word.endsWith('xes') ||
+    word.endsWith('zes') ||
+    word.endsWith('ses')
+  ) {
     return word.slice(0, -2)
   }
   if (word.endsWith('s') && !word.endsWith('ss')) return word.slice(0, -1)
@@ -75,22 +88,35 @@ async function generateUniqueVolumeKey(ctx: QueryCtx | MutationCtx) {
   throw new Error('Failed to generate a unique API key')
 }
 
-async function findOwnedVolumeByName(ctx: QueryCtx | MutationCtx, userId: string | undefined, name: string) {
+async function findOwnedVolumeByName(
+  ctx: QueryCtx | MutationCtx,
+  userId: string | undefined,
+  name: string,
+) {
   const rows = await ctx.db
     .query('volumes')
-    .withIndex('by_user_and_name', (q) => q.eq('userId', userId).eq('name', name))
+    .withIndex('by_user_and_name', (q) =>
+      q.eq('userId', userId).eq('name', name),
+    )
     .collect()
   return (rows[0] as VolumeDoc | undefined) ?? null
 }
 
-async function listOwnedVolumes(ctx: QueryCtx | MutationCtx, userId: string | undefined) {
+async function listOwnedVolumes(
+  ctx: QueryCtx | MutationCtx,
+  userId: string | undefined,
+) {
   return (await ctx.db
     .query('volumes')
     .withIndex('by_user', (q) => q.eq('userId', userId))
     .collect()) as VolumeDoc[]
 }
 
-async function createOwnedVolume(ctx: MutationCtx, userId: string | undefined, name: string) {
+async function createOwnedVolume(
+  ctx: MutationCtx,
+  userId: string | undefined,
+  name: string,
+) {
   const key = await generateUniqueVolumeKey(ctx)
   const volumeId = await ctx.db.insert('volumes', {
     userId,
@@ -104,16 +130,24 @@ async function createOwnedVolume(ctx: MutationCtx, userId: string | undefined, n
   return created as VolumeDoc
 }
 
-async function ensurePersonalVolumeForUser(ctx: MutationCtx, userId: string | undefined) {
+async function ensurePersonalVolumeForUser(
+  ctx: MutationCtx,
+  userId: string | undefined,
+) {
   const existing = await findOwnedVolumeByName(ctx, userId, DEFAULT_VOLUME_NAME)
   if (existing) return existing
   return createOwnedVolume(ctx, userId, DEFAULT_VOLUME_NAME)
 }
 
-async function assertVolumeOwnership(ctx: MutationCtx, volumeId: VolumeId, userId: string | undefined) {
+async function assertVolumeOwnership(
+  ctx: MutationCtx,
+  volumeId: VolumeId,
+  userId: string | undefined,
+) {
   const volume = await ctx.db.get(volumeId)
   if (!volume) throw new Error('Volume not found')
-  if (!isOwnedByUser(volume as VolumeDoc, userId)) throw new Error('Unauthorized volume access')
+  if (!isOwnedByUser(volume as VolumeDoc, userId))
+    throw new Error('Unauthorized volume access')
   return volume as VolumeDoc
 }
 
@@ -159,8 +193,16 @@ export const listManagedVolumes = query({
     return volumes
       .slice()
       .sort((left, right) => {
-        if (left.name === DEFAULT_VOLUME_NAME && right.name !== DEFAULT_VOLUME_NAME) return -1
-        if (left.name !== DEFAULT_VOLUME_NAME && right.name === DEFAULT_VOLUME_NAME) return 1
+        if (
+          left.name === DEFAULT_VOLUME_NAME &&
+          right.name !== DEFAULT_VOLUME_NAME
+        )
+          return -1
+        if (
+          left.name !== DEFAULT_VOLUME_NAME &&
+          right.name === DEFAULT_VOLUME_NAME
+        )
+          return 1
         return left.name.localeCompare(right.name)
       })
       .map(mapVolume)
@@ -205,7 +247,10 @@ export const renameVolume = mutation({
     const volume = await assertVolumeOwnership(ctx, args.volumeId, userId)
     const nextName = normalizeVolumeName(args.name)
 
-    if (volume.name === DEFAULT_VOLUME_NAME && nextName !== DEFAULT_VOLUME_NAME) {
+    if (
+      volume.name === DEFAULT_VOLUME_NAME &&
+      nextName !== DEFAULT_VOLUME_NAME
+    ) {
       throw new Error('The personal volume cannot be renamed')
     }
 
@@ -240,7 +285,8 @@ export const updateVolumeKey = mutation({
     }
 
     if (args.enabled === true) {
-      const hasKey = typeof volume.key === 'string' && volume.key.trim().length > 0
+      const hasKey =
+        typeof volume.key === 'string' && volume.key.trim().length > 0
       patch.keyEnabled = hasKey
     }
 

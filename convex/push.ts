@@ -1,10 +1,11 @@
-"use node"
+'use node'
 
-import { v } from 'convex/values'
 import { buildPushHTTPRequest } from '@pushforge/builder'
-import { action, internalAction } from './_generated/server'
+import { v } from 'convex/values'
 import { internal } from './_generated/api'
+import { action, internalAction } from './_generated/server'
 import { auth } from './auth'
+
 const internalApi = internal as any
 
 async function requireUserId(ctx: any) {
@@ -17,7 +18,9 @@ export const sendTestPush = action({
   args: { deviceId: v.id('devices') },
   handler: async (ctx, args) => {
     const userId = await requireUserId(ctx)
-    const device = await ctx.runQuery(internalApi.devices.getDeviceInternal, { deviceId: args.deviceId })
+    const device = await ctx.runQuery(internalApi.devices.getDeviceInternal, {
+      deviceId: args.deviceId,
+    })
     if (!device || device.userId !== userId) throw new Error('Unauthorized')
 
     if (!device.subscription || !device.notifications) {
@@ -49,7 +52,9 @@ export const sendPushForEventInternal = internalAction({
     const adminContact = process.env.VAPID_SUBJECT
 
     if (!rawVapidKey || !adminContact) {
-      console.error('Missing VAPID_PRIVATE_KEY or VAPID_SUBJECT environment variables')
+      console.error(
+        'Missing VAPID_PRIVATE_KEY or VAPID_SUBJECT environment variables',
+      )
       return { ok: false, reason: 'missing_env_vars' }
     }
 
@@ -61,24 +66,35 @@ export const sendPushForEventInternal = internalAction({
       return { ok: false, reason: 'invalid_vapid_key' }
     }
 
-    const targets = await ctx.runQuery(internalApi.devices.listPushTargetsInternal, {
-      userId: args.userId,
-      deviceId: args.deviceId,
-    })
+    const targets = await ctx.runQuery(
+      internalApi.devices.listPushTargetsInternal,
+      {
+        userId: args.userId,
+        deviceId: args.deviceId,
+      },
+    )
 
     if (targets.length === 0) {
-      console.log('No push targets found for', { userId: args.userId, deviceId: args.deviceId })
+      console.log('No push targets found for', {
+        userId: args.userId,
+        deviceId: args.deviceId,
+      })
       return { ok: true, sent: 0 }
     }
 
     const title = `Tailwatch ${args.status === 'busy' ? 'Busy' : 'Idle'}`
-    const body = args.content?.trim() ? `${args.path}: ${args.content}` : `${args.path} is ${args.status}`
+    const body = args.content?.trim()
+      ? `${args.path}: ${args.content}`
+      : `${args.path} is ${args.status}`
     const tag = `tailwatch:${args.volume}:${args.path}`
     const url = `/${args.volume}?path=${encodeURIComponent(args.path)}`
 
     // Ensure adminContact is mailto: or https:
     let finalAdminContact = adminContact
-    if (!finalAdminContact.startsWith('mailto:') && !finalAdminContact.startsWith('https:')) {
+    if (
+      !finalAdminContact.startsWith('mailto:') &&
+      !finalAdminContact.startsWith('https:')
+    ) {
       if (finalAdminContact.includes('@')) {
         finalAdminContact = `mailto:${finalAdminContact}`
       } else {
@@ -89,7 +105,11 @@ export const sendPushForEventInternal = internalAction({
     let sent = 0
     for (const target of targets) {
       try {
-        const { endpoint, headers, body: requestBody } = await buildPushHTTPRequest({
+        const {
+          endpoint,
+          headers,
+          body: requestBody,
+        } = await buildPushHTTPRequest({
           privateJWK,
           subscription: {
             endpoint: target.endpoint,
@@ -98,8 +118,8 @@ export const sendPushForEventInternal = internalAction({
           message: {
             payload: { title, body, tag, url },
             adminContact: finalAdminContact,
-            options: { 
-              ttl: 300, 
+            options: {
+              ttl: 300,
               urgency: args.status === 'busy' ? 'high' : 'normal',
               // Temporarily remove topic to avoid Firefox/Autopush restrictions
             },
@@ -108,20 +128,31 @@ export const sendPushForEventInternal = internalAction({
 
         const serviceName = endpoint.split('/')[2] ?? endpoint
         console.log(`Sending push to ${serviceName}`)
-        const res = await fetch(endpoint, { method: 'POST', headers, body: requestBody })
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers,
+          body: requestBody,
+        })
         if (res.status === 404 || res.status === 410) {
-          console.log(`Push subscription expired for device ${target.deviceId} (${serviceName})`)
-          await ctx.runMutation(internalApi.devices.clearPushSubscriptionInternal, { deviceId: target.deviceId })
+          console.log(
+            `Push subscription expired for device ${target.deviceId} (${serviceName})`,
+          )
+          await ctx.runMutation(
+            internalApi.devices.clearPushSubscriptionInternal,
+            { deviceId: target.deviceId },
+          )
         } else if (res.ok) {
           sent++
         } else {
           const errorText = await res.text().catch(() => 'no error body')
-          console.error(`Push service (${serviceName}) responded with status ${res.status}: ${errorText}`)
+          console.error(
+            `Push service (${serviceName}) responded with status ${res.status}: ${errorText}`,
+          )
         }
       } catch (e) {
         console.error('Push delivery failed with error:', e)
       }
     }
     return { ok: true, sent }
-  }
+  },
 })

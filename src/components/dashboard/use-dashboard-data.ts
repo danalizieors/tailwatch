@@ -1,8 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from 'convex/react'
-import { api } from '../../../convex/_generated/api'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import {
+  getLastSeenTimestamp,
+  NotificationManager,
+  setLastSeenTimestamp,
+} from '~/lib/notifications'
 import type { DashboardSnapshot } from '~/lib/types'
-import { NotificationManager, getLastSeenTimestamp, setLastSeenTimestamp } from '~/lib/notifications'
+import { api } from '../../../convex/_generated/api'
 
 interface UseDashboardDataOptions {
   mode: 'logs' | 'status'
@@ -11,15 +15,20 @@ interface UseDashboardDataOptions {
   pollMs?: number
 }
 
-export function useDashboardData({ mode, volume, topicPrefix, pollMs = 4000 }: UseDashboardDataOptions) {
+export function useDashboardData({
+  mode,
+  volume,
+  topicPrefix,
+  pollMs = 4000,
+}: UseDashboardDataOptions) {
   const [error] = useState<string | null>(null)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [lastSeenAt, setLastSeenAtState] = useState<number>(0)
-  
+
   // Track the most recent event time seen during this session.
   const lastKnownTsRef = useRef<number>(0)
   const hasInitialLoadRef = useRef(false)
-  
+
   // Store previous data to avoid flickering when arguments change
   const previousDataRef = useRef<DashboardSnapshot | undefined>(undefined)
 
@@ -31,7 +40,9 @@ export function useDashboardData({ mode, volume, topicPrefix, pollMs = 4000 }: U
   }, [])
 
   const normalizedVolume = volume?.trim() ? volume.trim() : undefined
-  const normalizedTopicPrefix = topicPrefix?.trim() ? topicPrefix.trim() : undefined
+  const normalizedTopicPrefix = topicPrefix?.trim()
+    ? topicPrefix.trim()
+    : undefined
 
   const logsArgs = useMemo(() => {
     const next: Record<string, unknown> = {
@@ -52,15 +63,17 @@ export function useDashboardData({ mode, volume, topicPrefix, pollMs = 4000 }: U
   }, [normalizedTopicPrefix, normalizedVolume])
 
   const convexApi = api as any
-  const logsData = useQuery(convexApi.events.dashboardSnapshot, mode === 'logs' ? logsArgs : 'skip') as
-    | DashboardSnapshot
-    | undefined
-  const statusData = useQuery(convexApi.events.statusSnapshot, mode === 'status' ? statusArgs : 'skip') as
-    | DashboardSnapshot
-    | undefined
+  const logsData = useQuery(
+    convexApi.events.dashboardSnapshot,
+    mode === 'logs' ? logsArgs : 'skip',
+  ) as DashboardSnapshot | undefined
+  const statusData = useQuery(
+    convexApi.events.statusSnapshot,
+    mode === 'status' ? statusArgs : 'skip',
+  ) as DashboardSnapshot | undefined
 
   const data = mode === 'status' ? statusData : logsData
-  
+
   if (data !== undefined) {
     previousDataRef.current = data
   }
@@ -69,7 +82,9 @@ export function useDashboardData({ mode, volume, topicPrefix, pollMs = 4000 }: U
     if (!data) return
 
     if (data.events && data.events.length > 0) {
-      const newest = Math.max(...data.events.map((event) => new Date(event.time).getTime()))
+      const newest = Math.max(
+        ...data.events.map((event) => new Date(event.time).getTime()),
+      )
 
       if (hasInitialLoadRef.current && newest > lastKnownTsRef.current) {
         // New events found, but we no longer play a sound
@@ -85,10 +100,16 @@ export function useDashboardData({ mode, volume, topicPrefix, pollMs = 4000 }: U
     // Determine the newest time from current data (events or entity updates).
     let newest = lastSeenAt
     if (data?.events && data.events.length > 0) {
-      newest = Math.max(newest, ...data.events.map(e => new Date(e.time).getTime()))
+      newest = Math.max(
+        newest,
+        ...data.events.map((e) => new Date(e.time).getTime()),
+      )
     }
     if (data?.entities && data.entities.length > 0) {
-      newest = Math.max(newest, ...data.entities.map(e => new Date(e.lastSeenAt).getTime()))
+      newest = Math.max(
+        newest,
+        ...data.entities.map((e) => new Date(e.lastSeenAt).getTime()),
+      )
     }
 
     setLastSeenTimestamp(newest)
@@ -97,9 +118,12 @@ export function useDashboardData({ mode, volume, topicPrefix, pollMs = 4000 }: U
 
   const refresh = () => {
     setIsRefreshing(true)
-    window.setTimeout(() => {
-      setIsRefreshing(false)
-    }, Math.min(250, pollMs))
+    window.setTimeout(
+      () => {
+        setIsRefreshing(false)
+      },
+      Math.min(250, pollMs),
+    )
   }
 
   return {
@@ -109,6 +133,6 @@ export function useDashboardData({ mode, volume, topicPrefix, pollMs = 4000 }: U
     isRefreshing,
     refresh,
     markAllSeen,
-    lastSeenAt
+    lastSeenAt,
   }
 }

@@ -1,5 +1,5 @@
-import { useState, useMemo, useRef, useEffect, KeyboardEvent } from 'react'
 import { Search, X } from 'lucide-react'
+import { KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react'
 import { Badge } from '~/components/ui/badge'
 import type { TopicNode } from '~/lib/types'
 import { cn, getPathColor } from '~/lib/utils'
@@ -13,7 +13,13 @@ interface TopicSelectorProps {
   className?: string
 }
 
-export function TopicSelector({ tree, selectedTopic, onSelectTopic, placeholder = "Filter...", className }: TopicSelectorProps) {
+export function TopicSelector({
+  tree,
+  selectedTopic,
+  onSelectTopic,
+  placeholder = 'Filter...',
+  className,
+}: TopicSelectorProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [activeIndex, setActiveIndex] = useState(-1)
@@ -29,7 +35,11 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic, placeholder 
       if (!nodes) return
       for (const node of nodes) {
         const path = node.path || ''
-        list.push({ path, name: node.name || '', count: node.count || 0 })
+        list.push({
+          path,
+          name: node.name || '',
+          count: node.count || 0,
+        })
         traverse(node.children)
       }
     }
@@ -40,7 +50,9 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic, placeholder 
   const filteredTopics = useMemo(() => {
     if (query) {
       return allTopics
-        .filter((t) => (t.path || '').toLowerCase().includes(query.toLowerCase()))
+        .filter((t) =>
+          (t.path || '').toLowerCase().includes(query.toLowerCase()),
+        )
         .sort((a, b) => b.count - a.count)
         .slice(0, 12)
     }
@@ -51,7 +63,7 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic, placeholder 
           (t) =>
             t.path &&
             t.path.startsWith(selectedTopic + '/') &&
-            t.path.split('/').length === selectedTopic.split('/').length + 1
+            t.path.split('/').length === selectedTopic.split('/').length + 1,
         )
         .sort((a, b) => b.count - a.count)
         .slice(0, 12)
@@ -63,7 +75,10 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic, placeholder 
       .slice(0, 12)
   }, [allTopics, query, selectedTopic])
 
-  const normalizedQueryPath = useMemo(() => normalizeCustomTopicPath(query), [query])
+  const normalizedQueryPath = useMemo(
+    () => normalizeCustomTopicPath(query),
+    [query],
+  )
   const hasExactQueryMatch = useMemo(() => {
     if (!normalizedQueryPath) return false
     return allTopics.some((topic) => topic.path === normalizedQueryPath)
@@ -77,11 +92,21 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic, placeholder 
     } else {
       setActiveIndex(-1)
     }
-  }, [isOpen, query, selectedTopic, filteredTopics.length, normalizedQueryPath, hasExactQueryMatch])
+  }, [
+    isOpen,
+    query,
+    selectedTopic,
+    filteredTopics.length,
+    normalizedQueryPath,
+    hasExactQueryMatch,
+  ])
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false)
       }
     }
@@ -110,7 +135,9 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic, placeholder 
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault()
-        setActiveIndex((prev) => (prev < filteredTopics.length - 1 ? prev + 1 : prev))
+        setActiveIndex((prev) =>
+          prev < filteredTopics.length - 1 ? prev + 1 : prev,
+        )
         break
       case 'ArrowUp':
         e.preventDefault()
@@ -157,36 +184,40 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic, placeholder 
   }
 
   return (
-    <div className={cn("relative flex-1 min-w-0", className)} ref={dropdownRef}>
-      <div 
+    <div className={cn('relative min-w-0 flex-1', className)} ref={dropdownRef}>
+      <div
         className={cn(
-          "flex items-center h-10 md:h-9 px-2 md:px-3 bg-secondary/30 border rounded-lg transition-all gap-0.5",
-          isOpen ? "border-primary/50 ring-2 ring-primary/10 bg-background shadow-sm" : "border-border/60 hover:border-border",
-          className?.includes('!bg-transparent') && !isOpen && "bg-transparent border-transparent"
+          'bg-secondary/30 flex h-10 items-center gap-0.5 rounded-lg border px-2 transition-all md:h-9 md:px-3',
+          isOpen
+            ? 'border-primary/50 ring-primary/10 bg-background shadow-sm ring-2'
+            : 'border-border/60 hover:border-border',
+          className?.includes('!bg-transparent') &&
+            !isOpen &&
+            'border-transparent bg-transparent',
         )}
         onClick={() => {
           shouldFocusRef.current = true
           inputRef.current?.focus()
         }}
       >
-        <Search className="h-3.5 w-3.5 text-zinc-400 mr-1 md:mr-1.5 shrink-0" />
-        
+        <Search className='mr-1 h-3.5 w-3.5 shrink-0 text-zinc-400 md:mr-1.5' />
+
         {/* DRILLDOWN / BREADCRUMBS */}
-        <div className="no-scrollbar flex min-w-0 shrink max-w-[55%] items-center sm:max-w-[70%] md:max-w-[80%]">
-           <PathDisplay 
-             path={selectedTopic || ''} 
-             onClickSegment={handleSelectTopic} 
-             segmentClassName="text-xs"
-           />
+        <div className='no-scrollbar flex max-w-[55%] min-w-0 shrink items-center sm:max-w-[70%] md:max-w-[80%]'>
+          <PathDisplay
+            path={selectedTopic || ''}
+            onClickSegment={handleSelectTopic}
+            segmentClassName='text-xs'
+          />
         </div>
 
         {/* INPUT */}
-        <div className="relative flex h-full min-w-[3.5rem] flex-1 items-center">
+        <div className='relative flex h-full min-w-[3.5rem] flex-1 items-center'>
           <input
             ref={inputRef}
-            type="text"
-            className="w-full bg-transparent text-xs font-mono focus:outline-none placeholder:text-zinc-400 text-foreground font-medium"
-            placeholder={!selectedTopic ? placeholder : "..."}
+            type='text'
+            className='text-foreground w-full bg-transparent font-mono text-xs font-medium placeholder:text-zinc-400 focus:outline-none'
+            placeholder={!selectedTopic ? placeholder : '...'}
             value={query}
             onChange={(e) => {
               setQuery(e.target.value)
@@ -198,8 +229,8 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic, placeholder 
         </div>
 
         {(query || selectedTopic) && (
-          <button 
-            type="button"
+          <button
+            type='button'
             onClick={(e) => {
               e.stopPropagation()
               setQuery('')
@@ -210,75 +241,96 @@ export function TopicSelector({ tree, selectedTopic, onSelectTopic, placeholder 
                 inputRef.current?.focus()
               }
             }}
-            className="ml-1 md:ml-2 text-zinc-500 hover:text-destructive p-1 shrink-0"
+            className='hover:text-destructive ml-1 shrink-0 p-1 text-zinc-500 md:ml-2'
           >
-            <X className="h-3 w-3" />
+            <X className='h-3 w-3' />
           </button>
         )}
       </div>
 
       {/* DROPDOWN */}
-      {isOpen && (filteredTopics.length > 0 || Boolean(normalizedQueryPath && !hasExactQueryMatch)) && (
-        <div className="absolute top-full left-0 right-0 z-50 mt-2 overflow-hidden rounded-xl border border-border bg-popover shadow-2xl animate-in fade-in slide-in-from-top-1 duration-200">
-          <div role="listbox" className="max-h-80 overflow-y-auto scroll-thin py-1" ref={listRef}>
-            {normalizedQueryPath && !hasExactQueryMatch ? (
-              <button
-                type="button"
-                className={cn(
-                  "w-full flex items-center justify-between px-3 py-2 text-left transition-colors",
-                  activeIndex === -1 ? "bg-accent" : "hover:bg-accent/30"
-                )}
-                onClick={(e) => {
-                  e.preventDefault()
-                  e.stopPropagation()
-                  handleSelectTopic(normalizedQueryPath)
-                  setQuery('')
-                  setIsOpen(true)
-                }}
-                onMouseEnter={() => setActiveIndex(-1)}
-              >
-                <span className="truncate text-xs font-mono font-bold text-foreground">
-                  {normalizedQueryPath}
-                </span>
-                <Badge variant="secondary" className="text-xs font-mono opacity-50 scale-75">
-                  New
-                </Badge>
-              </button>
-            ) : null}
-            {filteredTopics.map((topic, index) => {
-              const color = getPathColor(topic.path || '')
-              const isSelected = selectedTopic === topic.path
-              const isActive = activeIndex === index
-              
-              return (
+      {isOpen &&
+        (filteredTopics.length > 0 ||
+          Boolean(normalizedQueryPath && !hasExactQueryMatch)) && (
+          <div className='border-border bg-popover animate-in fade-in slide-in-from-top-1 absolute top-full right-0 left-0 z-50 mt-2 overflow-hidden rounded-xl border shadow-2xl duration-200'>
+            <div
+              role='listbox'
+              className='scroll-thin max-h-80 overflow-y-auto py-1'
+              ref={listRef}
+            >
+              {normalizedQueryPath && !hasExactQueryMatch ? (
                 <button
-                  key={topic.path || index}
-                  type="button"
+                  type='button'
                   className={cn(
-                    "w-full flex items-center justify-between px-3 py-2 text-left transition-colors",
-                    isActive ? "bg-accent" : isSelected ? "bg-accent/50" : "hover:bg-accent/30"
+                    'flex w-full items-center justify-between px-3 py-2 text-left transition-colors',
+                    activeIndex === -1 ? 'bg-accent' : 'hover:bg-accent/30',
                   )}
                   onClick={(e) => {
                     e.preventDefault()
                     e.stopPropagation()
-                    handleSelectTopic(topic.path)
+                    handleSelectTopic(normalizedQueryPath)
                     setQuery('')
                     setIsOpen(true)
                   }}
-                  onMouseEnter={() => setActiveIndex(index)}
+                  onMouseEnter={() => setActiveIndex(-1)}
                 >
-                  <span className="truncate text-xs font-mono font-bold text-foreground" style={{ color: isSelected || isActive ? color : undefined }}>
-                    {topic.path}
+                  <span className='text-foreground truncate font-mono text-xs font-bold'>
+                    {normalizedQueryPath}
                   </span>
-                  <Badge variant="secondary" className="text-xs tabular-nums font-mono opacity-40 scale-75">
-                    {topic.count}
+                  <Badge
+                    variant='secondary'
+                    className='scale-75 font-mono text-xs opacity-50'
+                  >
+                    New
                   </Badge>
                 </button>
-              )
-            })}
+              ) : null}
+              {filteredTopics.map((topic, index) => {
+                const color = getPathColor(topic.path || '')
+                const isSelected = selectedTopic === topic.path
+                const isActive = activeIndex === index
+
+                return (
+                  <button
+                    key={topic.path || index}
+                    type='button'
+                    className={cn(
+                      'flex w-full items-center justify-between px-3 py-2 text-left transition-colors',
+                      isActive
+                        ? 'bg-accent'
+                        : isSelected
+                          ? 'bg-accent/50'
+                          : 'hover:bg-accent/30',
+                    )}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      handleSelectTopic(topic.path)
+                      setQuery('')
+                      setIsOpen(true)
+                    }}
+                    onMouseEnter={() => setActiveIndex(index)}
+                  >
+                    <span
+                      className='text-foreground truncate font-mono text-xs font-bold'
+                      style={{
+                        color: isSelected || isActive ? color : undefined,
+                      }}
+                    >
+                      {topic.path}
+                    </span>
+                    <Badge
+                      variant='secondary'
+                      className='scale-75 font-mono text-xs tabular-nums opacity-40'
+                    >
+                      {topic.count}
+                    </Badge>
+                  </button>
+                )
+              })}
+            </div>
           </div>
-        </div>
-      )}
+        )}
     </div>
   )
 }

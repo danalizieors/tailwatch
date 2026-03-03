@@ -1,5 +1,10 @@
 import { v } from 'convex/values'
-import { internalMutation, internalQuery, mutation, query } from './_generated/server'
+import {
+  internalMutation,
+  internalQuery,
+  mutation,
+  query,
+} from './_generated/server'
 import { auth } from './auth'
 
 async function requireUserId(ctx: any) {
@@ -9,8 +14,8 @@ async function requireUserId(ctx: any) {
 }
 
 export const registerDevice = mutation({
-  args: { 
-    deviceKey: v.string(), 
+  args: {
+    deviceKey: v.string(),
     name: v.optional(v.string()),
     os: v.optional(v.string()),
     browser: v.optional(v.string()),
@@ -19,7 +24,9 @@ export const registerDevice = mutation({
     const userId = await requireUserId(ctx)
     const existing = await ctx.db
       .query('devices')
-      .withIndex('by_user_and_deviceKey', (q) => q.eq('userId', userId).eq('deviceKey', args.deviceKey))
+      .withIndex('by_user_and_deviceKey', (q) =>
+        q.eq('userId', userId).eq('deviceKey', args.deviceKey),
+      )
       .first()
 
     const now = new Date().toISOString()
@@ -61,7 +68,9 @@ export const updatePushSubscription = mutation({
     const userId = await requireUserId(ctx)
     const device = await ctx.db
       .query('devices')
-      .withIndex('by_user_and_deviceKey', (q) => q.eq('userId', userId).eq('deviceKey', args.deviceKey))
+      .withIndex('by_user_and_deviceKey', (q) =>
+        q.eq('userId', userId).eq('deviceKey', args.deviceKey),
+      )
       .first()
     if (!device) throw new Error('Device not found')
 
@@ -74,15 +83,17 @@ export const updatePushSubscription = mutation({
 })
 
 export const setNotificationsEnabled = mutation({
-  args: { 
-    deviceKey: v.string(), 
-    enabled: v.boolean() 
+  args: {
+    deviceKey: v.string(),
+    enabled: v.boolean(),
   },
   handler: async (ctx, args) => {
     const userId = await requireUserId(ctx)
     const device = await ctx.db
       .query('devices')
-      .withIndex('by_user_and_deviceKey', (q) => q.eq('userId', userId).eq('deviceKey', args.deviceKey))
+      .withIndex('by_user_and_deviceKey', (q) =>
+        q.eq('userId', userId).eq('deviceKey', args.deviceKey),
+      )
       .first()
     if (!device) throw new Error('Device not found')
 
@@ -107,11 +118,11 @@ export const updateDevice = mutation({
     const patch: any = {}
     if (args.name !== undefined) patch.name = args.name
     if (args.enabled !== undefined) patch.notifications = args.enabled
-    
+
     if (Object.keys(patch).length > 0) {
       await ctx.db.patch(args.deviceId, patch)
     }
-  }
+  },
 })
 
 export const listDevices = query({
@@ -125,7 +136,7 @@ export const listDevices = query({
 
     return rows
       .sort((a, b) => (b.lastSeenAt ?? '').localeCompare(a.lastSeenAt ?? ''))
-      .map(row => ({
+      .map((row) => ({
         id: row._id,
         name: row.name,
         deviceKey: row.deviceKey,
@@ -154,11 +165,11 @@ export const getDeviceInternal = internalQuery({
   args: { deviceId: v.id('devices') },
   handler: async (ctx, args) => {
     return await ctx.db.get(args.deviceId)
-  }
+  },
 })
 
 export const listPushTargetsInternal = internalQuery({
-  args: { 
+  args: {
     userId: v.optional(v.string()),
     deviceId: v.optional(v.id('devices')),
   },
@@ -168,25 +179,31 @@ export const listPushTargetsInternal = internalQuery({
       const device = await ctx.db.get(args.deviceId)
       rows = device ? [device] : []
     } else if (args.userId) {
-      rows = await ctx.db.query('devices').withIndex('by_user', q => q.eq('userId', args.userId!)).collect()
+      rows = await ctx.db
+        .query('devices')
+        .withIndex('by_user', (q) => q.eq('userId', args.userId!))
+        .collect()
     } else {
       rows = await ctx.db.query('devices').collect()
     }
-    
+
     return rows
-      .filter(r => r.notifications && r.subscription)
-      .map(r => ({
+      .filter((r) => r.notifications && r.subscription)
+      .map((r) => ({
         deviceId: r._id,
         endpoint: r.subscription!.endpoint,
         p256dh: r.subscription!.keys.p256dh,
         auth: r.subscription!.keys.auth,
       }))
-  }
+  },
 })
 
 export const clearPushSubscriptionInternal = internalMutation({
   args: { deviceId: v.id('devices') },
   handler: async (ctx, args) => {
-    await ctx.db.patch(args.deviceId, { subscription: undefined, notifications: false })
-  }
+    await ctx.db.patch(args.deviceId, {
+      subscription: undefined,
+      notifications: false,
+    })
+  },
 })

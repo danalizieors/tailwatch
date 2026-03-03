@@ -6,7 +6,9 @@ interface AuthenticatedDashboardProps {
   children: ReactNode
 }
 
-export function AuthenticatedDashboard({ children }: AuthenticatedDashboardProps) {
+export function AuthenticatedDashboard({
+  children,
+}: AuthenticatedDashboardProps) {
   const { isAuthenticated, isLoading } = useConvexAuth()
   const navigate = useNavigate()
 
@@ -18,10 +20,12 @@ export function AuthenticatedDashboard({ children }: AuthenticatedDashboardProps
 
   if (isLoading) {
     return (
-      <div className="flex min-h-dvh w-full items-center justify-center bg-background text-muted-foreground">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-          <p className="text-sm font-medium animate-pulse">Checking session...</p>
+      <div className='bg-background text-muted-foreground flex min-h-dvh w-full items-center justify-center'>
+        <div className='flex flex-col items-center gap-4'>
+          <div className='border-primary h-8 w-8 animate-spin rounded-full border-2 border-t-transparent' />
+          <p className='animate-pulse text-sm font-medium'>
+            Checking session...
+          </p>
         </div>
       </div>
     )
