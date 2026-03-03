@@ -61,6 +61,7 @@ export function DashboardView({
   const updateDevice = useMutation(api.devices.updateDevice)
   const setVolumeNotifications = useMutation(api.volumes.setVolumeNotifications)
   const registerDevice = useMutation(api.devices.registerDevice)
+  const updatePushSubscription = useMutation(api.devices.updatePushSubscription)
 
   const managedVolumes = useQuery(
     api.volumes.listManagedVolumes,
@@ -275,9 +276,35 @@ export function DashboardView({
           }
           isAuthenticated={isAuthenticated}
           devices={devices}
-          onToggleDeviceMute={(deviceId, enabled) =>
+          onToggleDeviceMute={async (deviceId, enabled) => {
+            if (enabled) {
+              const device = devices?.find((d) => d.id === deviceId)
+              if (device?.isCurrent) {
+                const success = await NotificationManager.enableBackgroundPush()
+                if (success) {
+                  const subscription =
+                    await NotificationManager.getSubscription()
+                  if (subscription) {
+                    const raw = subscription.toJSON()
+                    if (raw.endpoint && raw.keys?.p256dh && raw.keys?.auth) {
+                      await updatePushSubscription({
+                        deviceKey: currentDeviceKey,
+                        subscription: {
+                          endpoint: raw.endpoint,
+                          expirationTime: raw.expirationTime ?? undefined,
+                          keys: {
+                            p256dh: raw.keys.p256dh,
+                            auth: raw.keys.auth,
+                          },
+                        },
+                      })
+                    }
+                  }
+                }
+              }
+            }
             void updateDevice({ deviceId, enabled })
-          }
+          }}
           isOpen={isSidebarOpen}
           onClose={() => setIsSidebarOpen(false)}
         />

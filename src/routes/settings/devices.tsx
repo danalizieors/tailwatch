@@ -32,6 +32,7 @@ import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label'
 import { getClientDeviceKey, setClientDeviceName } from '~/lib/device-identity'
 import { formatRelative } from '~/lib/format'
+import { NotificationManager } from '~/lib/notifications'
 import { cn, getPathColor } from '~/lib/utils'
 import { api } from '../../../convex/_generated/api'
 
@@ -77,6 +78,7 @@ function DeviceSettingsPage() {
   const updateDevice = useMutation(api.devices.updateDevice)
   const deleteDevice = useMutation(api.devices.deleteDevice)
   const sendTestPush = useAction(api.push.sendTestPush)
+  const updatePushSubscription = useMutation(api.devices.updatePushSubscription)
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -155,15 +157,48 @@ function DeviceSettingsPage() {
       setError(null)
       setNotice(null)
 
+      const nextEnabled = !device.enabled
+
+      if (device.isCurrent && nextEnabled) {
+        // Step 1: Request Browser Permission & Setup Subscription
+        const success = await NotificationManager.enableBackgroundPush()
+        if (!success) {
+          throw new Error(
+            NotificationManager.getLastPushError() ||
+              'Browser notification setup failed',
+          )
+        }
+
+        // Step 2: Extract & Sync Subscription with Convex
+        const subscription = await NotificationManager.getSubscription()
+        if (subscription) {
+          const raw = subscription.toJSON()
+          if (raw.endpoint && raw.keys?.p256dh && raw.keys?.auth) {
+            await updatePushSubscription({
+              deviceKey: currentDeviceKey,
+              subscription: {
+                endpoint: raw.endpoint,
+                expirationTime: raw.expirationTime ?? undefined,
+                keys: {
+                  p256dh: raw.keys.p256dh,
+                  auth: raw.keys.auth,
+                },
+              },
+            })
+          }
+        }
+      }
+
+      // Step 3: Always update the device's basic enabled flag
       await updateDevice({
         deviceId: device.id,
-        enabled: !device.enabled,
+        enabled: nextEnabled,
       })
 
       setNotice(
-        device.enabled
-          ? `Notifications disabled for "${device.name}".`
-          : `Notifications enabled for "${device.name}".`,
+        nextEnabled
+          ? `Notifications enabled for "${device.name}".`
+          : `Notifications disabled for "${device.name}".`,
       )
     } catch (toggleError) {
       setError(

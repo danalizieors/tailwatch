@@ -133,6 +133,17 @@ export class NotificationManager {
     }
   }
 
+  static async getSubscription(): Promise<PushSubscription | null> {
+    if (!this.isPushSupported()) return null
+    try {
+      const reg = await navigator.serviceWorker.ready
+      return await reg.pushManager.getSubscription()
+    } catch (error) {
+      console.error('Failed to get subscription:', error)
+      return null
+    }
+  }
+
   static async enableBackgroundPush(): Promise<boolean> {
     if (!this.isPushSupported()) {
       this.lastPushError = 'Push API is not supported in this browser.'
