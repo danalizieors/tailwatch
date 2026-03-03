@@ -44,6 +44,10 @@ function singularizeNoun(value: string) {
   return word
 }
 
+function nextPrefix(prefix: string) {
+  return prefix.slice(0, -1) + String.fromCharCode(prefix.charCodeAt(prefix.length - 1) + 1)
+}
+
 function generateHumanReadableKey() {
   const adjective = pickRandomItem(adjectives)
   const noun = singularizeNoun(pickRandomItem(nouns))
@@ -300,26 +304,46 @@ async function buildSnapshot(
   }
 
   const volumeId = String(volumeDoc._id)
-  const paths = await ctx.db
-    .query('paths')
-    .withIndex('by_volumeId', (q: any) => q.eq('volumeId', volumeId))
-    .collect()
 
-  const matchedPaths = paths.filter((p: any) => pathMatchesPrefix(p.path, args.topicPrefix))
-  const matchedPathIds = new Set(matchedPaths.map((p: any) => String(p._id)))
+  let matchedPaths
+  if (args.topicPrefix) {
+    const prefix = normalizeTopicPath(args.topicPrefix)
+    const subpathPrefix = prefix + '/'
+    const exact = await ctx.db
+      .query('paths')
+      .withIndex('by_volumeId_and_path', (q: any) => q.eq('volumeId', volumeId).eq('path', prefix))
+      .first()
+    const subpaths = await ctx.db
+      .query('paths')
+      .withIndex('by_volumeId_and_path', (q: any) =>
+        q.eq('volumeId', volumeId).gte('path', subpathPrefix).lt('path', nextPrefix(subpathPrefix)),
+      )
+      .collect()
+    matchedPaths = exact ? [exact, ...subpaths] : subpaths
+  } else {
+    matchedPaths = await ctx.db
+      .query('paths')
+      .withIndex('by_volumeId', (q: any) => q.eq('volumeId', volumeId))
+      .collect()
+  }
 
-  const allEvents = await ctx.db
-    .query('events')
-    .collect()
-
-  const eventsInVolume = allEvents
-    .filter((e: any) => matchedPathIds.has(e.pathId))
+  const eventsInVolume = (
+    await Promise.all(
+      matchedPaths.map((p: any) =>
+        ctx.db
+          .query('events')
+          .withIndex('by_pathId', (q: any) => q.eq('pathId', String(p._id)))
+          .collect(),
+      ),
+    )
+  )
+    .flat()
     .sort((a: any, b: any) => b.time.localeCompare(a.time))
 
   const queryStatus = normalizeQueryStatus(args.statusFilter)
   const filteredEvents = queryStatus ? eventsInVolume.filter((e: any) => e.status === queryStatus) : eventsInVolume
 
-  const pathMap = new Map(paths.map((p: any) => [String(p._id), p.path]))
+  const pathMap = new Map(matchedPaths.map((p: any) => [String(p._id), p.path]))
   const displayEvents = filteredEvents.slice(0, args.limit).map((e: any) => ({
     id: String(e._id),
     path: pathMap.get(e.pathId) ?? 'unknown',
