@@ -1,2 +1,7 @@
+.wrangler
 convex/_generated
+dist
+node_modules
+*.local
+src/routeTree.gen.ts
 pnpm-lock.yaml

@@ -6,10 +6,11 @@
   "packageManager": "pnpm@10.30.3",
   "scripts": {
     "format": "prettier --write .",
-    "dev": "vite dev",
+    "develop": "pnpm run '/^develop:.*/'",
+    "develop:vite": "vite dev",
+    "develop:convex": "convex dev",
     "build": "vite build",
     "typecheck": "tsc --noEmit",
-    "convex:dev": "convex dev",
     "deploy": "wrangler deploy"
   },
   "dependencies": {
