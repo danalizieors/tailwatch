@@ -73,7 +73,10 @@ export function AppShellHeader({
 
   return (
     <header 
-      className="z-50 shrink-0 border-b border-border/40 bg-background/95 px-3 backdrop-blur-md md:px-8"
+      className={cn(
+        "z-50 shrink-0 border-b border-border/40 bg-background/95 px-3 md:px-8",
+        !(isMenuOpen || isProfileOpen) && "backdrop-blur-md"
+      )}
       style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.5rem)' }}
     >
       <div className="flex h-14 items-center justify-between gap-4 md:gap-8">
@@ -144,33 +147,33 @@ export function AppShellHeader({
                 </button>
                 
                 {isProfileOpen && (
-                  <div className="absolute right-0 top-12 z-[100] w-64 rounded-xl border border-border/70 bg-card/98 p-3 shadow-2xl backdrop-blur-xl animate-in fade-in slide-in-from-top-2">
+                  <div className="absolute right-0 top-12 z-[100] w-64 rounded-xl border border-border/70 bg-card/98 p-3 shadow-2xl backdrop-blur-xl animate-in fade-in zoom-in-95 slide-in-from-top-2 duration-200 origin-top-right">
                     <div className="flex items-center gap-3 border-b border-border/40 pb-3 mb-2">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border/70 bg-muted/40">
-                        {user?.image ? (
-                          <img src={user.image} alt={displayName} className="h-full w-full object-cover" />
-                        ) : (
-                          <span className="text-sm font-bold">{avatarInitial}</span>
-                        )}
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border/70 bg-muted/40">
+                          {user?.image ? (
+                            <img src={user.image} alt={displayName} className="h-full w-full object-cover" />
+                          ) : (
+                            <span className="text-sm font-bold">{avatarInitial}</span>
+                          )}
+                        </div>
+                        <div className="flex flex-col min-w-0">
+                          <p className="truncate text-xs font-black uppercase tracking-widest text-foreground">{displayName}</p>
+                          {user?.email ? <p className="truncate text-xs text-zinc-500">{user.email}</p> : null}
+                        </div>
                       </div>
-                      <div className="flex flex-col min-w-0">
-                        <p className="truncate text-xs font-black uppercase tracking-widest text-foreground">{displayName}</p>
-                        {user?.email ? <p className="truncate text-xs text-zinc-500">{user.email}</p> : null}
-                      </div>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          setIsProfileOpen(false)
+                          await signOut()
+                          void navigate({ to: '/', replace: true })
+                        }}
+                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-black uppercase tracking-widest text-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+                      >
+                        <LogOut className="h-3.5 w-3.5" />
+                        Sign out
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        setIsProfileOpen(false)
-                        await signOut()
-                        void navigate({ to: '/', replace: true })
-                      }}
-                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-black uppercase tracking-widest text-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
-                    >
-                      <LogOut className="h-3.5 w-3.5" />
-                      Sign out
-                    </button>
-                  </div>
                 )}
               </div>
             </div>
@@ -191,32 +194,49 @@ export function AppShellHeader({
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 md:hidden"
+            className="relative h-8 w-8 md:hidden overflow-hidden"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
           >
-            {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            <div className={cn(
+              "absolute inset-0 flex items-center justify-center transition-all duration-300",
+              isMenuOpen ? "opacity-100 rotate-0 scale-100" : "opacity-0 rotate-90 scale-50"
+            )}>
+              <X className="h-5 w-5" />
+            </div>
+            <div className={cn(
+              "absolute inset-0 flex items-center justify-center transition-all duration-300",
+              isMenuOpen ? "opacity-0 -rotate-90 scale-50" : "opacity-100 rotate-0 scale-100"
+            )}>
+              <Menu className="h-5 w-5" />
+            </div>
           </Button>
         </div>
       </div>
 
       {/* Mobile Menu */}
       {isMenuOpen && (
-        <div className="mt-2 flex flex-col gap-3 rounded-xl border border-primary/15 bg-primary/5 p-3 animate-in fade-in slide-in-from-top-2 md:hidden shadow-xl backdrop-blur-lg mb-4">
-          {isAuthenticated && user && (
-            <div className="flex items-center gap-3 border-b border-border/40 pb-3 px-1">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border/70 bg-muted/40">
-                {user.image ? (
-                  <img src={user.image} alt={displayName} className="h-full w-full object-cover" />
-                ) : (
-                  <span className="text-sm font-bold">{avatarInitial}</span>
-                )}
+        <>
+          {/* Backdrop for mobile menu */}
+          <div 
+            className="fixed inset-0 z-[40] bg-background/60 backdrop-blur-md md:hidden animate-in fade-in duration-300"
+            onClick={() => setIsMenuOpen(false)}
+          />
+          <div className="absolute left-4 right-4 top-16 z-[50] flex flex-col gap-3 rounded-2xl border border-primary/20 bg-card/95 p-4 shadow-2xl backdrop-blur-2xl animate-in fade-in slide-in-from-top-4 duration-300 md:hidden">
+            {isAuthenticated && user && (
+              <div className="flex items-center gap-3 border-b border-border/40 pb-4 px-1">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border/70 bg-muted/40">
+                  {user.image ? (
+                    <img src={user.image} alt={displayName} className="h-full w-full object-cover" />
+                  ) : (
+                    <span className="text-base font-bold">{avatarInitial}</span>
+                  )}
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <p className="truncate text-sm font-black uppercase tracking-widest text-foreground">{displayName}</p>
+                  {user.email ? <p className="truncate text-xs text-zinc-400">{user.email}</p> : null}
+                </div>
               </div>
-              <div className="flex flex-col min-w-0">
-                <p className="truncate text-xs font-black uppercase tracking-widest text-foreground">{displayName}</p>
-                {user.email ? <p className="truncate text-xs text-zinc-400">{user.email}</p> : null}
-              </div>
-            </div>
-          )}
+            )}
 
           <div className="flex flex-col gap-1">
             {isAuthenticated ? (
@@ -291,7 +311,8 @@ export function AppShellHeader({
             )}
           </div>
         </div>
-      )}
-    </header>
+      </>
+    )}
+  </header>
   )
 }
