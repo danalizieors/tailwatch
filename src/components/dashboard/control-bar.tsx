@@ -29,7 +29,7 @@ export function ControlBar({
         <Button
           variant="ghost"
           size="icon"
-          className="h-10 w-full rounded-lg border border-border/60 bg-background/50 text-primary flex items-center justify-center gap-2 px-4 shadow-sm active:scale-[0.98] transition-transform"
+          className="h-10 w-full rounded-lg border border-border/60 bg-background/50 text-primary flex items-center justify-center gap-2 px-4 shadow-sm active:scale-95 transition-transform"
           onClick={onToggleSidebar}
           title="Toggle sidebar"
         >

@@ -259,11 +259,11 @@ function VolumeSettingsPage() {
                           </CardTitle>
                           <div className="flex items-center gap-1.5 mt-0.5">
                             {volume.isDefault ? (
-                              <Badge variant="success" className="text-[0.625rem] h-4 font-black uppercase tracking-widest px-1">Default</Badge>
+                              <Badge variant="success" className="text-xxs h-4 font-black uppercase tracking-widest px-1">Default</Badge>
                             ) : null}
                             <Badge 
                               variant={volume.key.enabled ? 'outline' : 'warning'} 
-                              className="text-[0.625rem] h-4 font-black uppercase tracking-widest px-1 border-primary/20 text-primary"
+                              className="text-xxs h-4 font-black uppercase tracking-widest px-1 border-primary/20 text-primary"
                             >
                               {volume.key.enabled ? 'Key Active' : 'Key Disabled'}
                             </Badge>

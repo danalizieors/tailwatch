@@ -230,7 +230,7 @@ function TailwatchLandingPage() {
             className="mx-auto flex min-h-16 w-full max-w-7xl min-w-0 flex-wrap items-center justify-between gap-3 px-4 py-2 md:h-16 md:flex-nowrap md:gap-4 md:px-6 md:py-0"
           >
             <div className="group flex min-w-0 shrink items-center gap-3 rounded-lg">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-primary/25 bg-primary/10 text-primary transition-all duration-300 group-hover:shadow-[0_0_15px_-3px_rgba(var(--primary-rgb),0.3)]">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-primary/25 bg-primary/10 text-primary transition-all duration-300 group-hover:shadow-primary-glow">
                 <Terminal className="h-4 w-4" />
               </div>
               <div className="flex min-w-0 flex-col leading-none">
@@ -344,15 +344,15 @@ function TailwatchLandingPage() {
                     <CardContent className="space-y-2 pb-4">
                       <div className="rounded-lg border border-border/60 bg-card/60 p-2">
                         <p className="break-all text-xs font-black uppercase tracking-widest text-foreground">agents/vision</p>
-                        <p className="text-[0.625rem] font-bold uppercase tracking-widest text-success">busy • Analyzing frame #420</p>
+                        <p className="text-xxs font-bold uppercase tracking-widest text-success">busy • Analyzing frame #420</p>
                       </div>
                       <div className="rounded-lg border border-border/60 bg-card/60 p-2">
                         <p className="break-all text-xs font-black uppercase tracking-widest text-foreground">agents/vision</p>
-                        <p className="text-[0.625rem] font-bold uppercase tracking-widest text-zinc-400">message • "Detected 3 objects"</p>
+                        <p className="text-xxs font-bold uppercase tracking-widest text-zinc-400">message • "Detected 3 objects"</p>
                       </div>
                       <div className="rounded-lg border border-destructive/25 bg-destructive/10 p-2">
                         <p className="break-all text-xs font-black uppercase tracking-widest text-foreground">ops/db-backup</p>
-                        <p className="text-[0.625rem] font-bold uppercase tracking-widest text-destructive">error • snapshot timeout</p>
+                        <p className="text-xxs font-bold uppercase tracking-widest text-destructive">error • snapshot timeout</p>
                       </div>
                     </CardContent>
                   </Card>
@@ -368,15 +368,15 @@ function TailwatchLandingPage() {
                     <CardContent className="space-y-2 pb-4">
                       <div className="rounded-lg border border-success/20 bg-success/10 p-2">
                         <p className="text-xs font-black uppercase tracking-widest text-foreground">vision-agent</p>
-                        <p className="text-[0.625rem] font-bold uppercase tracking-widest text-success">busy • active for 00:23</p>
+                        <p className="text-xxs font-bold uppercase tracking-widest text-success">busy • active for 00:23</p>
                       </div>
                       <div className="rounded-lg border border-warning/25 bg-warning/10 p-2">
                         <p className="text-xs font-black uppercase tracking-widest text-foreground">file-ingestor</p>
-                        <p className="text-[0.625rem] font-bold uppercase tracking-widest text-warning">idle • last seen 2m ago</p>
+                        <p className="text-xxs font-bold uppercase tracking-widest text-warning">idle • last seen 2m ago</p>
                       </div>
                       <div className="rounded-lg border border-destructive/25 bg-destructive/10 p-2">
                         <p className="text-xs font-black uppercase tracking-widest text-foreground">nightly-backup</p>
-                        <p className="text-[0.625rem] font-bold uppercase tracking-widest text-destructive">error • snapshot timeout</p>
+                        <p className="text-xxs font-bold uppercase tracking-widest text-destructive">error • snapshot timeout</p>
                       </div>
                     </CardContent>
                   </Card>
@@ -385,7 +385,7 @@ function TailwatchLandingPage() {
                   <div className="min-w-0 rounded-2xl border border-border/60 bg-background/70 p-4">
                   <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                     <p className="text-xs font-black uppercase tracking-widest text-zinc-400">Publish with HTTP</p>
-                    <span className="rounded-full border border-border/60 bg-card/70 px-2 py-1 text-[0.625rem] font-black uppercase tracking-widest text-zinc-500">
+                    <span className="rounded-full border border-border/60 bg-card/70 px-2 py-1 text-xxs font-black uppercase tracking-widest text-zinc-500">
                       No SDK
                     </span>
                   </div>

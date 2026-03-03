@@ -287,9 +287,9 @@ function DeviceSettingsPage() {
                               <BrowserIcon className="h-3 w-3 text-zinc-500" title={device.browser} />
                             </div>
                             {device.isCurrent ? (
-                              <Badge variant="success" className="text-[0.625rem] h-4 font-black uppercase tracking-widest px-1">You</Badge>
+                              <Badge variant="success" className="text-xxs h-4 font-black uppercase tracking-widest px-1">You</Badge>
                             ) : (
-                              <span className="text-[0.625rem] font-bold text-zinc-500 whitespace-nowrap">
+                              <span className="text-xxs font-bold text-zinc-500 whitespace-nowrap">
                                 seen {device.lastSeenAt ? formatRelative(device.lastSeenAt) : 'never'}
                               </span>
                             )}
@@ -345,7 +345,7 @@ function DeviceSettingsPage() {
 
                       <div className="space-y-1.5">
                         <Label className="text-xs font-black uppercase tracking-widest text-zinc-400 leading-none ml-1">Device Key</Label>
-                        <div className="rounded-lg border border-border/40 bg-background/50 px-3 py-2 font-mono text-[0.625rem] text-zinc-400 break-all leading-tight">
+                        <div className="rounded-lg border border-border/40 bg-background/50 px-3 py-2 font-mono text-xxs text-zinc-400 break-all leading-tight">
                           {device.deviceKey}
                         </div>
                       </div>

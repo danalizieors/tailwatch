@@ -33,7 +33,7 @@ export function LogStream({ events, lastSeenAt }: LogStreamProps) {
                     className={cn(
                       "group relative flex flex-col gap-2 border-l-4 px-4 py-3 pr-8 md:grid md:grid-cols-[100px_80px_minmax(0,1fr)_100px] md:gap-4 md:px-6 md:py-2 md:pr-6",
                       isBusy ? "opacity-100" : "opacity-90",
-                      isUnread && "bg-amber-500/[0.08]"
+                      isUnread && "bg-amber-500/10"
                     )}
                     style={{ 
                       borderLeftColor: pathColor,
@@ -43,7 +43,7 @@ export function LogStream({ events, lastSeenAt }: LogStreamProps) {
                       <div className="absolute right-3 top-3 z-10 md:right-4 md:top-1/2 md:-translate-y-1/2">
                         <span className="relative flex h-2 w-2">
                           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                          <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500 shadow-[0_0_12px_rgba(245,158,11,1)]"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500 shadow-primary-glow-sm"></span>
                         </span>
                       </div>
                     )}
@@ -59,7 +59,7 @@ export function LogStream({ events, lastSeenAt }: LogStreamProps) {
                       </div>
 
                       <div className="flex items-center">
-                        <span className={cn('font-black text-[0.625rem] px-1.5 py-0.5 rounded border leading-none uppercase tracking-widest', eventStatusColors(event.status))}>
+                        <span className={cn('font-black text-xxs px-1.5 py-0.5 rounded border leading-none uppercase tracking-widest', eventStatusColors(event.status))}>
                           {event.status}
                         </span>
                       </div>

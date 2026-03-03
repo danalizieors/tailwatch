@@ -95,7 +95,7 @@ export function VolumeSidebar({
                 className={cn(
                   "group relative flex items-center gap-1 p-1.5 rounded-2xl transition-all duration-300 border",
                   isActive 
-                    ? "bg-primary/10 border-primary/30 shadow-[0_0_20px_-5px_rgba(var(--primary-rgb),0.2)] ring-1 ring-primary/20" 
+                    ? "bg-primary/10 border-primary/30 shadow-primary-glow-sm ring-1 ring-primary/20" 
                     : "border-transparent hover:bg-muted/30"
                 )}
               >
@@ -127,7 +127,7 @@ export function VolumeSidebar({
                       "flex items-center gap-1.5 transition-colors",
                       isActive ? "text-primary" : "text-zinc-500 group-hover:text-zinc-400"
                     )}>
-                      <span className="text-[0.625rem] font-mono font-bold tracking-tighter truncate">
+                      <span className="text-xxs font-mono font-bold tracking-tighter truncate">
                         {vol.key || 'no_key'}
                       </span>
                     </div>
@@ -186,10 +186,11 @@ export function VolumeSidebar({
                     className={cn(
                       "group relative flex items-center gap-1 p-1.5 rounded-2xl transition-all duration-300 border",
                       device.isCurrent 
-                        ? "bg-primary/10 border-primary/30 shadow-[0_0_20px_-5px_rgba(var(--primary-rgb),0.2)] ring-1 ring-primary/20" 
+                        ? "bg-primary/10 border-primary/30 shadow-primary-glow-sm ring-1 ring-primary/20" 
                         : "border-transparent hover:bg-muted/30"
                     )}
                   >
+
                     <div className="flex-1 flex items-center gap-3 p-1 text-left min-w-0">
                       {/* Visual Marker for Device */}
                       <div 
@@ -216,9 +217,9 @@ export function VolumeSidebar({
                         </div>
                         <div className="flex items-center gap-1.5 mt-1.5 transition-colors">
                           {device.isCurrent ? (
-                            <span className="text-[0.625rem] font-black text-primary bg-primary/10 px-1.5 py-0.5 rounded uppercase tracking-tighter border border-primary/20">You</span>
+                            <span className="text-xxs font-black text-primary bg-primary/10 px-1.5 py-0.5 rounded uppercase tracking-tighter border border-primary/20">You</span>
                           ) : (
-                            <span className="text-[0.625rem] font-bold text-zinc-400 group-hover:text-zinc-300">
+                            <span className="text-xxs font-bold text-zinc-400 group-hover:text-zinc-300">
                               {device.lastSeenAt ? formatRelative(device.lastSeenAt) : 'never seen'}
                             </span>
                           )}

@@ -32,7 +32,7 @@ export function StatusBoard({ rows, lastSeenAt }: StatusBoardProps) {
                   key={row.key} 
                   className={cn(
                     "group relative overflow-hidden rounded-2xl border-2 p-4 backdrop-blur-3xl card-hover-effect sm:p-6",
-                    isUnread ? "border-amber-500/50 shadow-[0_0_20px_rgba(245,158,11,0.15)]" : ""
+                    isUnread ? "border-amber-500/50 shadow-primary-glow-sm" : ""
                   )}
                   style={{ 
                     backgroundColor: jewelBg,
@@ -43,7 +43,7 @@ export function StatusBoard({ rows, lastSeenAt }: StatusBoardProps) {
                     <div className="absolute right-3 top-3 z-10 sm:right-4 sm:top-4">
                       <span className="relative flex h-2 w-2">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500 shadow-[0_0_12px_rgba(245,158,11,1)]"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500 shadow-primary-glow-sm"></span>
                       </span>
                     </div>
                   )}
@@ -84,7 +84,7 @@ export function StatusBoard({ rows, lastSeenAt }: StatusBoardProps) {
                           border: `1px solid oklch(from ${pathColor} 0.25 0.08 h / 0.3)`
                         }}
                       >
-                        {row.lastContent ?? <span className="italic uppercase tracking-widest text-[0.625rem] text-zinc-500">No Payload</span>}
+                        {row.lastContent ?? <span className="italic uppercase tracking-widest text-xxs text-zinc-500">No Payload</span>}
                       </div>
                     </div>
                   </div>
@@ -108,8 +108,8 @@ function statusBadgeColors(status: EntitySnapshot['currentStatus']) {
 
 function statusDotColors(status: EntitySnapshot['currentStatus']) {
   switch (status) {
-    case 'busy': return 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.5)]'
-    case 'idle': return 'bg-info shadow-[0_0_8px_oklch(from_var(--info)_l_c_h_/_0.5)]'
+    case 'busy': return 'bg-amber-400 shadow-primary-glow-sm'
+    case 'idle': return 'bg-info shadow-primary-glow-sm'
     default: return 'bg-muted-foreground'
   }
 }

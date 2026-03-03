@@ -63,7 +63,7 @@ export function AppShellHeader({
       <div className="flex h-14 items-center justify-between gap-4 md:gap-8">
         <div className="flex items-center gap-6 md:gap-8">
           <Link to="/" className="group relative inline-flex shrink-0 items-center gap-2.5">
-            <div className="relative z-10 flex h-9 w-9 items-center justify-center rounded-lg border border-primary/25 bg-primary/10 text-primary transition-all duration-300 group-hover:border-primary/40 group-hover:bg-primary/20 group-hover:shadow-[0_0_15px_-3px_rgba(var(--primary-rgb),0.3)]">
+            <div className="relative z-10 flex h-9 w-9 items-center justify-center rounded-lg border border-primary/25 bg-primary/10 text-primary transition-all duration-300 group-hover:border-primary/40 group-hover:bg-primary/20 group-hover:shadow-primary-glow">
               <Terminal className="h-5 w-5" />
             </div>
             <p className="text-base font-black uppercase tracking-tight text-foreground transition-colors group-hover:text-primary">Tailwatch</p>
@@ -89,7 +89,7 @@ export function AppShellHeader({
                 >
                   <div className={cn(
                     "flex h-8 w-8 shrink-0 items-center justify-center rounded-xl transition-all duration-300 relative z-10",
-                    active ? "bg-primary/10 shadow-[0_0_20px_-3px_rgba(var(--primary-rgb),0.3)] ring-1 ring-primary/20" : "group-hover:bg-muted/50"
+                    active ? "bg-primary/10 shadow-primary-glow-lg ring-1 ring-primary/20" : "group-hover:bg-muted/50"
                   )}>
                     <Icon className={cn(
                       "h-4 w-4 transition-colors",
