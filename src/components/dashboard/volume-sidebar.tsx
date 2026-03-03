@@ -271,14 +271,8 @@ export function VolumeSidebar({
                       <div className='flex min-w-0 flex-col'>
                         <div className='flex items-center gap-1.5'>
                           <div className='mr-1 flex shrink-0 items-center gap-1'>
-                            <OSIcon
-                              className='h-3 w-3 text-zinc-400'
-                              title={device.os}
-                            />
-                            <BrowserIcon
-                              className='h-3 w-3 text-zinc-400'
-                              title={device.browser}
-                            />
+                            <OSIcon className='h-3 w-3 text-zinc-400' />
+                            <BrowserIcon className='h-3 w-3 text-zinc-400' />
                           </div>
                           <span
                             className={cn(

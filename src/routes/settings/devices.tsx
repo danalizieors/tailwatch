@@ -30,7 +30,11 @@ import {
 } from '~/components/ui/card'
 import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label'
-import { getClientDeviceKey, setClientDeviceName } from '~/lib/device-identity'
+import {
+  getClientDeviceKey,
+  getUAInfo,
+  setClientDeviceName,
+} from '~/lib/device-identity'
 import { formatRelative } from '~/lib/format'
 import { NotificationManager } from '~/lib/notifications'
 import { cn, getPathColor } from '~/lib/utils'
@@ -75,24 +79,36 @@ function DeviceSettingsPage() {
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
 
-  const updateDevice = useMutation(api.devices.updateDevice)
+  const setNotifications = useMutation(api.devices.setNotifications)
+  const upsertDevice = useMutation(api.devices.upsertDevice)
   const deleteDevice = useMutation(api.devices.deleteDevice)
   const sendPushNotification = useAction(api.push.sendPushNotification)
-  const updatePushSubscription = useMutation(api.devices.updatePushSubscription)
+  const updateSubscription = useMutation(api.devices.updateSubscription)
 
   useEffect(() => {
     if (typeof window === 'undefined') return
     setCurrentDeviceKey(getClientDeviceKey())
   }, [])
 
-  const devices = useQuery(
+  const devicesRaw = useQuery(
     api.devices.listDevices,
-    isAuthenticated && currentDeviceKey
-      ? {
-          currentDeviceKey,
-        }
-      : 'skip',
+    isAuthenticated ? {} : 'skip',
   )
+
+  const devices = useMemo(() => {
+    if (!devicesRaw) return undefined
+    return devicesRaw.map((d) => ({
+      id: d._id,
+      deviceKey: d.deviceKey,
+      name: d.name,
+      isCurrent: d.deviceKey === currentDeviceKey,
+      enabled: d.notifications,
+      lastSeenAt: String(d.lastSeenAt),
+      os: d.system,
+      browser: d.browser,
+      hasSubscription: !!d.subscription,
+    }))
+  }, [devicesRaw, currentDeviceKey])
 
   useEffect(() => {
     if (!devices) return
@@ -129,9 +145,13 @@ function DeviceSettingsPage() {
       setError(null)
       setNotice(null)
 
-      await updateDevice({
-        deviceId: device.id,
+      const { system, browser } = getUAInfo()
+
+      await upsertDevice({
+        deviceKey: device.deviceKey,
         name: nextName,
+        system,
+        browser,
       })
 
       if (device.isCurrent) {
@@ -174,7 +194,7 @@ function DeviceSettingsPage() {
         if (subscription) {
           const raw = subscription.toJSON()
           if (raw.endpoint && raw.keys?.p256dh && raw.keys?.auth) {
-            await updatePushSubscription({
+            await updateSubscription({
               deviceKey: currentDeviceKey,
               subscription: {
                 endpoint: raw.endpoint,
@@ -190,8 +210,8 @@ function DeviceSettingsPage() {
       }
 
       // Step 3: Always update the device's basic enabled flag
-      await updateDevice({
-        deviceId: device.id,
+      await setNotifications({
+        deviceKey: device.deviceKey,
         enabled: nextEnabled,
       })
 
@@ -403,14 +423,8 @@ function DeviceSettingsPage() {
                           </CardTitle>
                           <div className='mt-0.5 flex items-center gap-1.5'>
                             <div className='flex shrink-0 items-center gap-1'>
-                              <OSIcon
-                                className='h-3 w-3 text-zinc-500'
-                                title={device.os}
-                              />
-                              <BrowserIcon
-                                className='h-3 w-3 text-zinc-500'
-                                title={device.browser}
-                              />
+                              <OSIcon className='h-3 w-3 text-zinc-500' />
+                              <BrowserIcon className='h-3 w-3 text-zinc-500' />
                             </div>
                             {device.isCurrent ? (
                               <Badge

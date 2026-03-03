@@ -29,13 +29,13 @@ export default defineSchema(
     }).index('by_pathId', ['pathId']),
     devices: defineTable({
       userId: v.string(),
-      name: v.string(),
-      os: v.optional(v.string()),
-      browser: v.optional(v.string()),
       deviceKey: v.string(),
-      lastSeenAt: v.optional(v.string()),
+      name: v.string(),
+      system: v.optional(v.string()),
+      browser: v.optional(v.string()),
+      lastSeenAt: v.number(),
       notifications: v.boolean(),
-      subscription: v.any(),
+      subscription: v.optional(v.any()),
     })
       .index('by_user', ['userId'])
       .index('by_user_and_deviceKey', ['userId', 'deviceKey']),

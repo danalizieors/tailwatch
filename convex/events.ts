@@ -1,6 +1,6 @@
 import { v } from 'convex/values'
 import { adjectives, nouns } from 'human-id'
-import { internal } from './_generated/api'
+import { api } from './_generated/api'
 import { mutation, query } from './_generated/server'
 import { auth } from './auth'
 
@@ -192,7 +192,7 @@ async function publishResolved(
       for (const target of targets) {
         if (!target.notifications || !target.subscription) continue
 
-        await ctx.scheduler.runAfter(0, internal.push.sendPushNotification, {
+        await ctx.scheduler.runAfter(0, api.push.sendPushNotification, {
           deviceId: target._id,
           payload: { title, body: bodyText, tag, url },
           options: {
@@ -401,7 +401,7 @@ async function buildSnapshot(
     { lastSeenAt: string; status: 'busy' | 'idle'; lastContent?: string }
   >()
   for (const e of eventsInVolume) {
-    const path = pathMap.get(e.pathId) ?? 'unknown'
+    const path = (pathMap.get(e.pathId) ?? 'unknown') as string
     const existing = entityStates.get(path)
     if (!existing || e.time > existing.lastSeenAt) {
       entityStates.set(path, {

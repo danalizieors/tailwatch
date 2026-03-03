@@ -3,7 +3,7 @@
 import { buildPushHTTPRequest } from '@pushforge/builder'
 import { v } from 'convex/values'
 import { internal } from './_generated/api'
-import { action, internalAction } from './_generated/server'
+import { action } from './_generated/server'
 import { env } from './env'
 
 export const sendPushNotification = action({
@@ -31,6 +31,10 @@ export const sendPushNotification = action({
       deviceId: args.deviceId,
     })
 
+    if (!device?.subscription) {
+      return { ok: false, reason: 'subscription_undefined' }
+    }
+
     const { endpoint, headers, body } = await buildPushHTTPRequest({
       privateJWK: JSON.parse(env.VAPID_PRIVATE_KEY),
       message: {
@@ -38,7 +42,7 @@ export const sendPushNotification = action({
         payload: args.payload,
         options: args.options,
       },
-      subscription: device?.subscription,
+      subscription: device.subscription,
     })
 
     const response = await fetch(endpoint, {
@@ -48,10 +52,10 @@ export const sendPushNotification = action({
     })
 
     if (!response.ok) {
-      ctx.runMutation(internal.devices.clearPushSubscriptionInternal, {
+      await ctx.runMutation(internal.devices.clearSubscriptionInternal, {
         deviceId: args.deviceId,
       })
-      console.log(`[push] subscription expired for device: ${args.deviceId}`)
+
       return { ok: false, reason: 'subscription_expired' }
     }
 

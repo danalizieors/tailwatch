@@ -8,11 +8,12 @@ import {
   ShieldCheck,
   Zap,
 } from 'lucide-react'
+import { nanoid } from 'nanoid'
 import { useDeferredValue, useEffect, useMemo, useState } from 'react'
 import { AppShellHeader } from '~/components/layout/app-shell-header'
 import { Button } from '~/components/ui/button'
 import { Card, CardContent } from '~/components/ui/card'
-import { inferBrowserName, inferPlatformName } from '~/lib/device-identity'
+import { getUAInfo } from '~/lib/device-identity'
 import { NotificationManager } from '~/lib/notifications'
 import type { EventStatus } from '~/lib/types'
 import { cn } from '~/lib/utils'
@@ -58,10 +59,10 @@ export function DashboardView({
 
   const publish = useMutation(api.events.publish)
   const publishByKey = useMutation(api.events.publishByKey)
-  const updateDevice = useMutation(api.devices.updateDevice)
+  const setNotifications = useMutation(api.devices.setNotifications)
   const setVolumeNotifications = useMutation(api.volumes.setVolumeNotifications)
-  const registerDevice = useMutation(api.devices.registerDevice)
-  const updatePushSubscription = useMutation(api.devices.updatePushSubscription)
+  const upsertDevice = useMutation(api.devices.upsertDevice)
+  const updateSubscription = useMutation(api.devices.updateSubscription)
 
   const managedVolumes = useQuery(
     api.volumes.listManagedVolumes,
@@ -77,20 +78,36 @@ export function DashboardView({
     | undefined
 
   const currentDeviceKey = useMemo(() => NotificationManager.getDeviceKey(), [])
-  const devices = useQuery(
+  const devicesRaw = useQuery(
     api.devices.listDevices,
-    isAuthenticated ? { currentDeviceKey } : 'skip',
+    isAuthenticated ? {} : 'skip',
   )
+
+  const devices = useMemo(() => {
+    if (!devicesRaw) return undefined
+    return devicesRaw.map((d) => ({
+      id: d._id,
+      deviceKey: d.deviceKey,
+      name: d.name,
+      isCurrent: d.deviceKey === currentDeviceKey,
+      enabled: d.notifications,
+      lastSeenAt: String(d.lastSeenAt),
+      os: d.system,
+      browser: d.browser,
+    }))
+  }, [devicesRaw, currentDeviceKey])
 
   useEffect(() => {
     if (isAuthenticated && currentDeviceKey) {
-      void registerDevice({
+      const { system, browser } = getUAInfo()
+      void upsertDevice({
         deviceKey: currentDeviceKey,
-        os: inferPlatformName(),
-        browser: inferBrowserName(navigator.userAgent),
+        name: 'This device',
+        system,
+        browser,
       })
     }
-  }, [isAuthenticated, currentDeviceKey, registerDevice])
+  }, [isAuthenticated, currentDeviceKey, upsertDevice])
 
   const deferredSearch = useDeferredValue(search)
 
@@ -277,33 +294,35 @@ export function DashboardView({
           isAuthenticated={isAuthenticated}
           devices={devices}
           onToggleDeviceMute={async (deviceId, enabled) => {
-            if (enabled) {
-              const device = devices?.find((d) => d.id === deviceId)
-              if (device?.isCurrent) {
-                const success = await NotificationManager.enableBackgroundPush()
-                if (success) {
-                  const subscription =
-                    await NotificationManager.getSubscription()
-                  if (subscription) {
-                    const raw = subscription.toJSON()
-                    if (raw.endpoint && raw.keys?.p256dh && raw.keys?.auth) {
-                      await updatePushSubscription({
-                        deviceKey: currentDeviceKey,
-                        subscription: {
-                          endpoint: raw.endpoint,
-                          expirationTime: raw.expirationTime ?? undefined,
-                          keys: {
-                            p256dh: raw.keys.p256dh,
-                            auth: raw.keys.auth,
-                          },
+            const device = devices?.find((d) => d.id === deviceId)
+            if (!device) return
+
+            if (enabled && device.isCurrent) {
+              const success = await NotificationManager.enableBackgroundPush()
+              if (success) {
+                const subscription = await NotificationManager.getSubscription()
+                if (subscription) {
+                  const raw = subscription.toJSON()
+                  if (raw.endpoint && raw.keys?.p256dh && raw.keys?.auth) {
+                    await updateSubscription({
+                      deviceKey: device.deviceKey,
+                      subscription: {
+                        endpoint: raw.endpoint,
+                        expirationTime: raw.expirationTime ?? undefined,
+                        keys: {
+                          p256dh: raw.keys.p256dh,
+                          auth: raw.keys.auth,
                         },
-                      })
-                    }
+                      },
+                    })
                   }
                 }
               }
             }
-            void updateDevice({ deviceId, enabled })
+            void setNotifications({
+              deviceKey: device.deviceKey,
+              enabled,
+            })
           }}
           isOpen={isSidebarOpen}
           onClose={() => setIsSidebarOpen(false)}
@@ -443,7 +462,7 @@ function pickRandom<T>(items: readonly T[]): T {
 }
 
 function randomId(prefix: string) {
-  return `${prefix}_${Math.random().toString(36).slice(2, 8)}`
+  return `${prefix}_${nanoid(8)}`
 }
 
 function buildRandomTestEvent() {

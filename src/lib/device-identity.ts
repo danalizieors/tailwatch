@@ -1,49 +1,41 @@
+import { nanoid } from 'nanoid'
+import { UAParser } from 'ua-parser-js'
+
 const DEVICE_KEY_STORAGE = 'tailwatch.device.key'
 const DEVICE_NAME_STORAGE = 'tailwatch.device.name'
 
 function randomDeviceKey() {
-  if (
-    typeof crypto !== 'undefined' &&
-    typeof crypto.randomUUID === 'function'
-  ) {
-    return `device_${crypto.randomUUID()}`
-  }
-  return `device_${Math.random().toString(36).slice(2, 10)}`
+  return `device_${nanoid(12)}`
 }
 
+export function getUAInfo() {
+  if (typeof navigator === 'undefined') {
+    return { system: 'Device', browser: 'Browser' }
+  }
+  const parser = new UAParser(navigator.userAgent)
+  const result = parser.getResult()
+  return {
+    system: result.os.name || 'Device',
+    browser: result.browser.name || 'Browser',
+  }
+}
+
+/** @deprecated Use getUAInfo instead */
 export function inferBrowserName(userAgent: string) {
-  const ua = userAgent.toLowerCase()
-  if (ua.includes('edg/')) return 'Edge'
-  if (ua.includes('opr/') || ua.includes('opera/')) return 'Opera'
-  if (ua.includes('chrome/')) return 'Chrome'
-  if (ua.includes('safari/') && !ua.includes('chrome/')) return 'Safari'
-  if (ua.includes('firefox/')) return 'Firefox'
-  return 'Browser'
+  const parser = new UAParser(userAgent)
+  return parser.getBrowser().name || 'Browser'
 }
 
+/** @deprecated Use getUAInfo instead */
 export function inferPlatformName() {
-  if (typeof navigator === 'undefined') return 'Device'
-
-  const userAgentDataPlatform = (
-    navigator as Navigator & { userAgentData?: { platform?: string } }
-  ).userAgentData?.platform
-  if (
-    typeof userAgentDataPlatform === 'string' &&
-    userAgentDataPlatform.trim()
-  ) {
-    return userAgentDataPlatform.trim()
-  }
-
-  const platform = navigator.platform?.trim()
-  if (platform) return platform
-  return 'Device'
+  const { system } = getUAInfo()
+  return system
 }
 
 function defaultDeviceName() {
   if (typeof navigator === 'undefined') return 'This device'
-  const platform = inferPlatformName()
-  const browser = inferBrowserName(navigator.userAgent || '')
-  return `${platform} · ${browser}`
+  const { system, browser } = getUAInfo()
+  return `${system} · ${browser}`
 }
 
 export function getClientDeviceKey() {

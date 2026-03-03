@@ -10,7 +10,7 @@ function VolumeDashboardPage() {
   const { volumeId } = Route.useParams()
   return (
     <AuthenticatedDashboard>
-      <DashboardView mode='logs' volume={volumeId} />
+      <DashboardView initialMode='logs' volume={volumeId} />
     </AuthenticatedDashboard>
   )
 }

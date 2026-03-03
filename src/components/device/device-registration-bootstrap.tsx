@@ -3,14 +3,13 @@ import { useEffect, useRef } from 'react'
 import {
   getClientDeviceKey,
   getClientDeviceName,
-  inferBrowserName,
-  inferPlatformName,
+  getUAInfo,
 } from '~/lib/device-identity'
 import { api } from '../../../convex/_generated/api'
 
 export function DeviceRegistrationBootstrap() {
   const { isLoading, isAuthenticated } = useConvexAuth()
-  const registerDevice = useMutation(api.devices.registerDevice)
+  const upsertDevice = useMutation(api.devices.upsertDevice)
   const ensurePersonalVolume = useMutation(api.volumes.ensurePersonalVolume)
   const hasRegisteredRef = useRef(false)
 
@@ -26,23 +25,26 @@ export function DeviceRegistrationBootstrap() {
     if (hasRegisteredRef.current) return
     hasRegisteredRef.current = true
 
+    const { system, browser } = getUAInfo()
+
     // Fire-and-forget background registration and setup
     void Promise.all([
-      registerDevice({
+      upsertDevice({
         deviceKey: getClientDeviceKey(),
         name: getClientDeviceName(),
-        os: inferPlatformName(),
-        browser: inferBrowserName(navigator.userAgent),
+        system,
+        browser,
       }),
       ensurePersonalVolume(),
     ]).catch((error) => {
+
       hasRegisteredRef.current = false
       console.warn(
         'Failed to bootstrap device registration or personal volume',
         error,
       )
     })
-  }, [isAuthenticated, isLoading, registerDevice, ensurePersonalVolume])
+  }, [isAuthenticated, isLoading, upsertDevice, ensurePersonalVolume])
 
   return null
 }

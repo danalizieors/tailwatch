@@ -1,17 +1,17 @@
-export function formatDateTime(value?: string) {
+export function formatDateTime(value?: string | number | Date): string {
   if (!value) return '—'
   const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return value
+  if (Number.isNaN(date.getTime())) return String(value)
   return new Intl.DateTimeFormat(undefined, {
     dateStyle: 'medium',
     timeStyle: 'medium',
   }).format(date)
 }
 
-export function formatAbsolute(value?: string | number | Date) {
+export function formatAbsolute(value?: string | number | Date): string {
   if (!value) return '—'
   const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return value
+  if (Number.isNaN(date.getTime())) return String(value)
 
   const pad = (n: number) => n.toString().padStart(2, '0')
 
@@ -25,28 +25,27 @@ export function formatAbsolute(value?: string | number | Date) {
   return `${y}-${m}-${d} ${hh}:${mm}:${ss}`
 }
 
-export function formatRelative(value?: string | number | Date) {
+export function formatRelative(value?: string | number | Date): string {
   if (!value) return '—'
   const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return value
+  if (Number.isNaN(date.getTime())) return String(value)
   const deltaMs = date.getTime() - Date.now()
   const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' })
 
   const ranges: Array<[Intl.RelativeTimeFormatUnit, number]> = [
-    ['second', 1000],
-    ['minute', 60_000],
-    ['hour', 3_600_000],
     ['day', 86_400_000],
+    ['hour', 3_600_000],
+    ['minute', 60_000],
+    ['second', 1000],
   ]
 
-  for (let i = ranges.length - 1; i >= 0; i -= 1) {
-    const [unit, ms] = ranges[i]
+  for (const [unit, ms] of ranges) {
     if (Math.abs(deltaMs) >= ms || unit === 'second') {
       return rtf.format(Math.round(deltaMs / ms), unit)
     }
   }
 
-  return value
+  return String(value)
 }
 
 export function formatDuration(ms?: number) {
