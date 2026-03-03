@@ -271,13 +271,16 @@ export function DashboardView({ initialMode = 'logs', volume, isAuthLoading, sho
           <div className="max-w-[1400px] w-full mx-auto px-4 md:px-8 flex flex-col">
             {/* Sticky Header Section */}
             <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm pt-4 md:pt-6 pb-2 space-y-4">
-              <div className="relative z-20">
-                <ControlBar
+              <div className="relative z-10">
+                <ActionBar
+                  search={search}
+                  onSearchChange={setSearch}
+                  statusFilter={statusFilter}
+                  onStatusFilterChange={setStatusFilter}
+                  onAcknowledgeAll={markAllSeen}
+                  itemCount={mode === 'logs' ? filteredEvents.length : (data?.entities.length ?? 0)}
                   mode={mode}
-                  onModeChange={setMode}
-                  topicTree={data?.topicTree ?? []}
-                  selectedTopic={selectedTopic}
-                  onSelectTopic={(topic) => setSelectedTopic(normalizeTopicPath(topic))}
+                  stats={data?.stats}
                 />
               </div>
 
@@ -290,16 +293,13 @@ export function DashboardView({ initialMode = 'logs', volume, isAuthLoading, sho
                 </Card>
               )}
 
-              <div className="relative z-10">
-                <ActionBar
-                  search={search}
-                  onSearchChange={setSearch}
-                  statusFilter={statusFilter}
-                  onStatusFilterChange={setStatusFilter}
-                  onAcknowledgeAll={markAllSeen}
-                  itemCount={mode === 'logs' ? filteredEvents.length : (data?.entities.length ?? 0)}
+              <div className="relative z-20">
+                <ControlBar
                   mode={mode}
-                  stats={data?.stats}
+                  onModeChange={setMode}
+                  topicTree={data?.topicTree ?? []}
+                  selectedTopic={selectedTopic}
+                  onSelectTopic={(topic) => setSelectedTopic(normalizeTopicPath(topic))}
                 />
               </div>
 
