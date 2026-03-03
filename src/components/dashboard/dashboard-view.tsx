@@ -271,19 +271,6 @@ export function DashboardView({ initialMode = 'logs', volume, isAuthLoading, sho
           <div className="max-w-[1400px] w-full mx-auto px-4 md:px-8 flex flex-col">
             {/* Sticky Header Section */}
             <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm pt-4 md:pt-6 pb-2 space-y-4">
-              <div className="relative z-10">
-                <ActionBar
-                  search={search}
-                  onSearchChange={setSearch}
-                  statusFilter={statusFilter}
-                  onStatusFilterChange={setStatusFilter}
-                  onAcknowledgeAll={markAllSeen}
-                  itemCount={mode === 'logs' ? filteredEvents.length : (data?.entities.length ?? 0)}
-                  mode={mode}
-                  stats={data?.stats}
-                />
-              </div>
-
               {error && (
                 <Card className="border-destructive/20 bg-destructive/10 text-destructive-foreground">
                   <CardContent className="p-3 text-xs font-medium flex items-center gap-3">
