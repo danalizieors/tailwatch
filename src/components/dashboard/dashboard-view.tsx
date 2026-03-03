@@ -220,6 +220,14 @@ export function DashboardView({ initialMode = 'logs', volume, isAuthLoading, sho
     return haystack.includes(q)
   })
 
+  const filteredEntities = (data?.entities ?? []).filter((entity) => {
+    if (statusFilter !== 'all' && entity.currentStatus !== statusFilter) return false
+    if (!deferredSearch.trim()) return true
+    const q = deferredSearch.toLowerCase()
+    const haystack = `${entity.path} ${entity.lastContent ?? ''} ${entity.entityId ?? ''}`.toLowerCase()
+    return haystack.includes(q)
+  })
+
   const headerTopRight = (
     <div className="flex items-center gap-2">
       <Button
@@ -307,7 +315,7 @@ export function DashboardView({ initialMode = 'logs', volume, isAuthLoading, sho
                     mode === 'logs' ? (
                       <LogStream events={filteredEvents} lastSeenAt={lastSeenAt} />
                     ) : (
-                      <StatusBoard rows={data.entities} lastSeenAt={lastSeenAt} />
+                      <StatusBoard rows={filteredEntities} lastSeenAt={lastSeenAt} />
                     )
                   ) : null}
                 </div>

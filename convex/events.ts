@@ -246,10 +246,6 @@ function pathMatchesPrefix(pathValue: string, topicPrefix?: string) {
   return pathValue === prefix || pathValue.startsWith(`${prefix}/`)
 }
 
-function statusRank(status: 'busy' | 'idle') {
-  return status === 'busy' ? 0 : 1
-}
-
 function normalizeQueryStatus(value?: string) {
   const normalized = value?.trim().toLowerCase()
   if (!normalized || normalized === 'all') return undefined
@@ -343,16 +339,23 @@ async function buildSnapshot(
 
   const entities = Array.from(entityStates.entries())
     .map(([path, state]) => ({
+      key: path,
       path,
       entityId: path.split('/').pop() || path,
       entityType: 'path' as const,
-      ...state,
+      currentStatus: state.status,
+      lastSeenAt: state.lastSeenAt,
+      lastContent: state.lastContent,
     }))
     .sort((a, b) => {
-      const rankA = statusRank(a.status)
-      const rankB = statusRank(b.status)
-      if (rankA !== rankB) return rankA - rankB
-      return b.lastSeenAt.localeCompare(a.lastSeenAt)
+      if (a.currentStatus !== b.currentStatus) {
+        return a.currentStatus === 'idle' ? -1 : 1
+      }
+      if (a.currentStatus === 'idle') {
+        return a.lastSeenAt.localeCompare(b.lastSeenAt) // oldest to newest
+      } else {
+        return b.lastSeenAt.localeCompare(a.lastSeenAt) // newest to oldest
+      }
     })
 
   const busyCount = Array.from(entityStates.values()).filter((s) => s.status === 'busy').length

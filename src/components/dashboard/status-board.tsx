@@ -1,7 +1,7 @@
 import { AlertCircle } from 'lucide-react'
 import type { EntitySnapshot } from '~/lib/types'
-import { formatRelative } from '~/lib/format'
 import { cn, getPathColor } from '~/lib/utils'
+import { Markdown } from '~/components/ui/markdown'
 
 interface StatusBoardProps {
   rows: EntitySnapshot[]
@@ -11,82 +11,93 @@ interface StatusBoardProps {
 export function StatusBoard({ rows, lastSeenAt }: StatusBoardProps) {
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="flex-1 min-h-0 overflow-y-auto scroll-thin">
-        {rows.length === 0 ? (
-          <div className="flex h-full min-h-[300px] items-center justify-center flex-col gap-2 text-muted-foreground">
-            <AlertCircle className="h-5 w-5 opacity-20" />
-          </div>
-        ) : (
-          <div className="grid gap-3 px-1 pb-6 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 2xl:grid-cols-4">
-            {rows.map((row) => {
-              const pathColor = getPathColor(row.path)
-              const jewelBg = `oklch(from ${pathColor} 0.16 0.12 h / 0.9)`
-              const jewelBorder = `oklch(from ${pathColor} 0.45 0.18 h / 0.5)`
-              const jewelText = `oklch(from ${pathColor} 0.98 0.01 h)`
-              const jewelTextDim = `oklch(from ${pathColor} 0.65 0.05 h)`
-              const isUnread = new Date(row.lastSeenAt).getTime() > lastSeenAt
-              
-              return (
-                <div 
-                  key={row.key} 
-                  className={cn(
-                    "group relative overflow-hidden rounded-2xl border-2 p-4 backdrop-blur-3xl card-hover-effect sm:p-6",
-                    isUnread ? "border-amber-500/50 shadow-primary-glow-sm" : ""
-                  )}
-                  style={{ 
-                    backgroundColor: jewelBg,
-                    borderColor: isUnread ? undefined : jewelBorder,
-                  }}
-                >
-                  {isUnread && (
-                    <div className="absolute right-3 top-3 z-10 sm:right-4 sm:top-4">
-                      <span className="relative flex h-2 w-2">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+      <div className="flex flex-col flex-1 min-h-0 bg-card/10 border border-primary/10 rounded-2xl overflow-hidden backdrop-blur-md">
+        <div className="scroll-thin flex-1 overflow-y-auto">
+          {rows.length === 0 ? (
+            <div className="flex h-full min-h-[300px] items-center justify-center flex-col gap-2 text-muted-foreground">
+              <AlertCircle className="h-5 w-5 opacity-20" />
+            </div>
+          ) : (
+            <div className="divide-y divide-white/5 font-mono text-xs">
+              {rows.map((row) => {
+                const pathColor = getPathColor(row.path)
+                const pathColorDim = `oklch(from ${pathColor} 0.65 0.05 h)`
+                const isBusy = row.currentStatus === 'busy'
+                const isUnread = new Date(row.lastSeenAt).getTime() > lastSeenAt
+                const lastSeenDate = new Date(row.lastSeenAt)
+                
+                return (
+                  <div 
+                    key={row.key} 
+                    className={cn(
+                      "group relative flex flex-col gap-2 border-l-4 px-4 py-3 pr-8 md:grid md:grid-cols-[100px_80px_minmax(0,1fr)_100px] md:gap-4 md:px-6 md:py-2 md:pr-6",
+                      isBusy ? "opacity-100" : "opacity-90",
+                      isUnread && "bg-amber-500/10"
+                    )}
+                    style={{ 
+                      borderLeftColor: pathColor,
+                    }}
+                  >
+                    {isUnread && (
+                      <div className="absolute right-3 top-3 z-10 md:right-4 md:top-1/2 md:-translate-y-1/2">
+                        <span className="relative flex h-2 w-2">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
                         <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500 shadow-primary-glow-sm"></span>
-                      </span>
-                    </div>
-                  )}
-                  <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="flex flex-col min-w-0">
-                      <span className="text-lg font-black truncate tracking-tight" style={{ color: jewelText }}>
-                        {row.entityId}
-                      </span>
-                    </div>
-                    <div className={cn(
-                      "inline-flex w-fit items-center gap-2 rounded-lg border-2 px-3 py-1.5 text-xs font-black uppercase tracking-widest",
-                      statusBadgeColors(row.currentStatus)
-                    )}>
-                      <span className={cn("h-2 w-2 rounded-full", statusDotColors(row.currentStatus))} />
-                      {row.currentStatus}
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-3.5 text-xs font-semibold">
-                    <div className="flex flex-col items-start gap-1 border-b border-white/5 pb-2 sm:flex-row sm:items-center sm:justify-between">
-                      <span className="max-w-full break-all font-mono sm:max-w-[160px] sm:truncate" style={{ color: jewelText }}>{row.path}</span>
-                    </div>
-                    <div className="flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:justify-between">
-                      <span className="text-xs" style={{ color: jewelText }}>{formatRelative(row.lastSeenAt)}</span>
-                    </div>
+                        </span>
+                      </div>
+                    )}
                     
-                    <div className="mt-4 pt-4 border-t border-white/5">
-                      <div 
-                        className="line-clamp-3 rounded-xl p-3 text-xs font-bold leading-relaxed shadow-inner sm:line-clamp-2 sm:p-3.5"
-                        style={{ 
-                          backgroundColor: `oklch(from ${pathColor} 0.12 0.04 h / 0.4)`,
-                          color: row.currentStatus === 'busy' ? 'oklch(0.83 0.12 84)' : `oklch(from ${pathColor} 0.85 0.05 h)`,
-                          border: `1px solid oklch(from ${pathColor} 0.25 0.08 h / 0.3)`
-                        }}
-                      >
-                        {row.lastContent ?? <span className="italic uppercase tracking-widest text-xxs text-zinc-500">No Payload</span>}
+                    {/* Meta Row (Timestamp & Status) */}
+                    <div className="flex items-center justify-between gap-3 md:contents">
+                      <div className="text-zinc-400 text-xs tabular-nums whitespace-nowrap self-center font-bold tracking-tighter">
+                        <span className="md:hidden">
+                          {lastSeenDate.toLocaleTimeString(undefined, { hour12: false })}
+                        </span>
+                        <span className="hidden md:inline">
+                          {lastSeenDate.toLocaleTimeString(undefined, { hour12: false, fractionalSecondDigits: 3 })}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center">
+                        <span className={cn('font-black text-xxs px-1.5 py-0.5 rounded border leading-none uppercase tracking-widest', statusBadgeColors(row.currentStatus))}>
+                          {row.currentStatus}
+                        </span>
                       </div>
                     </div>
+
+                    {/* Content Row */}
+                    <div className="mt-0.5 w-full min-w-0 self-center md:mt-0 md:w-auto">
+                      <div className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-1 md:mb-0.5 md:overflow-hidden">
+                        <span 
+                          className="min-w-0 max-w-full truncate text-xs font-black tracking-widest uppercase"
+                          style={{ color: pathColor }}
+                        >
+                          {row.path}
+                        </span>
+                        {row.entityId && (
+                          <span className="shrink-0 text-xs font-black tracking-widest uppercase" style={{ color: pathColorDim }}>
+                            @{row.entityId}
+                          </span>
+                        )}
+                      </div>
+                      <Markdown 
+                        className={cn('break-words leading-5 text-xs tracking-tight text-foreground font-medium', row.currentStatus === 'busy' && 'text-amber-200 font-bold')}
+                        content={row.lastContent ?? 'empty_payload'}
+                      />
+                    </div>
+
+                    {/* Path Tail (Desktop Only) */}
+                    <div className="hidden md:flex flex-col items-end justify-center overflow-hidden">
+                      <span className="text-xs truncate font-black uppercase tracking-widest text-zinc-500 group-hover:text-zinc-400 max-w-[90px] transition-colors">
+                        {row.path.split('/').slice(-1)[0]}
+                      </span>
+                    </div>
                   </div>
-                </div>
-              )
-            })}
-          </div>
-        )}
+                )
+              })}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
@@ -94,16 +105,8 @@ export function StatusBoard({ rows, lastSeenAt }: StatusBoardProps) {
 
 function statusBadgeColors(status: EntitySnapshot['currentStatus']) {
   switch (status) {
-    case 'busy': return 'bg-amber-400/10 text-amber-300 border-amber-400/20 shadow-inner'
-    case 'idle': return 'bg-info/10 text-info border-info/20'
-    default: return 'bg-muted/50 text-muted-foreground border-border'
-  }
-}
-
-function statusDotColors(status: EntitySnapshot['currentStatus']) {
-  switch (status) {
-    case 'busy': return 'bg-amber-400 shadow-primary-glow-sm'
-    case 'idle': return 'bg-info shadow-primary-glow-sm'
-    default: return 'bg-muted-foreground'
+    case 'busy': return 'text-amber-300 border-amber-400/40 bg-amber-400/10'
+    case 'idle': return 'text-info border-info/30 bg-info/10'
+    default: return 'text-zinc-400 border-white/10 bg-white/5'
   }
 }
