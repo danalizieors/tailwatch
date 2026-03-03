@@ -8,6 +8,8 @@ import {
   VolumeX,
   Zap,
   LayoutGrid,
+  PanelLeft,
+  PanelLeftClose,
 } from 'lucide-react'
 import { Card, CardContent } from '~/components/ui/card'
 import { Button } from '~/components/ui/button'
@@ -234,23 +236,16 @@ export function DashboardView({ initialMode = 'logs', volume, isAuthLoading, sho
 
   return (
     <div className="flex h-dvh min-h-dvh w-full flex-col overflow-hidden text-foreground bg-background">
-      <AppShellHeader
-        current="events"
-        topRight={headerTopRight}
-        onSidebarToggle={() => setIsSidebarOpen(!isSidebarOpen)}
-        isSidebarOpen={isSidebarOpen}
-      />
+      {/* Header */}
+      <div className="z-50 shrink-0">
+        <AppShellHeader
+          current="events"
+          topRight={headerTopRight}
+        />
+      </div>
 
       <div className="flex-1 min-h-0 flex relative overflow-hidden">
-        {/* Backdrop for mobile sidebar */}
-        {isSidebarOpen && (
-          <div 
-            className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm lg:hidden" 
-            onClick={() => setIsSidebarOpen(false)}
-          />
-        )}
-
-        {/* LEFT: Volume Sidebar */}
+        {/* LEFT: Volume Sidebar - Always sharp and accessible */}
         <VolumeSidebar
           activeVolume={activeVolume}
           volumeChoices={(managedVolumes ?? []).map(v => ({ 
@@ -270,6 +265,7 @@ export function DashboardView({ initialMode = 'logs', volume, isAuthLoading, sho
           isOpen={isSidebarOpen}
           onClose={() => setIsSidebarOpen(false)}
         />
+
         {/* CENTER: Main Content */}
         <main className="flex-1 min-w-0 flex flex-col overflow-y-auto no-scrollbar">
           <div className="max-w-[1400px] w-full mx-auto px-4 md:px-8 flex flex-col">
@@ -351,6 +347,26 @@ export function DashboardView({ initialMode = 'logs', volume, isAuthLoading, sho
             </div>
           </div>
         </main>
+      </div>
+
+      {/* Single Mobile Backdrop Overlay */}
+      <div 
+        className={cn(
+          "fixed inset-0 z-[90] bg-background/60 backdrop-blur-sm lg:hidden transition-all duration-500 ease-in-out",
+          isSidebarOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+        )} 
+        onClick={() => setIsSidebarOpen(false)}
+      />
+
+      {/* Floating Action Button (Mobile Sidebar Toggle) */}
+      <div className="fixed bottom-6 right-6 z-[110] lg:hidden">
+        <Button
+          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+          className="h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-primary-glow transition-all active:scale-95 flex items-center justify-center border-none backdrop-blur-md"
+          title="Toggle Volumes & Devices"
+        >
+          {isSidebarOpen ? <PanelLeftClose className="h-6 w-6" /> : <PanelLeft className="h-6 w-6" />}
+        </Button>
       </div>
 
       {isDebugMode && (
