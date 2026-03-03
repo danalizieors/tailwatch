@@ -2,6 +2,7 @@ import { AlertCircle } from 'lucide-react'
 import type { EventStatus, StoredEvent } from '~/lib/types'
 import { cn, getPathColor } from '~/lib/utils'
 import { Markdown } from '~/components/ui/markdown'
+import { RelativeTime } from '~/components/ui/relative-time'
 
 interface LogStreamProps {
   events: StoredEvent[]
@@ -25,6 +26,7 @@ export function LogStream({ events, lastSeenAt }: LogStreamProps) {
                 const isBusy = event.status === 'busy'
                 const isUnread = new Date(event.time).getTime() > lastSeenAt
                 const eventDate = new Date(event.time)
+                const absoluteTime = eventDate.toLocaleTimeString(undefined, { hour12: false, fractionalSecondDigits: 3 })
                 
                 return (
                   <div 
@@ -48,17 +50,17 @@ export function LogStream({ events, lastSeenAt }: LogStreamProps) {
                     )}
                     {/* Meta Row (Timestamp & Level) */}
                     <div className="flex items-center justify-between gap-3 md:contents">
-                      <div className="text-zinc-400 text-xs tabular-nums whitespace-nowrap self-center font-bold tracking-tighter">
-                        <span className="md:hidden">
-                          {eventDate.toLocaleTimeString(undefined, { hour12: false })}
-                        </span>
-                        <span className="hidden md:inline">
-                          {eventDate.toLocaleTimeString(undefined, { hour12: false, fractionalSecondDigits: 3 })}
-                        </span>
-                      </div>
+                      <RelativeTime
+                        time={event.time}
+                        className="text-zinc-400 text-xs tabular-nums whitespace-nowrap self-center font-bold tracking-tighter cursor-help"
+                        title={absoluteTime}
+                      />
 
                       <div className="flex items-center">
-                        <span className={cn('font-black text-xxs px-1.5 py-0.5 rounded border leading-none uppercase tracking-widest', eventStatusColors(event.status))}>
+                        <span 
+                          key={`${event.id}-${event.status}`}
+                          className={cn('font-black text-xxs px-1.5 py-0.5 rounded border leading-none uppercase tracking-widest animate-glow', eventStatusColors(event.status))}
+                        >
                           {event.status}
                         </span>
                       </div>
@@ -80,7 +82,8 @@ export function LogStream({ events, lastSeenAt }: LogStreamProps) {
                         )}
                       </div>
                       <Markdown 
-                        className={cn('break-words leading-5 text-xs tracking-tight text-foreground font-medium', event.status === 'busy' && 'text-amber-200 font-bold')}
+                        key={`${event.id}-${event.content}`}
+                        className={cn('inline-block break-words leading-5 text-xs tracking-tight text-foreground font-medium animate-glow', event.status === 'busy' && 'text-amber-200 font-bold')}
                         content={event.content ?? 'empty_payload'}
                       />
                     </div>

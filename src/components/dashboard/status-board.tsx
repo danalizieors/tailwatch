@@ -2,6 +2,7 @@ import { AlertCircle } from 'lucide-react'
 import type { EntitySnapshot } from '~/lib/types'
 import { cn, getPathColor } from '~/lib/utils'
 import { Markdown } from '~/components/ui/markdown'
+import { RelativeTime } from '~/components/ui/relative-time'
 
 interface StatusBoardProps {
   rows: EntitySnapshot[]
@@ -25,6 +26,7 @@ export function StatusBoard({ rows, lastSeenAt }: StatusBoardProps) {
                 const isBusy = row.currentStatus === 'busy'
                 const isUnread = new Date(row.lastSeenAt).getTime() > lastSeenAt
                 const lastSeenDate = new Date(row.lastSeenAt)
+                const absoluteTime = lastSeenDate.toLocaleTimeString(undefined, { hour12: false, fractionalSecondDigits: 3 })
                 
                 return (
                   <div 
@@ -49,17 +51,17 @@ export function StatusBoard({ rows, lastSeenAt }: StatusBoardProps) {
                     
                     {/* Meta Row (Timestamp & Status) */}
                     <div className="flex items-center justify-between gap-3 md:contents">
-                      <div className="text-zinc-400 text-xs tabular-nums whitespace-nowrap self-center font-bold tracking-tighter">
-                        <span className="md:hidden">
-                          {lastSeenDate.toLocaleTimeString(undefined, { hour12: false })}
-                        </span>
-                        <span className="hidden md:inline">
-                          {lastSeenDate.toLocaleTimeString(undefined, { hour12: false, fractionalSecondDigits: 3 })}
-                        </span>
-                      </div>
+                      <RelativeTime
+                        time={row.lastSeenAt}
+                        className="text-zinc-400 text-xs tabular-nums whitespace-nowrap self-center font-bold tracking-tighter cursor-help"
+                        title={absoluteTime}
+                      />
 
                       <div className="flex items-center">
-                        <span className={cn('font-black text-xxs px-1.5 py-0.5 rounded border leading-none uppercase tracking-widest', statusBadgeColors(row.currentStatus))}>
+                        <span 
+                          key={`${row.key}-${row.currentStatus}`}
+                          className={cn('font-black text-xxs px-1.5 py-0.5 rounded border leading-none uppercase tracking-widest animate-glow', statusBadgeColors(row.currentStatus))}
+                        >
                           {row.currentStatus}
                         </span>
                       </div>
@@ -81,7 +83,8 @@ export function StatusBoard({ rows, lastSeenAt }: StatusBoardProps) {
                         )}
                       </div>
                       <Markdown 
-                        className={cn('break-words leading-5 text-xs tracking-tight text-foreground font-medium', row.currentStatus === 'busy' && 'text-amber-200 font-bold')}
+                        key={`${row.key}-${row.lastContent}`}
+                        className={cn('inline-block break-words leading-5 text-xs tracking-tight text-foreground font-medium animate-glow', row.currentStatus === 'busy' && 'text-amber-200 font-bold')}
                         content={row.lastContent ?? 'empty_payload'}
                       />
                     </div>
