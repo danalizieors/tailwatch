@@ -10,6 +10,7 @@
 
 import type * as auth from "../auth.js";
 import type * as devices from "../devices.js";
+import type * as env from "../env.js";
 import type * as events from "../events.js";
 import type * as http from "../http.js";
 import type * as push from "../push.js";
@@ -25,6 +26,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   devices: typeof devices;
+  env: typeof env;
   events: typeof events;
   http: typeof http;
   push: typeof push;
