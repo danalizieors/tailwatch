@@ -10,27 +10,47 @@ type PublishPayload = {
   content?: string
 }
 
-const convexUrl = import.meta.env.VITE_CONVEX_URL
+const convexUrl =
+  import.meta.env.VITE_CONVEX_URL ||
+  (globalThis as any).process?.env?.VITE_CONVEX_URL ||
+  (globalThis as any).process?.env?.CONVEX_URL
+
 const convex = convexUrl ? new ConvexHttpClient(convexUrl) : null
 
 export const Route = createFileRoute('/api/publish/$')({
   server: {
     handlers: {
+      OPTIONS: async () => {
+        return new Response(null, {
+          status: 204,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'POST, OPTIONS',
+            'Access-Control-Allow-Headers':
+              'Content-Type, x-volume-key, x-tailwatch-volume, x-event-status',
+            'Access-Control-Max-Age': '86400',
+          },
+        })
+      },
       POST: async ({ request, params }) => {
+        const corsHeaders = {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'POST, OPTIONS',
+          'Access-Control-Allow-Headers':
+            'Content-Type, x-volume-key, x-tailwatch-volume, x-event-status',
+        }
+
         if (!convex) {
+          console.error('[API/Publish] VITE_CONVEX_URL is missing')
           return Response.json(
-            {
-              error: 'VITE_CONVEX_URL is not configured',
-            },
-            { status: 500 },
+            { error: 'Server configuration error (missing database URL)' },
+            { status: 500, headers: corsHeaders },
           )
         }
 
         try {
-          const splat = (params._splat ?? '')
-            .split('/')
-            .filter(Boolean)
-            .join('/')
+          const rawSplat = (params as any)._splat ?? (params as any)['$'] ?? ''
+          const splat = rawSplat.split('/').filter(Boolean).join('/')
           const urlParts = splat.split('/').filter(Boolean)
 
           const headerVolumeKey = request.headers.get('x-volume-key')?.trim()
@@ -42,10 +62,11 @@ export const Route = createFileRoute('/api/publish/$')({
           const headerStatusRaw = request.headers.get('x-event-status')?.trim()
           const statusRaw = queryStatusRaw || headerStatusRaw
           const statusOverride = normalizeEventStatus(statusRaw)
+
           if (statusRaw && !statusOverride) {
             return Response.json(
-              { error: "Invalid status. Use 'idle' or 'busy'." },
-              { status: 400 },
+              { error: "Invalid status value. Must be 'idle' or 'busy'." },
+              { status: 400, headers: corsHeaders },
             )
           }
 
@@ -54,6 +75,7 @@ export const Route = createFileRoute('/api/publish/$')({
             payload.status = statusOverride
           }
 
+          // Case 1: Volume Key provided in header
           if (headerVolumeKey) {
             const event = await convex.mutation(api.events.publishByKey, {
               key: headerVolumeKey,
@@ -62,18 +84,20 @@ export const Route = createFileRoute('/api/publish/$')({
             })
             return Response.json(
               { ...event, volume: headerVolumeKey },
-              { status: 201 },
+              { status: 201, headers: corsHeaders },
             )
           }
 
+          // Case 2: No headerVolume provided, expect first segment of URL to be Volume Key
           if (!headerVolume) {
             const [urlKey, ...subpathParts] = urlParts
             if (!urlKey) {
               return Response.json(
                 {
-                  error: 'Volume key is required in URL or x-volume-key header',
+                  error:
+                    'Volume key missing. Provide it as the first URL segment or via x-volume-key header.',
                 },
-                { status: 400 },
+                { status: 400, headers: corsHeaders },
               )
             }
 
@@ -82,25 +106,29 @@ export const Route = createFileRoute('/api/publish/$')({
               subpath: subpathParts.join('/'),
               ...payload,
             })
-            return Response.json({ ...event, volume: urlKey }, { status: 201 })
+            return Response.json(
+              { ...event, volume: urlKey },
+              { status: 201, headers: corsHeaders },
+            )
           }
 
+          // Case 3: Explicit Volume Name provided in header
           const event = await convex.mutation(api.events.publish, {
             path: splat,
             volume: headerVolume,
             ...payload,
           })
-          return Response.json(event, { status: 201 })
+          return Response.json(event, { status: 201, headers: corsHeaders })
         } catch (error) {
-          console.error('[API/Publish] Error:', error)
+          const errorMessage =
+            error instanceof Error ? error.message : 'Unknown error'
+          const statusCode = statusCodeForError(error)
+
+          console.error(`[API/Publish] ${statusCode} Error:`, errorMessage)
+
           return Response.json(
-            {
-              error:
-                error instanceof Error
-                  ? error.message
-                  : 'Failed to publish event',
-            },
-            { status: statusCodeForError(error) },
+            { error: errorMessage },
+            { status: statusCode, headers: corsHeaders },
           )
         }
       },

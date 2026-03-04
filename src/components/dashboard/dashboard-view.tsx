@@ -268,7 +268,21 @@ export function DashboardView({
   })
 
   return (
-    <div className='text-foreground bg-background flex h-dvh min-h-dvh w-full flex-col overflow-hidden'>
+    <div className='text-foreground bg-background relative flex h-dvh min-h-dvh w-full flex-col overflow-hidden'>
+      {/* Subtle Pixelated Background */}
+      <div className='pixel-grid opacity-30' />
+
+      {/* SVG Pixel Filter */}
+      <svg className='hidden'>
+        <filter id='pixelate'>
+          <feFlood x='0' y='0' height='2' width='2' />
+          <feComposite width='4' height='4' />
+          <feTile result='a' />
+          <feComposite in='SourceGraphic' in2='a' operator='in' />
+          <feMorphology operator='dilate' radius='2' />
+        </filter>
+      </svg>
+
       {/* Header */}
       <div className='z-[100] shrink-0'>
         <AppShellHeader current='events' />

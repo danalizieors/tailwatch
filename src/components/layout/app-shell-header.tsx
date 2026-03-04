@@ -96,10 +96,10 @@ export function AppShellHeader({ current, topRight }: AppShellHeaderProps) {
     <>
       <header
         className={cn(
-          'border-border/40 bg-background/95 z-50 shrink-0 border-b px-3 transition-all duration-500 ease-in-out md:px-8',
+          'border-white/5 bg-background/60 z-50 shrink-0 border-b px-3 transition-all duration-500 ease-in-out md:px-8',
           isMenuOpen || isProfileOpen
             ? 'backdrop-blur-none'
-            : 'backdrop-blur-md',
+            : 'backdrop-blur-xl',
         )}
         style={{
           paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.5rem)',
@@ -190,7 +190,7 @@ export function AppShellHeader({ current, topRight }: AppShellHeaderProps) {
 
                   <div
                     className={cn(
-                      'border-border/70 bg-card/98 absolute top-12 right-0 z-[100] w-64 origin-top-right rounded-xl border p-3 shadow-2xl backdrop-blur-xl transition-all duration-200',
+                      'border-white/5 bg-zinc-900/90 absolute top-12 right-0 z-[100] w-64 origin-top-right rounded-xl border p-4 shadow-2xl backdrop-blur-xl transition-all duration-200',
                       isProfileOpen
                         ? 'translate-y-0 scale-100 opacity-100'
                         : 'pointer-events-none -translate-y-2 scale-95 opacity-0',

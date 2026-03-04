@@ -86,7 +86,7 @@ export function VolumeSidebar({
   return (
     <aside
       className={cn(
-        'border-border/40 bg-background/95 no-scrollbar fixed inset-y-0 left-0 z-[100] flex w-72 flex-col gap-8 overflow-y-auto border-r px-6 py-6 backdrop-blur-xl transition-all duration-300 ease-in-out lg:static lg:inset-auto lg:flex lg:translate-x-0',
+        'border-white/5 bg-zinc-900/40 no-scrollbar fixed inset-y-0 left-0 z-[100] flex w-72 flex-col gap-8 overflow-y-auto border-r px-6 py-6 backdrop-blur-xl transition-all duration-300 ease-in-out lg:static lg:inset-auto lg:flex lg:translate-x-0',
         isOpen
           ? 'translate-x-0 opacity-100 shadow-2xl'
           : '-translate-x-full opacity-0 lg:opacity-100',

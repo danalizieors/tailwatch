@@ -22,7 +22,7 @@ export function StatusBoard({ rows, lastSeenAt }: StatusBoardProps) {
 
   return (
     <div className='flex h-full flex-col overflow-hidden'>
-      <div className='bg-card/10 border-primary/10 flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border backdrop-blur-md'>
+      <div className='bg-zinc-900/40 border-white/5 flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border backdrop-blur-md transition-all'>
         <div className='scroll-thin flex-1 overflow-y-auto'>
           {rows.length === 0 ? (
             <div className='text-muted-foreground flex h-full min-h-[300px] flex-col items-center justify-center gap-2'>

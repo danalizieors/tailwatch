@@ -12,7 +12,7 @@ interface PublicHeaderProps {
 }
 
 const publicHeaderActionBaseClassName =
-  'focus-visible:ring-ring inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border text-xs font-semibold tracking-wide shadow-sm transition-all duration-200 focus-visible:ring-2 focus-visible:outline-none'
+  'inline-flex min-h-11 items-center gap-2 rounded-lg px-6 text-xs font-bold tracking-tight transition-all active:scale-[0.98]'
 
 export function PublicHeader({
   showPricingLink = true,
@@ -43,13 +43,13 @@ export function PublicHeader({
 
   return (
     <header
-      className='border-border/50 bg-background/90 sticky top-0 z-50 border-b backdrop-blur-md'
+      className='border-white/5 bg-zinc-900/60 sticky top-0 z-50 border-b backdrop-blur-xl'
       style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
     >
       <nav
         aria-label='Primary'
         className={cn(
-          'mx-auto flex min-h-16 w-full max-w-7xl min-w-0 flex-wrap items-center justify-between gap-3 px-4 py-2 md:h-16 md:flex-nowrap md:gap-4 md:px-6 md:py-0',
+          'mx-auto flex min-h-20 w-full max-w-7xl min-w-0 flex-wrap items-center justify-between gap-3 px-4 py-2 md:h-20 md:flex-nowrap md:gap-4 md:px-6 md:py-0',
           navClassName,
         )}
       >
@@ -57,13 +57,13 @@ export function PublicHeader({
           <TailwatchBrand />
         </Link>
 
-        <div className='ml-auto flex w-full min-w-0 items-center justify-end gap-2 sm:w-auto'>
+        <div className='ml-auto flex w-full min-w-0 items-center justify-end gap-3 sm:w-auto'>
           {showPricingLink ? (
             <Link
               to='/pricing'
               className={cn(
                 publicHeaderActionBaseClassName,
-                'border-border/70 bg-card/70 text-foreground hover:bg-card/90 px-3',
+                'border border-white/10 bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-foreground',
               )}
             >
               Pricing
@@ -76,7 +76,7 @@ export function PublicHeader({
             onClick={(event) => void handleDashboardNavigation(event)}
             className={cn(
               publicHeaderActionBaseClassName,
-              'border-primary/35 bg-primary text-primary-foreground shadow-primary/20 px-4 hover:opacity-90 active:scale-95',
+              'bg-primary text-black shadow-lg shadow-primary/20 hover:opacity-90',
             )}
           >
             {!isLoading && !isAuthenticated ? (

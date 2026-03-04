@@ -3,672 +3,257 @@ import {
   Activity,
   Bell,
   ChevronRight,
-  Clock3,
-  Database,
   GitBranch,
   LayoutGrid,
   ListTree,
   Lock,
-  Server,
-  ShieldCheck,
   Sparkles,
   Terminal,
   Webhook,
-  Zap,
+  ArrowRight,
+  Box,
+  Monitor,
+  Smartphone,
+  Cpu,
 } from 'lucide-react'
 import { PublicFooter } from '~/components/layout/public-footer'
 import { PublicHeader } from '~/components/layout/public-header'
 import { PublicPageShell } from '~/components/layout/public-page-shell'
 import { Badge } from '~/components/ui/badge'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '~/components/ui/card'
 
 export const Route = createFileRoute('/')({
   head: () => ({
-    meta: [{ title: 'Tailwatch - Stay entailed' }],
+    meta: [{ title: 'Tailwatch - Terminal Telemetry & Instant Alerts' }],
   }),
   component: TailwatchLandingPage,
 })
-
-const proofStats = [
-  {
-    label: 'Experience',
-    value: '1',
-    detail: 'Unified dashboard',
-    icon: LayoutGrid,
-  },
-  {
-    label: 'Status',
-    value: 'Busy/Idle',
-    detail: 'Binary state machine',
-    icon: Activity,
-  },
-  {
-    label: 'Ingestion',
-    value: 'HTTP',
-    detail: 'Simple POST endpoint',
-    icon: Webhook,
-  },
-  {
-    label: 'Alerts',
-    value: 'Push',
-    detail: 'Desktop & Mobile notifications',
-    icon: Bell,
-  },
-]
-
-const problemCards = [
-  {
-    title: 'Streams lose context',
-    description:
-      'Events arrive fast, but ownership disappears. You can see output, but not where it belongs in the system.',
-    icon: ListTree,
-  },
-  {
-    title: 'Manual steps are missed',
-    description:
-      'Background tasks often stall when waiting for human input. You need to be alerted the moment your attention is required.',
-    icon: Bell,
-  },
-  {
-    title: 'State drifts away',
-    description:
-      'An event says “started”, but nobody can tell what is still running, stalled, or waiting for review right now.',
-    icon: LayoutGrid,
-  },
-]
-
-const workflowSteps = [
-  {
-    step: '01',
-    title: 'Publish to a path',
-    description:
-      'Post events to `/api/publish/<topic>` where the URL path becomes the hierarchy Tailwatch tracks.',
-    icon: Webhook,
-  },
-  {
-    step: '02',
-    title: 'Watch the Log Stream',
-    description:
-      'Tailwatch appends and streams events instantly so you can follow the "chain of thought" in real-time.',
-    icon: Zap,
-  },
-  {
-    step: '03',
-    title: 'Derive system status',
-    description:
-      'The Status Board summarizes event sequences into entity snapshots: busy or idle.',
-    icon: LayoutGrid,
-  },
-  {
-    step: '04',
-    title: 'Alert everywhere',
-    description:
-      'Enable browser push notifications to receive instant alerts on desktop or mobile when systems require human intervention.',
-    icon: Bell,
-  },
-]
-
-const featureCards = [
-  {
-    title: 'Hierarchical paths',
-    description:
-      'Namespace events by team, project, or service using a familiar file-system-like hierarchy.',
-    icon: GitBranch,
-  },
-  {
-    title: 'Live Log Stream',
-    description:
-      'A real-time timeline for following step-by-step logic, heartbeat signals, and detailed message trails.',
-    icon: ListTree,
-  },
-  {
-    title: 'Status Board snapshot',
-    description:
-      'A high-level view of your entire system. Instantly identify stalls and busy components.',
-    icon: LayoutGrid,
-  },
-  {
-    title: 'PWA & Mobile Push',
-    description:
-      'Install Tailwatch as a Progressive Web App (PWA) on any device for native-app experience and background alerts.',
-    icon: Bell,
-  },
-  {
-    title: 'Isolated Volumes',
-    description:
-      'Separate production, staging, and internal environments with cryptographically secure volumes.',
-    icon: Lock,
-  },
-]
-
-const useCases = [
-  {
-    title: 'Agent orchestration',
-    body: 'Watch an agent’s "chain of thought" and get a push notification when it moves between tasks.',
-    icon: Sparkles,
-  },
-  {
-    title: 'Human-in-the-Loop',
-    body: 'Get notified immediately on your phone when a process reaches a step that requires manual review or approval.',
-    icon: Bell,
-  },
-  {
-    title: 'Cron + ops tasks',
-    body: 'Monitor scheduled jobs and health routines with simple status-based events and background alerts.',
-    icon: ShieldCheck,
-  },
-  {
-    title: 'Distributed Systems',
-    body: 'A lightweight way to see if remote services are still "breathing" across all your devices.',
-    icon: Terminal,
-  },
-]
-
-const faqItems = [
-  {
-    q: 'Do I need an SDK to receive alerts?',
-    a: 'No. Tailwatch uses native browser Web Push. You can enable notifications for any volume with one click on desktop or by installing the PWA on your mobile device.',
-  },
-  {
-    q: 'Can I use Tailwatch for more than agent tasks?',
-    a: 'Yes. The model is generic: jobs, services, pipelines, cron tasks, and simple message feeds all fit the same path-based event pattern with integrated alerting.',
-  },
-  {
-    q: 'How does the dashboard stay readable under high event volume?',
-    a: 'Tailwatch combines path hierarchy, filtering, and status summaries so you can quickly isolate what matters. Critical state changes will always trigger a push notification if enabled.',
-  },
-  {
-    q: 'How do mobile notifications work?',
-    a: 'Tailwatch is a Progressive Web App (PWA). Just "Add to Home Screen" on iOS or Android, and you will receive native background alerts just like a standalone app.',
-  },
-]
-
-const curlExample = `curl -X POST http://localhost:3000/api/publish/team-a/project-x/task/planner \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "type":"start",
-    "runId":"run_123",
-    "entityId":"planner",
-    "entityType":"task",
-    "content":"Starting plan"
-  }'`
 
 function TailwatchLandingPage() {
   return (
     <PublicPageShell>
       <PublicHeader />
 
-      <main
-        id='top'
-        className='mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-14 px-4 py-8 md:gap-20 md:px-6 md:py-12'
-      >
-        <section className='grid min-w-0 items-start gap-8 lg:grid-cols-2 lg:gap-10'>
-          <div className='flex min-w-0 flex-col gap-6'>
-            <div className='flex flex-wrap items-center gap-2'>
-              <Badge
-                variant='outline'
-                className='border-border/70 bg-card/70 text-foreground px-3 py-1 text-xs font-semibold tracking-wide'
-              >
-                Realtime event telemetry
+      <main className="flex-1 w-full min-w-0 flex flex-col relative overflow-hidden">
+        {/* Subtle Pixelated Background */}
+        <div className="pixel-grid opacity-30" />
+        
+        {/* HERO SECTION */}
+        <section className="relative pt-20 pb-24 md:pt-32 md:pb-40 px-4 sm:px-6">
+          <div className="mx-auto max-w-5xl">
+            <div className="flex flex-col items-center text-center mb-16 md:mb-24">
+               <Badge variant="outline" className="mb-6 border-primary/30 bg-primary/5 text-primary/80 px-4 py-1 text-[10px] font-medium tracking-widest uppercase rounded-full">
+                <Sparkles className="w-3 h-3 mr-2 inline-block opacity-70" />
+                Version 1.0 Signal
               </Badge>
-              <Badge
-                variant='outline'
-                className='border-border/70 bg-card/70 px-3 py-1 text-xs font-medium tracking-wide text-zinc-400'
-              >
-                Built for agents, jobs, services
-              </Badge>
-            </div>
-
-            <div className='space-y-4'>
-              <p className='ml-1 text-xs font-semibold tracking-wide text-zinc-400'>
-                Overview
-              </p>
-              <h1 className='text-foreground text-4xl leading-tight font-semibold tracking-tight text-balance sm:text-5xl lg:text-6xl'>
-                See every agent, job, and service
-                <span className='text-primary block'>
-                  with real-time status visibility.
-                </span>
+              <h1 className="text-foreground text-5xl sm:text-7xl md:text-8xl font-bold tracking-tight leading-[0.9] mb-8">
+                The Status Board <br />
+                <span className="text-primary glow-text">for your Agents.</span>
               </h1>
-              <p className='text-muted-foreground max-w-2xl text-base leading-7 md:text-lg'>
-                Tailwatch is the sweet spot between messy logs and complex
-                monitoring. A living Status Board and real-time alerts for your
-                entire agentic workforce.
+              <p className="text-zinc-400 text-lg md:text-xl max-w-2xl mx-auto leading-relaxed">
+                Direct-to-dashboard telemetry for your agentic infrastructure. 
+                Simple ingestion, real-time visualization, and instant alerts.
               </p>
-
-              <div className='flex flex-wrap items-center gap-2 pt-1'>
-                <Link
-                  to='/pricing'
-                  className='border-border/70 bg-card/70 text-foreground focus-visible:ring-ring hover:bg-card inline-flex min-h-11 items-center gap-2 rounded-lg border px-4 text-xs font-semibold tracking-wide shadow-sm transition-colors focus-visible:ring-2 focus-visible:outline-none'
+              
+              <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-4">
+                 <Link
+                  to="/pricing"
+                  className="bg-primary text-black hover:opacity-90 transition-all flex h-14 items-center justify-center gap-3 px-10 text-sm font-bold rounded-lg w-full sm:w-auto shadow-lg shadow-primary/10"
                 >
-                  Pricing philosophy
+                  Get Started
+                  <ArrowRight className="h-4 w-4" />
                 </Link>
-                <span className='text-muted-foreground text-xs'>
-                  Free now. Open-source path. Self-host welcome.
-                </span>
+                 <a
+                  href="#features"
+                  className="bg-white/5 border border-white/10 hover:bg-white/10 transition-all flex h-14 items-center justify-center gap-3 px-10 text-sm font-bold rounded-lg w-full sm:w-auto backdrop-blur-sm"
+                >
+                  View Documentation
+                </a>
               </div>
             </div>
 
-            <div className='grid gap-3 sm:grid-cols-2'>
-              <div className='border-border/60 bg-card/80 rounded-xl border p-4'>
-                <div className='mb-2 flex items-center gap-2 text-xs font-semibold tracking-wide text-zinc-400'>
-                  <Webhook className='text-primary h-3.5 w-3.5' />
-                  Zero SDK Ingestion
-                </div>
-                <p className='text-foreground text-sm leading-6'>
-                  Just a simple HTTP POST. curl, Python, Node, Go—all supported
-                  out of the box.
-                </p>
-              </div>
-              <div className='border-border/60 bg-card/80 rounded-xl border p-4'>
-                <div className='mb-2 flex items-center gap-2 text-xs font-semibold tracking-wide text-zinc-400'>
-                  <Bell className='text-primary h-3.5 w-3.5' />
-                  Push Everywhere
-                </div>
-                <p className='text-foreground text-sm leading-6'>
-                  Cross-platform alerts on Desktop, iOS, and Android via native
-                  Web Push.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className='relative min-w-0'>
-            <div className='border-border/40 pointer-events-none absolute inset-0 rounded-2xl border' />
-
-            <div className='border-border/60 bg-card/85 relative min-w-0 space-y-4 rounded-2xl border p-4 shadow-sm md:p-5'>
-              <div className='border-border/60 bg-background/70 flex flex-col gap-3 rounded-2xl border px-4 py-3 sm:flex-row sm:items-center sm:justify-between'>
-                <div className='flex min-w-0 items-center gap-3'>
-                  <div className='border-primary/20 bg-primary/10 text-primary flex h-9 w-9 items-center justify-center rounded-xl border'>
-                    <Activity className='h-4 w-4' />
+            {/* THE CORE FLOW EXPLAINER - Cleaner, less "loud" */}
+            <div className="grid lg:grid-cols-3 gap-6 relative">
+              {/* Step 1: Ingest */}
+              <div className="relative group p-8 rounded-xl bg-zinc-900/40 border border-white/5 backdrop-blur-md transition-all hover:border-primary/20">
+                <div className="mb-8 flex items-center justify-between">
+                  <div className="w-12 h-12 bg-primary/10 border border-primary/20 rounded-2xl flex items-center justify-center text-primary">
+                    <Terminal className="w-5 h-5" />
                   </div>
-                  <div className='min-w-0'>
-                    <p className='text-xs font-semibold tracking-wide text-zinc-400'>
-                      Live status
-                    </p>
-                    <p className='text-foreground truncate text-xs font-semibold tracking-wide'>
-                      Volume `production`
-                    </p>
-                  </div>
+                  <span className="text-[10px] font-mono text-zinc-500 font-bold tracking-widest uppercase">01 // INGEST</span>
                 </div>
-                <div className='border-info/20 bg-info/10 text-info inline-flex w-fit items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold tracking-wide'>
-                  <span className='bg-info h-2 w-2 rounded-full' />
-                  Operational
-                </div>
-              </div>
-
-              <div className='grid min-w-0 gap-3 sm:grid-cols-2'>
-                <Card className='border-primary/15 bg-background/60 min-w-0 shadow-none'>
-                  <CardHeader className='pb-2'>
-                    <CardTitle className='text-primary flex items-center gap-2 text-xs font-semibold tracking-wide'>
-                      <ListTree className='h-3.5 w-3.5' />
-                      Log Stream
-                    </CardTitle>
-                    <CardDescription className='text-xs leading-normal font-medium'>
-                      Chronological timeline for "chain of thought" trails.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className='space-y-2 pb-4'>
-                    <div className='border-border/60 bg-card/60 rounded-lg border p-2'>
-                      <p className='text-foreground text-xs font-semibold tracking-wide break-all'>
-                        agents/vision
-                      </p>
-                      <p className='text-xxs font-bold tracking-widest text-amber-500 uppercase'>
-                        busy • Analyzing frame #420
-                      </p>
-                    </div>
-                    <div className='border-border/60 bg-card/60 rounded-lg border p-2'>
-                      <p className='text-foreground text-xs font-semibold tracking-wide break-all'>
-                        agents/vision
-                      </p>
-                      <p className='text-xxs font-bold tracking-widest text-zinc-400 uppercase'>
-                        message • "Detected 3 objects"
-                      </p>
-                    </div>
-                    <div className='border-info/25 bg-info/10 rounded-lg border p-2'>
-                      <p className='text-foreground text-xs font-semibold tracking-wide break-all'>
-                        agents/approver
-                      </p>
-                      <p className='text-xxs text-info font-semibold tracking-wide'>
-                        idle • Waiting for review
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className='border-info/15 bg-background/60 min-w-0 shadow-none'>
-                  <CardHeader className='pb-2'>
-                    <CardTitle className='text-info flex items-center gap-2 text-xs font-semibold tracking-wide'>
-                      <LayoutGrid className='h-3.5 w-3.5' />
-                      Status Board
-                    </CardTitle>
-                    <CardDescription className='text-xs leading-normal font-medium'>
-                      High-density snapshot of busy and idle tasks.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className='space-y-2 pb-4'>
-                    <div className='rounded-lg border border-amber-500/20 bg-amber-500/10 p-2'>
-                      <p className='text-foreground text-xs font-semibold tracking-wide'>
-                        vision-agent
-                      </p>
-                      <p className='text-xxs font-bold tracking-widest text-amber-500 uppercase'>
-                        busy • active for 00:23
-                      </p>
-                    </div>
-                    <div className='border-info/25 bg-info/10 rounded-lg border p-2'>
-                      <p className='text-foreground text-xs font-semibold tracking-wide'>
-                        file-ingestor
-                      </p>
-                      <p className='text-xxs text-info font-semibold tracking-wide'>
-                        idle • last seen 2m ago
-                      </p>
-                    </div>
-                    <div className='border-info/25 bg-info/10 rounded-lg border p-2'>
-                      <p className='text-foreground text-xs font-semibold tracking-wide'>
-                        approver-task
-                      </p>
-                      <p className='text-xxs text-info font-semibold tracking-wide'>
-                        idle • input required
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              <div className='border-border/60 bg-background/70 min-w-0 rounded-2xl border p-4'>
-                <div className='mb-2 flex flex-wrap items-center justify-between gap-2'>
-                  <p className='text-xs font-semibold tracking-wide text-zinc-400'>
-                    Publish with HTTP
+                <div className="space-y-4">
+                  <h3 className="text-xl font-bold tracking-tight">Zero SDK Ingestion</h3>
+                  <p className="text-zinc-500 text-sm leading-relaxed">
+                    Just a simple HTTP POST. If your agent can send JSON, it can be monitored.
                   </p>
-                  <span className='border-border/60 bg-card/70 text-xxs rounded-full border px-2 py-1 font-semibold tracking-wide text-zinc-500'>
-                    No SDK
-                  </span>
+                  <div className="p-4 rounded-xl bg-black/40 border border-white/5 font-mono text-[11px] text-primary/70 leading-relaxed overflow-x-auto">
+                    <code>curl -X POST http://localhost:3000/api/publish/YOUR_VOLUME_KEY/my-task -H "Content-Type: application/json" -d '&#123;"status": "busy", "content": "Analyzing context..."&#125;'</code>
+                  </div>
                 </div>
-                <pre className='border-border/60 bg-card/60 text-foreground w-full max-w-full overflow-x-auto rounded-xl border p-3 font-mono text-xs leading-5 sm:text-xs'>
-                  <code>{curlExample}</code>
-                </pre>
+              </div>
+
+              {/* Step 2: Dashboard */}
+              <div className="relative group p-8 rounded-xl bg-zinc-900/40 border border-white/5 backdrop-blur-md transition-all hover:border-primary/20">
+                <div className="mb-8 flex items-center justify-between">
+                  <div className="w-12 h-12 bg-primary/10 border border-primary/20 rounded-2xl flex items-center justify-center text-primary">
+                    <Monitor className="w-5 h-5" />
+                  </div>
+                  <span className="text-[10px] font-mono text-zinc-500 font-bold tracking-widest uppercase">02 // WATCH</span>
+                </div>
+                <div className="space-y-4">
+                  <h3 className="text-xl font-bold tracking-tight">Live Status Board</h3>
+                  <p className="text-zinc-500 text-sm leading-relaxed">
+                    Watch state changes live. Know exactly what is busy, idle, or stalled.
+                  </p>
+                  <div className="space-y-2">
+                    <div className="h-2 w-full bg-white/5 rounded-full
+                    <div className="flex justify-between text-[10px] font-mono uppercase text-zinc-600">
+                      <span>Analyzing Context</span>
+                      <span>67% Complete</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 3: Notification */}
+              <div className="relative group p-8 rounded-xl bg-zinc-900/40 border border-white/5 backdrop-blur-md transition-all hover:border-primary/20">
+                <div className="mb-8 flex items-center justify-between">
+                  <div className="w-12 h-12 bg-primary/10 border border-primary/20 rounded-2xl flex items-center justify-center text-primary">
+                    <Smartphone className="w-5 h-5" />
+                  </div>
+                  <span className="text-[10px] font-mono text-zinc-500 font-bold tracking-widest uppercase">03 // ALERT</span>
+                </div>
+                <div className="space-y-4">
+                  <h3 className="text-xl font-bold tracking-tight">Instant Alerts</h3>
+                  <p className="text-zinc-500 text-sm leading-relaxed">
+                    Browser push notifications for desktop and mobile. No native app required.
+                  </p>
+                  <div className="p-4 rounded-xl bg-primary/5 border border-primary/10 flex items-center gap-4">
+                    <Bell className="w-5 h-5 text-primary animate-bounce" />
+                    <div className="text-[11px] font-medium">
+                      <p className="text-primary uppercase tracking-tighter font-bold">New Notification</p>
+                      <p className="text-zinc-400">Agent requires human input</p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </section>
 
-        <section
-          aria-label='Proof signals'
-          className='grid gap-3 sm:grid-cols-2 xl:grid-cols-4'
-        >
-          {proofStats.map((stat) => {
-            const Icon = stat.icon
-            return (
-              <div
-                key={stat.label}
-                className='border-border/60 bg-card/80 group hover:bg-card rounded-xl border p-4 transition-colors'
+        {/* FEATURES GRID */}
+        <section id="features" className="mx-auto w-full max-w-5xl px-4 sm:px-6 pb-32">
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="p-10 rounded-[2.5rem] bg-zinc-900/20 border border-white/5 hover:bg-zinc-900/30 transition-all flex flex-col justify-between group">
+              <div>
+                <Cpu className="w-10 h-10 text-primary/50 mb-8 group-hover:text-primary transition-colors" />
+                <h3 className="text-2xl font-bold tracking-tight mb-4">Hierarchical Paths</h3>
+                <p className="text-zinc-500 leading-relaxed">
+                  Namespace events using file-system paths. Organize your telemetry by project, team, or specific agent versioning automatically.
+                </p>
+              </div>
+              <div className="mt-10 font-mono text-xs text-zinc-600">
+                /production/agents/vision/v1
+              </div>
+            </div>
+
+            <div className="p-10 rounded-[2.5rem] bg-zinc-900/20 border border-white/5 hover:bg-zinc-900/30 transition-all flex flex-col justify-between group">
+              <div>
+                <Lock className="w-10 h-10 text-primary/50 mb-8 group-hover:text-primary transition-colors" />
+                <h3 className="text-2xl font-bold tracking-tight mb-4">Isolated Volumes</h3>
+                <p className="text-zinc-500 leading-relaxed">
+                  Cryptographically separate environments. Multi-tenant architecture designed for serious staging and production workflows.
+                </p>
+              </div>
+              <div className="mt-10 font-mono text-xs text-zinc-600">
+                AES-256 Volume Encryption
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* TECHNICAL DETAILS */}
+        <section className="py-24 border-t border-white/5">
+          <div className="mx-auto max-w-5xl px-4 sm:px-6">
+            <div className="grid lg:grid-cols-2 gap-20 items-center">
+              <div>
+                <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-8">Built for the <br /> <span className="text-primary">Agentic Era.</span></h2>
+                <div className="space-y-8">
+                  <div className="flex gap-6">
+                    <div className="shrink-0 w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center font-bold text-xs text-primary">01</div>
+                    <div className="space-y-1">
+                      <h4 className="font-bold text-sm">Low Latency Streaming</h4>
+                      <p className="text-zinc-500 text-sm">Sub-100ms dashboard updates powered by optimized event architecture.</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-6">
+                    <div className="shrink-0 w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center font-bold text-xs text-primary">02</div>
+                    <div className="space-y-1">
+                      <h4 className="font-bold text-sm">PWA Notifications</h4>
+                      <p className="text-zinc-500 text-sm">Install on iOS or Android for native background alerts without the app store.</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-6">
+                    <div className="shrink-0 w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center font-bold text-xs text-primary">03</div>
+                    <div className="space-y-1">
+                      <h4 className="font-bold text-sm">Path-Based State</h4>
+                      <p className="text-zinc-500 text-sm">State is derived from hierarchy. It's like 'tail -f' with a structured UI.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-black/40 border border-white/10 rounded-xl p-8 font-mono text-[11px] leading-relaxed relative overflow-hidden group">
+                <div className="absolute top-4 right-6 text-zinc-600 uppercase tracking-widest text-[9px]">Live_Stream</div>
+                <div className="space-y-3">
+                  <div className="flex gap-3">
+                    <span className="text-primary opacity-40">12:00:01</span>
+                    <span className="text-zinc-500">POST /agents/vision</span>
+                  </div>
+                  <div className="flex gap-3 pl-4 border-l border-white/5">
+                    <span className="text-amber-500/80">STATE: BUSY</span>
+                    <span className="text-zinc-400">"Analyzing context..."</span>
+                  </div>
+                  <div className="h-4" />
+                  <div className="flex gap-3">
+                    <span className="text-primary opacity-40">12:00:14</span>
+                    <span className="text-zinc-500">POST /agents/approver</span>
+                  </div>
+                  <div className="flex gap-3 pl-4 border-l border-white/5">
+                    <span className="text-info/80">ACTION_REQUIRED: TRUE</span>
+                  </div>
+                  <div className="mt-8 animate-pulse text-primary">_</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* CLEAN CTA */}
+        <section className="py-32 px-4 sm:px-6">
+          <div className="mx-auto max-w-4xl text-center rounded-[3rem] bg-gradient-to-br from-primary/20 to-transparent border border-primary/20 p-12 md:p-24 relative overflow-hidden shadow-2xl shadow-primary/5">
+             <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-primary/5 via-transparent to-transparent -z-10" />
+             <h2 className="text-4xl md:text-6xl font-bold tracking-tight mb-6 leading-tight">Stop guessing. <br /> <span className="text-primary">Start watching.</span></h2>
+             <p className="text-zinc-400 text-lg mb-12 max-w-xl mx-auto">Open source telemetry for the agents you build. Standardize your visibility today.</p>
+             <Link
+                to="/pricing"
+                className="bg-primary text-black hover:opacity-90 transition-all inline-flex h-16 items-center justify-center gap-3 px-12 text-sm font-bold rounded-lg shadow-xl shadow-primary/20"
               >
-                <div className='mb-3 flex items-center justify-between'>
-                  <span className='text-xs font-semibold tracking-wide text-zinc-400'>
-                    {stat.label}
-                  </span>
-                  <Icon className='text-primary h-4 w-4 transition-transform group-hover:scale-110' />
-                </div>
-                <p className='text-foreground text-2xl font-semibold tracking-tight'>
-                  {stat.value}
-                </p>
-                <p className='text-muted-foreground mt-1 text-sm'>
-                  {stat.detail}
-                </p>
-              </div>
-            )
-          })}
-        </section>
-
-        <section id='problem' className='space-y-6'>
-          <div className='space-y-3'>
-            <p className='ml-1 text-xs font-semibold tracking-wide text-zinc-400'>
-              Problem
-            </p>
-            <h2 className='text-foreground text-3xl font-semibold tracking-tight text-balance md:text-4xl'>
-              When everything emits events, nobody sees the status.
-            </h2>
-            <p className='text-muted-foreground max-w-3xl text-base leading-7'>
-              Tailwatch is designed for the gap between raw event streams and
-              heavyweight observability stacks: real-time status visibility with
-              a path-based model that makes monitoring feel like a file system.
-            </p>
-          </div>
-
-          <div className='grid gap-4 md:grid-cols-3'>
-            {problemCards.map((card) => {
-              const Icon = card.icon
-              return (
-                <Card
-                  key={card.title}
-                  className='border-border/70 bg-card/70 hover:bg-card/80 shadow-none transition-colors'
-                >
-                  <CardHeader>
-                    <div className='border-primary/15 bg-primary/10 text-primary mb-2 flex h-10 w-10 items-center justify-center rounded-xl border'>
-                      <Icon className='h-4 w-4' />
-                    </div>
-                    <CardTitle className='text-sm font-semibold tracking-wide'>
-                      {card.title}
-                    </CardTitle>
-                    <CardDescription className='text-sm leading-6'>
-                      {card.description}
-                    </CardDescription>
-                  </CardHeader>
-                </Card>
-              )
-            })}
+                Launch Dashboard
+                <ArrowRight className="h-4 w-4" />
+              </Link>
           </div>
         </section>
 
-        <section id='how-it-works' className='space-y-6'>
-          <div className='space-y-3'>
-            <p className='ml-1 text-xs font-semibold tracking-wide text-zinc-400'>
-              Workflow
-            </p>
-            <h2 className='text-foreground text-3xl font-semibold tracking-tight text-balance md:text-4xl'>
-              A topic path becomes your monitoring map.
-            </h2>
-            <p className='text-muted-foreground max-w-3xl text-base leading-7'>
-              Use hierarchy in the URL itself. Tailwatch stores the Log Stream,
-              organizes it by segments, and derives operator-friendly status
-              from the latest events.
-            </p>
-          </div>
-
-          <div className='grid gap-4 xl:grid-cols-2'>
-            <Card className='border-border/70 bg-card/70 shadow-none'>
-              <CardHeader>
-                <CardTitle className='text-sm font-semibold tracking-wide'>
-                  Example hierarchy
-                </CardTitle>
-                <CardDescription className='text-xs leading-normal font-medium'>
-                  Namespace events with meaningful segments so filtering stays
-                  fast and intuitive.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className='space-y-2 pb-4 font-mono text-xs'>
-                {[
-                  '/production/agents/vision',
-                  '/production/agents/planner',
-                  '/staging/pipelines/ingest',
-                  '/ops/cron/nightly-backup',
-                  '/app/frontend/messages',
-                ].map((path) => (
-                  <div
-                    key={path}
-                    className='border-border/60 bg-background/60 text-foreground rounded-lg border px-3 py-2 font-bold'
-                  >
-                    {path}
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-
-            <div className='grid gap-4'>
-              {workflowSteps.map((step) => {
-                const Icon = step.icon
-                return (
-                  <div
-                    key={step.step}
-                    className='border-border/70 bg-card/70 hover:bg-card/80 rounded-2xl border p-4 transition-colors'
-                  >
-                    <div className='mb-3 flex items-center gap-3'>
-                      <div className='border-primary/20 bg-primary/10 text-primary flex h-9 w-9 items-center justify-center rounded-xl border'>
-                        <Icon className='h-4 w-4' />
-                      </div>
-                      <div className='flex items-baseline gap-2'>
-                        <span className='text-primary font-mono text-xs font-semibold tracking-wide'>
-                          {step.step}
-                        </span>
-                        <p className='text-foreground text-xs font-semibold tracking-wide'>
-                          {step.title}
-                        </p>
-                      </div>
-                    </div>
-                    <p className='text-muted-foreground text-sm leading-6'>
-                      {step.description}
-                    </p>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        </section>
-
-        <section id='features' className='space-y-6'>
-          <div className='space-y-3'>
-            <p className='ml-1 text-xs font-semibold tracking-wide text-zinc-400'>
-              Capabilities
-            </p>
-            <h2 className='text-foreground text-3xl font-semibold tracking-tight text-balance md:text-4xl'>
-              One dashboard, one event source, faster decisions.
-            </h2>
-            <p className='text-muted-foreground max-w-3xl text-base leading-7'>
-              Tailwatch keeps ingestion simple and operator workflows practical:
-              monitor the Log Stream, inspect the Status Board, and triage what
-              matters now from one screen.
-            </p>
-          </div>
-
-          <div className='grid gap-4 sm:grid-cols-2 xl:grid-cols-3'>
-            {featureCards.map((feature) => {
-              const Icon = feature.icon
-              return (
-                <Card
-                  key={feature.title}
-                  className='border-border/70 bg-card/70 hover:bg-card/80 shadow-none transition-colors'
-                >
-                  <CardHeader className='pb-3'>
-                    <div className='border-primary/15 bg-primary/10 text-primary mb-2 flex h-10 w-10 items-center justify-center rounded-xl border'>
-                      <Icon className='h-4 w-4' />
-                    </div>
-                    <CardTitle className='text-sm font-semibold tracking-wide'>
-                      {feature.title}
-                    </CardTitle>
-                    <CardDescription className='text-sm leading-6'>
-                      {feature.description}
-                    </CardDescription>
-                  </CardHeader>
-                </Card>
-              )
-            })}
-          </div>
-        </section>
-
-        <section className='space-y-6'>
-          <div className='space-y-3'>
-            <p className='ml-1 text-xs font-semibold tracking-wide text-zinc-400'>
-              Use Cases
-            </p>
-            <h2 className='text-foreground text-3xl font-semibold tracking-tight text-balance md:text-4xl'>
-              Built for the workflows teams already have.
-            </h2>
-            <p className='text-muted-foreground max-w-3xl text-base leading-7'>
-              Tailwatch works best when you want a practical status dashboard
-              first, not a long instrumentation project.
-            </p>
-          </div>
-
-          <div className='grid gap-4 md:grid-cols-2 xl:grid-cols-4'>
-            {useCases.map((item) => {
-              const Icon = item.icon
-              return (
-                <div
-                  key={item.title}
-                  className='border-border/70 bg-card/70 hover:bg-card/80 rounded-2xl border p-4 transition-colors'
-                >
-                  <div className='border-primary/15 bg-primary/10 text-primary mb-3 flex h-10 w-10 items-center justify-center rounded-xl border'>
-                    <Icon className='h-4 w-4' />
-                  </div>
-                  <p className='text-foreground text-xs font-semibold tracking-wide'>
-                    {item.title}
-                  </p>
-                  <p className='text-muted-foreground mt-2 text-sm leading-6'>
-                    {item.body}
-                  </p>
-                </div>
-              )
-            })}
-          </div>
-        </section>
-
-        <section id='faq' className='space-y-6'>
-          <div className='space-y-3'>
-            <p className='ml-1 text-xs font-semibold tracking-wide text-zinc-400'>
-              FAQ
-            </p>
-            <h2 className='text-foreground text-3xl font-semibold tracking-tight md:text-4xl'>
-              Questions teams ask before they wire it in
-            </h2>
-          </div>
-
-          <div className='grid gap-3'>
-            {faqItems.map((item) => (
-              <details
-                key={item.q}
-                className='group border-border/70 bg-card/70 open:bg-card/60 rounded-2xl border p-4 transition-colors'
-              >
-                <summary className='text-foreground flex cursor-pointer list-none items-center justify-between gap-4 text-sm font-semibold tracking-tight focus-visible:outline-none'>
-                  <span>{item.q}</span>
-                  <ChevronRight className='text-muted-foreground h-4 w-4 transition-transform duration-200 group-open:rotate-90' />
-                </summary>
-                <p className='text-muted-foreground pt-3 text-sm leading-6 font-medium'>
-                  {item.a}
-                </p>
-              </details>
-            ))}
-          </div>
-        </section>
-
-        <section className='border-border/70 bg-card/80 relative overflow-hidden rounded-2xl border p-6 md:p-8'>
-          <div className='relative grid gap-6 lg:grid-cols-2 lg:items-center'>
-            <div className='space-y-4'>
-              <p className='ml-1 text-xs font-semibold tracking-wide text-zinc-400'>
-                Get started
-              </p>
-              <h2 className='text-foreground text-3xl font-semibold tracking-tight text-balance md:text-4xl'>
-                Deploy Tailwatch quickly and standardize system visibility.
-              </h2>
-              <p className='text-muted-foreground max-w-2xl text-base leading-7'>
-                Open the dashboard from the top navigation and start publishing
-                events immediately to your own Volume.
-              </p>
-            </div>
-
-            <div className='border-border/60 bg-background/60 rounded-xl border px-4 py-3 text-xs font-medium tracking-wide text-zinc-400'>
-              Free now. Open-source path. Self-host welcome. Hosted convenience
-              available as the project grows.
-            </div>
-          </div>
-        </section>
       </main>
 
-      <PublicFooter leadText='Free now. Open-source path. Self-host welcome.' />
+      <PublicFooter leadText="Terminal Telemetry & Instant Alerts // Free Now" />
+
+      <style dangerouslySetInnerHTML={{ __html: `
+        .glow-text {
+          text-shadow: 0 0 30px oklch(var(--primary) / 0.4);
+        }
+      `}} />
     </PublicPageShell>
   )
 }
