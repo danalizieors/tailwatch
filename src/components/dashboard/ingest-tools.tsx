@@ -89,7 +89,7 @@ export function IngestTools({
           >
             {isGeneratingRandomEvents ? (
               <span className='flex items-center gap-2'>
-                <div className='h-3 w-3 animate-spin rounded-full
+                <div className='h-3 w-3 animate-spin rounded-full border-2 border-black/20 border-t-black' />
                 Sending Signal...
               </span>
             ) : (

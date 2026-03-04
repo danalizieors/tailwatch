@@ -106,7 +106,9 @@ function TailwatchLandingPage() {
                     Watch state changes live. Know exactly what is busy, idle, or stalled.
                   </p>
                   <div className="space-y-2">
-                    <div className="h-2 w-full bg-white/5 rounded-full
+                    <div className="h-2 w-full overflow-hidden rounded-full bg-white/5">
+                      <div className="h-full w-2/3 rounded-full bg-primary/60" />
+                    </div>
                     <div className="flex justify-between text-[10px] font-mono uppercase text-zinc-600">
                       <span>Analyzing Context</span>
                       <span>67% Complete</span>
