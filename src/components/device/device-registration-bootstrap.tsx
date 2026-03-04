@@ -37,7 +37,6 @@ export function DeviceRegistrationBootstrap() {
       }),
       ensurePersonalVolume(),
     ]).catch((error) => {
-
       hasRegisteredRef.current = false
       console.warn(
         'Failed to bootstrap device registration or personal volume',

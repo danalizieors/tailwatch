@@ -12,7 +12,7 @@ interface LogStreamProps {
 export function LogStream({ events, lastSeenAt }: LogStreamProps) {
   return (
     <div className='flex h-full flex-col overflow-hidden'>
-      <div className='bg-zinc-900/40 border-white/5 flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border backdrop-blur-md transition-all'>
+      <div className='flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-white/5 bg-zinc-900/40 backdrop-blur-md transition-all'>
         <div className='scroll-thin flex-1 overflow-y-auto'>
           {events.length === 0 ? (
             <div className='text-muted-foreground flex h-full min-h-[300px] flex-col items-center justify-center gap-2'>

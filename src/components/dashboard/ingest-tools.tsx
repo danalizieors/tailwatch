@@ -77,13 +77,13 @@ export function IngestTools({
           </CardTitle>
         </CardHeader>
         <CardContent className='space-y-4 p-6 pt-2'>
-          <p className='text-zinc-500 text-xs leading-relaxed'>
+          <p className='text-xs leading-relaxed text-zinc-500'>
             Push a randomized event to the current volume to verify your
             integration instantly.
           </p>
           <Button
             size='sm'
-            className='h-11 w-full gap-2 rounded-lg text-xs font-bold tracking-wide shadow-primary-glow bg-primary text-black hover:opacity-90 transition-all'
+            className='shadow-primary-glow bg-primary h-11 w-full gap-2 rounded-lg text-xs font-bold tracking-wide text-black transition-all hover:opacity-90'
             onClick={onSendTest}
             disabled={isGeneratingRandomEvents}
           >
@@ -115,12 +115,12 @@ export function IngestTools({
       </Card>
 
       {/* Curl Instructions */}
-      <Card className='border-white/5 bg-zinc-900/40 overflow-hidden rounded-xl shadow-sm backdrop-blur-md transition-all'>
+      <Card className='overflow-hidden rounded-xl border-white/5 bg-zinc-900/40 shadow-sm backdrop-blur-md transition-all'>
         <CardHeader
-          className='hover:bg-white/5 cursor-pointer p-6 pb-2 transition-colors'
+          className='cursor-pointer p-6 pb-2 transition-colors hover:bg-white/5'
           onClick={() => setIsCurlExpanded(!isCurlExpanded)}
         >
-          <CardTitle className='flex items-center justify-between gap-2 text-xs font-bold tracking-widest uppercase text-zinc-400'>
+          <CardTitle className='flex items-center justify-between gap-2 text-xs font-bold tracking-widest text-zinc-400 uppercase'>
             <div className='flex items-center gap-2'>
               <Terminal className='h-3.5 w-3.5' />
               Ingest via Curl
@@ -137,16 +137,17 @@ export function IngestTools({
         {isCurlExpanded && (
           <CardContent className='animate-in fade-in slide-in-from-top-1 space-y-4 p-6 pt-4 duration-200'>
             {!selectedTopic ? (
-              <div className='bg-white/5 flex items-start gap-2 rounded-2xl p-4'>
-                <Info className='text-zinc-500 mt-0.5 h-3.5 w-3.5 shrink-0' />
-                <p className='text-zinc-500 text-xs leading-normal font-medium'>
-                  Select a topic/path above to generate customized ingest commands.
+              <div className='flex items-start gap-2 rounded-2xl bg-white/5 p-4'>
+                <Info className='mt-0.5 h-3.5 w-3.5 shrink-0 text-zinc-500' />
+                <p className='text-xs leading-normal font-medium text-zinc-500'>
+                  Select a topic/path above to generate customized ingest
+                  commands.
                 </p>
               </div>
             ) : !volumePublishKey ? (
-              <div className='bg-amber-500/10 border border-amber-500/20 flex items-start gap-2 rounded-2xl p-4'>
-                <Box className='text-amber-500 mt-0.5 h-3.5 w-3.5 shrink-0' />
-                <p className='text-amber-500 text-xs leading-normal font-bold'>
+              <div className='flex items-start gap-2 rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4'>
+                <Box className='mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500' />
+                <p className='text-xs leading-normal font-bold text-amber-500'>
                   No API key found. Check your volume settings.
                 </p>
               </div>
@@ -154,49 +155,53 @@ export function IngestTools({
               <div className='space-y-4'>
                 <div className='space-y-3'>
                   <div className='flex items-center justify-between px-1'>
-                    <span className='text-[10px] font-mono text-zinc-600 font-bold uppercase tracking-widest'>Variant A // Header</span>
+                    <span className='font-mono text-[10px] font-bold tracking-widest text-zinc-600 uppercase'>
+                      Variant A // Header
+                    </span>
                     <Button
                       variant='ghost'
                       size='sm'
-                      className='h-7 gap-1.5 px-3 text-[10px] font-bold tracking-widest uppercase rounded-lg border border-white/5 hover:bg-white/5 transition-colors'
+                      className='h-7 gap-1.5 rounded-lg border border-white/5 px-3 text-[10px] font-bold tracking-widest uppercase transition-colors hover:bg-white/5'
                       onClick={() =>
                         curlCommands &&
                         copyToClipboard(curlCommands.header, 'header')
                       }
                     >
                       {copiedVariant === 'header' ? (
-                        <Check className='h-3 w-3 text-primary' />
+                        <Check className='text-primary h-3 w-3' />
                       ) : (
                         <Copy className='h-3 w-3' />
                       )}
                       {copiedVariant === 'header' ? 'Copied' : 'Copy'}
                     </Button>
                   </div>
-                  <pre className='border-white/5 bg-black/40 text-primary/70 overflow-x-auto rounded-2xl border p-4 font-mono text-xs leading-relaxed'>
+                  <pre className='text-primary/70 overflow-x-auto rounded-2xl border border-white/5 bg-black/40 p-4 font-mono text-xs leading-relaxed'>
                     <code>{curlCommands?.header}</code>
                   </pre>
                 </div>
 
                 <div className='space-y-3'>
                   <div className='flex items-center justify-between px-1'>
-                    <span className='text-[10px] font-mono text-zinc-600 font-bold uppercase tracking-widest'>Variant B // URL</span>
+                    <span className='font-mono text-[10px] font-bold tracking-widest text-zinc-600 uppercase'>
+                      Variant B // URL
+                    </span>
                     <Button
                       variant='ghost'
                       size='sm'
-                      className='h-7 gap-1.5 px-3 text-[10px] font-bold tracking-widest uppercase rounded-lg border border-white/5 hover:bg-white/5 transition-colors'
+                      className='h-7 gap-1.5 rounded-lg border border-white/5 px-3 text-[10px] font-bold tracking-widest uppercase transition-colors hover:bg-white/5'
                       onClick={() =>
                         curlCommands && copyToClipboard(curlCommands.url, 'url')
                       }
                     >
                       {copiedVariant === 'url' ? (
-                        <Check className='h-3 w-3 text-primary' />
+                        <Check className='text-primary h-3 w-3' />
                       ) : (
                         <Copy className='h-3 w-3' />
                       )}
                       {copiedVariant === 'url' ? 'Copied' : 'Copy'}
                     </Button>
                   </div>
-                  <pre className='border-white/5 bg-black/40 text-primary/70 overflow-x-auto rounded-2xl border p-4 font-mono text-xs leading-relaxed'>
+                  <pre className='text-primary/70 overflow-x-auto rounded-2xl border border-white/5 bg-black/40 p-4 font-mono text-xs leading-relaxed'>
                     <code>{curlCommands?.url}</code>
                   </pre>
                 </div>

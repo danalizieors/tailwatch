@@ -43,7 +43,7 @@ export function PublicHeader({
 
   return (
     <header
-      className='border-white/5 bg-zinc-900/60 sticky top-0 z-50 border-b backdrop-blur-xl'
+      className='sticky top-0 z-50 border-b border-white/5 bg-zinc-900/60 backdrop-blur-xl'
       style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
     >
       <nav
@@ -63,7 +63,7 @@ export function PublicHeader({
               to='/pricing'
               className={cn(
                 publicHeaderActionBaseClassName,
-                'border border-white/10 bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-foreground',
+                'hover:text-foreground border border-white/10 bg-white/5 text-zinc-400 hover:bg-white/10',
               )}
             >
               Pricing
@@ -76,7 +76,7 @@ export function PublicHeader({
             onClick={(event) => void handleDashboardNavigation(event)}
             className={cn(
               publicHeaderActionBaseClassName,
-              'bg-primary text-black shadow-lg shadow-primary/20 hover:opacity-90',
+              'bg-primary shadow-primary/20 text-black shadow-lg hover:opacity-90',
             )}
           >
             {!isLoading && !isAuthenticated ? (
