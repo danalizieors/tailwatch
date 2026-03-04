@@ -3,6 +3,9 @@ import { AuthenticatedDashboard } from '~/components/dashboard/authenticated-das
 import { DashboardView } from '~/components/dashboard/dashboard-view'
 
 export const Route = createFileRoute('/$volumeId')({
+  head: () => ({
+    meta: [{ title: 'Dashboard | Tailwatch' }],
+  }),
   component: VolumeDashboardPage,
 })
 

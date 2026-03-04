@@ -29,6 +29,9 @@ import { cn, getPathColor } from '~/lib/utils'
 import { api } from '../../../convex/_generated/api'
 
 export const Route = createFileRoute('/settings/volumes')({
+  head: () => ({
+    meta: [{ title: 'Volume Settings | Tailwatch' }],
+  }),
   component: VolumeSettingsPage,
 })
 
@@ -202,7 +205,7 @@ function VolumeSettingsPage() {
         <main className='mx-auto flex w-full max-w-4xl flex-1 items-center px-4 py-10 md:px-8'>
           <Card className='border-border/70 bg-card/85 w-full backdrop-blur'>
             <CardHeader>
-              <CardTitle className='text-base font-black tracking-wider uppercase'>
+              <CardTitle className='text-base font-semibold tracking-tight'>
                 Volume API Key Management
               </CardTitle>
               <CardDescription>
@@ -236,7 +239,7 @@ function VolumeSettingsPage() {
         {/* Header and Global Actions */}
         <div className='flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between'>
           <div className='space-y-1'>
-            <h1 className='text-foreground flex items-center gap-2 text-2xl font-black tracking-tight uppercase'>
+            <h1 className='text-foreground flex items-center gap-2 text-2xl font-semibold tracking-tight'>
               <HardDrive className='text-primary h-6 w-6' />
               Volume Management
             </h1>
@@ -258,7 +261,7 @@ function VolumeSettingsPage() {
                 type='button'
                 onClick={() => void handleCreateVolume()}
                 disabled={busyAction !== null}
-                className='h-9 gap-1.5 text-xs font-black tracking-widest uppercase'
+                className='h-9 gap-1.5 text-xs font-semibold tracking-wide'
               >
                 {busyAction?.type === 'create' ? (
                   <Loader2 className='h-3.5 w-3.5 animate-spin' />
@@ -272,13 +275,13 @@ function VolumeSettingsPage() {
         </div>
 
         {error ? (
-          <div className='border-destructive/20 bg-destructive/10 text-destructive animate-in fade-in slide-in-from-top-1 rounded-xl border px-4 py-3 text-xs font-black tracking-widest uppercase'>
+          <div className='border-destructive/20 bg-destructive/10 text-destructive animate-in fade-in slide-in-from-top-1 rounded-xl border px-4 py-3 text-xs font-medium tracking-wide'>
             {error}
           </div>
         ) : null}
 
         {notice ? (
-          <div className='border-info/20 bg-info/10 text-info animate-in fade-in slide-in-from-top-1 rounded-xl border px-4 py-3 text-xs font-black tracking-widest uppercase'>
+          <div className='border-info/20 bg-info/10 text-info animate-in fade-in slide-in-from-top-1 rounded-xl border px-4 py-3 text-xs font-medium tracking-wide'>
             {notice}
           </div>
         ) : null}
@@ -295,7 +298,7 @@ function VolumeSettingsPage() {
           ) : volumes.length === 0 ? (
             <div className='border-border/60 bg-muted/10 text-muted-foreground col-span-full flex flex-col items-center justify-center rounded-2xl border border-dashed py-20'>
               <HardDrive className='mb-2 h-8 w-8 opacity-20' />
-              <p className='text-xs font-black tracking-widest text-zinc-500 uppercase'>
+              <p className='text-xs font-medium tracking-wide text-zinc-500'>
                 No volumes configured
               </p>
             </div>
@@ -322,14 +325,14 @@ function VolumeSettingsPage() {
                           }}
                         />
                         <div className='flex flex-col'>
-                          <CardTitle className='text-foreground text-xs font-black tracking-widest uppercase'>
+                          <CardTitle className='text-foreground text-xs font-semibold tracking-wide'>
                             {volume.name}
                           </CardTitle>
                           <div className='mt-0.5 flex items-center gap-1.5'>
                             {volume.isDefault ? (
                               <Badge
                                 variant='info'
-                                className='text-xxs h-4 px-1 font-black tracking-widest uppercase'
+                                className='text-xxs h-4 px-1 font-semibold tracking-wide'
                               >
                                 Default
                               </Badge>
@@ -338,7 +341,7 @@ function VolumeSettingsPage() {
                               variant={
                                 volume.key.enabled ? 'outline' : 'warning'
                               }
-                              className='text-xxs border-primary/20 text-primary h-4 px-1 font-black tracking-widest uppercase'
+                              className='text-xxs border-primary/20 text-primary h-4 px-1 font-semibold tracking-wide'
                             >
                               {volume.key.enabled
                                 ? 'Key Active'
@@ -352,7 +355,7 @@ function VolumeSettingsPage() {
 
                   <CardContent className='flex flex-1 flex-col justify-between space-y-4 p-4 pt-0'>
                     <div className='space-y-2'>
-                      <Label className='ml-1 text-xs leading-none font-black tracking-widest text-zinc-400 uppercase'>
+                      <Label className='ml-1 text-xs leading-none font-semibold tracking-wide text-zinc-400'>
                         API Key
                       </Label>
                       <div className='group/key border-border/40 bg-background/50 relative flex items-center rounded-lg border px-3 py-2 font-mono text-xs break-all'>
@@ -387,7 +390,7 @@ function VolumeSettingsPage() {
                       <Button
                         size='sm'
                         variant='ghost'
-                        className='hover:bg-primary/5 hover:text-primary h-8 flex-1 gap-2 rounded-lg px-2 text-xs font-black tracking-widest uppercase transition-all active:scale-95'
+                        className='hover:bg-primary/5 hover:text-primary h-8 flex-1 gap-2 rounded-lg px-2 text-xs font-semibold tracking-wide transition-all active:scale-95'
                         onClick={() => void handleRotateKey(volume)}
                         disabled={busyAction !== null}
                       >
@@ -403,7 +406,7 @@ function VolumeSettingsPage() {
                         <Button
                           size='sm'
                           variant='ghost'
-                          className='hover:bg-warning/5 hover:text-warning h-8 flex-1 gap-2 rounded-lg px-2 text-xs font-black tracking-widest uppercase transition-all active:scale-95'
+                          className='hover:bg-warning/5 hover:text-warning h-8 flex-1 gap-2 rounded-lg px-2 text-xs font-semibold tracking-wide transition-all active:scale-95'
                           onClick={() => void handleDisableKey(volume)}
                           disabled={busyAction !== null}
                         >
@@ -418,7 +421,7 @@ function VolumeSettingsPage() {
                         <Button
                           size='sm'
                           variant='ghost'
-                          className='hover:bg-primary/5 hover:text-primary h-8 flex-1 gap-2 rounded-lg px-2 text-xs font-black tracking-widest uppercase transition-all active:scale-95'
+                          className='hover:bg-primary/5 hover:text-primary h-8 flex-1 gap-2 rounded-lg px-2 text-xs font-semibold tracking-wide transition-all active:scale-95'
                           onClick={() => void handleRotateKey(volume)}
                           disabled={busyAction !== null}
                         >

@@ -35,12 +35,15 @@ import {
   getUAInfo,
   setClientDeviceName,
 } from '~/lib/device-identity'
-import { formatRelative } from '~/lib/format'
+import { formatRelative, toTimestamp } from '~/lib/format'
 import { NotificationManager } from '~/lib/notifications'
 import { cn, getPathColor } from '~/lib/utils'
 import { api } from '../../../convex/_generated/api'
 
 export const Route = createFileRoute('/settings/devices')({
+  head: () => ({
+    meta: [{ title: 'Device Settings | Tailwatch' }],
+  }),
   component: DeviceSettingsPage,
 })
 
@@ -103,7 +106,7 @@ function DeviceSettingsPage() {
       name: d.name,
       isCurrent: d.deviceKey === currentDeviceKey,
       enabled: d.notifications,
-      lastSeenAt: String(d.lastSeenAt),
+      lastSeenAt: d.lastSeenAt,
       os: d.system,
       browser: d.browser,
       hasSubscription: !!d.subscription,
@@ -127,7 +130,10 @@ function DeviceSettingsPage() {
     return [...(devices ?? [])].sort((a, b) => {
       if (a.isCurrent) return -1
       if (b.isCurrent) return 1
-      return (b.lastSeenAt ?? '').localeCompare(a.lastSeenAt ?? '')
+
+      const bSeen = toTimestamp(b.lastSeenAt) ?? 0
+      const aSeen = toTimestamp(a.lastSeenAt) ?? 0
+      return bSeen - aSeen
     })
   }, [devices])
 
@@ -322,7 +328,7 @@ function DeviceSettingsPage() {
         <main className='mx-auto flex w-full max-w-4xl flex-1 items-center px-4 py-10 md:px-8'>
           <Card className='border-border/70 bg-card/85 w-full backdrop-blur'>
             <CardHeader>
-              <CardTitle className='text-base font-black tracking-wider uppercase'>
+              <CardTitle className='text-base font-semibold tracking-tight'>
                 Device Manager
               </CardTitle>
               <CardDescription>
@@ -354,7 +360,7 @@ function DeviceSettingsPage() {
       <AppShellHeader current='devices' />
       <main className='mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-4 py-6 md:px-8 md:py-10'>
         <div className='space-y-1'>
-          <h1 className='text-foreground flex items-center gap-2 text-2xl font-black tracking-tight uppercase'>
+          <h1 className='text-foreground flex items-center gap-2 text-2xl font-semibold tracking-tight'>
             <Laptop className='text-primary h-6 w-6' />
             Device Management
           </h1>
@@ -364,13 +370,13 @@ function DeviceSettingsPage() {
         </div>
 
         {error ? (
-          <div className='border-destructive/20 bg-destructive/10 text-destructive animate-in fade-in slide-in-from-top-1 rounded-xl border px-4 py-3 text-xs font-black tracking-widest uppercase'>
+          <div className='border-destructive/20 bg-destructive/10 text-destructive animate-in fade-in slide-in-from-top-1 rounded-xl border px-4 py-3 text-xs font-medium tracking-wide'>
             {error}
           </div>
         ) : null}
 
         {notice ? (
-          <div className='border-info/20 bg-info/10 text-info animate-in fade-in slide-in-from-top-1 rounded-xl border px-4 py-3 text-xs font-black tracking-widest uppercase'>
+          <div className='border-info/20 bg-info/10 text-info animate-in fade-in slide-in-from-top-1 rounded-xl border px-4 py-3 text-xs font-medium tracking-wide'>
             {notice}
           </div>
         ) : null}
@@ -387,7 +393,7 @@ function DeviceSettingsPage() {
           ) : devices.length === 0 ? (
             <div className='border-border/60 bg-muted/10 text-muted-foreground col-span-full flex flex-col items-center justify-center rounded-2xl border border-dashed py-20'>
               <Monitor className='mb-2 h-8 w-8 opacity-20' />
-              <p className='text-xs font-black tracking-widest text-zinc-500 uppercase'>
+              <p className='text-xs font-medium tracking-wide text-zinc-500'>
                 No devices registered
               </p>
             </div>
@@ -396,6 +402,7 @@ function DeviceSettingsPage() {
               const deviceId = String(device.id)
               const nameDraft = nameDraftsById[deviceId] ?? device.name
               const isBusy = busyAction?.id === deviceId
+              const lastSeenLabel = formatRelative(device.lastSeenAt)
               const color = getPathColor(device.name + deviceId)
               const OSIcon = getOSIcon(device.os)
               const BrowserIcon = getBrowserIcon(device.browser)
@@ -418,7 +425,7 @@ function DeviceSettingsPage() {
                           }}
                         />
                         <div className='flex min-w-0 flex-col'>
-                          <CardTitle className='text-foreground truncate text-xs font-black tracking-widest uppercase'>
+                          <CardTitle className='text-foreground truncate text-xs font-semibold tracking-wide'>
                             {device.name}
                           </CardTitle>
                           <div className='mt-0.5 flex items-center gap-1.5'>
@@ -429,16 +436,16 @@ function DeviceSettingsPage() {
                             {device.isCurrent ? (
                               <Badge
                                 variant='info'
-                                className='text-xxs h-4 px-1 font-black tracking-widest uppercase'
+                                className='text-xxs h-4 px-1 font-semibold tracking-wide'
                               >
                                 You
                               </Badge>
                             ) : (
                               <span className='text-xxs font-bold whitespace-nowrap text-zinc-500'>
                                 seen{' '}
-                                {device.lastSeenAt
-                                  ? formatRelative(device.lastSeenAt)
-                                  : 'never'}
+                                {lastSeenLabel === '—'
+                                  ? 'never'
+                                  : lastSeenLabel}
                               </span>
                             )}
                           </div>
@@ -472,7 +479,7 @@ function DeviceSettingsPage() {
                   <CardContent className='flex flex-1 flex-col justify-between space-y-4 p-4 pt-0'>
                     <div className='space-y-3'>
                       <div className='space-y-1.5'>
-                        <Label className='ml-1 text-xs leading-none font-black tracking-widest text-zinc-400 uppercase'>
+                        <Label className='ml-1 text-xs leading-none font-semibold tracking-wide text-zinc-400'>
                           Device Name
                         </Label>
                         <div className='flex gap-2'>
@@ -484,7 +491,7 @@ function DeviceSettingsPage() {
                                 [deviceId]: event.target.value,
                               }))
                             }
-                            className='bg-background/50 h-8 text-xs font-black tracking-widest uppercase'
+                            className='bg-background/50 h-8 text-xs font-medium tracking-wide'
                             disabled={busyAction !== null}
                           />
                           <Button
@@ -506,7 +513,7 @@ function DeviceSettingsPage() {
                       </div>
 
                       <div className='space-y-1.5'>
-                        <Label className='ml-1 text-xs leading-none font-black tracking-widest text-zinc-400 uppercase'>
+                        <Label className='ml-1 text-xs leading-none font-semibold tracking-wide text-zinc-400'>
                           Device Key
                         </Label>
                         <div className='border-border/40 bg-background/50 text-xxs rounded-lg border px-3 py-2 font-mono leading-tight break-all text-zinc-400'>
@@ -519,7 +526,7 @@ function DeviceSettingsPage() {
                       <Button
                         size='sm'
                         variant='ghost'
-                        className='hover:bg-primary/5 hover:text-primary h-8 flex-1 gap-2 rounded-lg px-2 text-xs font-black tracking-widest uppercase transition-all active:scale-95'
+                        className='hover:bg-primary/5 hover:text-primary h-8 flex-1 gap-2 rounded-lg px-2 text-xs font-semibold tracking-wide transition-all active:scale-95'
                         onClick={() => void handleTestNotification(device)}
                         disabled={
                           busyAction !== null ||
