@@ -264,13 +264,6 @@ function TailwatchLandingPage() {
                 <ChevronRight className='h-3.5 w-3.5' />
               </Link>
               <Link
-                to='/demo'
-                className='border-border/70 bg-card/70 text-foreground focus-visible:ring-ring inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border px-3 text-xs font-semibold tracking-wide shadow-sm transition-all duration-200 hover:bg-card/90 focus-visible:ring-2 focus-visible:outline-none'
-              >
-                Try demo
-                <Zap className='h-3.5 w-3.5' />
-              </Link>
-              <Link
                 to='/$volumeId'
                 params={{ volumeId: 'personal' }}
                 onClick={(event) => void handleDashboardNavigation(event)}
@@ -335,19 +328,13 @@ function TailwatchLandingPage() {
 
                 <div className='flex flex-wrap items-center gap-2 pt-1'>
                   <Link
-                    to='/demo'
-                    className='border-border/70 bg-card/70 text-foreground focus-visible:ring-ring inline-flex min-h-11 items-center gap-2 rounded-lg border px-4 text-xs font-semibold tracking-wide shadow-sm transition-colors hover:bg-card focus-visible:ring-2 focus-visible:outline-none'
-                  >
-                    Try demo without sign-in
-                  </Link>
-                  <Link
                     to='/pricing'
                     className='border-border/70 bg-card/70 text-foreground focus-visible:ring-ring inline-flex min-h-11 items-center gap-2 rounded-lg border px-4 text-xs font-semibold tracking-wide shadow-sm transition-colors hover:bg-card focus-visible:ring-2 focus-visible:outline-none'
                   >
                     Pricing philosophy
                   </Link>
                   <span className='text-muted-foreground text-xs'>
-                    Live sample data in one click
+                    Free now. Open-source path. Self-host welcome.
                   </span>
                 </div>
               </div>

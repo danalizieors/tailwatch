@@ -7,7 +7,6 @@ import {
   HeartHandshake,
   Server,
   Terminal,
-  Zap,
 } from 'lucide-react'
 import type { MouseEvent } from 'react'
 import { PublicFooter } from '~/components/layout/public-footer'
@@ -78,13 +77,6 @@ function PricingPage() {
             </Link>
 
             <div className='ml-auto flex w-full min-w-0 items-center justify-end gap-2 sm:w-auto'>
-              <Link
-                to='/demo'
-                className='border-border/70 bg-card/70 text-foreground focus-visible:ring-ring inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border px-3 text-xs font-semibold tracking-wide shadow-sm transition-all duration-200 hover:bg-card/90 focus-visible:ring-2 focus-visible:outline-none'
-              >
-                Try demo
-                <Zap className='h-3.5 w-3.5' />
-              </Link>
               <Link
                 to='/$volumeId'
                 params={{ volumeId: 'personal' }}
