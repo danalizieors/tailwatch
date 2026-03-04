@@ -1,19 +1,14 @@
 import {
   Bell,
   BellOff,
-  Command,
-  Compass,
-  Globe,
   HardDrive,
   Info,
   Key,
   Laptop,
-  Layout,
-  Monitor,
-  Smartphone,
   Terminal,
   X,
 } from 'lucide-react'
+import { DeviceBrandIcon } from '~/components/device/device-brand-icon'
 import { Button } from '~/components/ui/button'
 import { formatRelative, toTimestamp } from '~/lib/format'
 import { cn, getPathColor } from '~/lib/utils'
@@ -25,6 +20,7 @@ interface VolumeSidebarProps {
     notificationsEnabled: boolean
     id: any
     key?: string
+    unreadCount?: number
   }>
   onVolumeChange: (volume: string) => void
   onToggleVolumeNotifications: (volumeId: any, enabled: boolean) => void
@@ -41,26 +37,6 @@ interface VolumeSidebarProps {
   onToggleDeviceMute: (deviceId: any, enabled: boolean) => void
   isOpen?: boolean
   onClose?: () => void
-}
-
-function getOSIcon(os?: string) {
-  const name = os?.toLowerCase() || ''
-  if (name.includes('win')) return Layout
-  if (
-    name.includes('mac') ||
-    name.includes('ios') ||
-    name.includes('iphone') ||
-    name.includes('ipad')
-  )
-    return Command
-  if (name.includes('linux') || name.includes('android')) return Terminal
-  return Monitor
-}
-
-function getBrowserIcon(browser?: string) {
-  const name = browser?.toLowerCase() || ''
-  if (name.includes('safari')) return Compass
-  return Globe
 }
 
 export function VolumeSidebar({
@@ -125,6 +101,8 @@ export function VolumeSidebar({
           {volumeChoices.map((vol) => {
             const isActive = activeVolume === vol.name
             const color = getPathColor(vol.name)
+            const unreadCount = Math.max(0, vol.unreadCount ?? 0)
+            const unreadLabel = unreadCount > 99 ? '99+' : String(unreadCount)
 
             return (
               <div
@@ -185,7 +163,7 @@ export function VolumeSidebar({
                   size='icon'
                   variant='ghost'
                   className={cn(
-                    'h-9 w-9 shrink-0 rounded-xl transition-all duration-200',
+                    'relative h-9 w-9 shrink-0 rounded-xl transition-all duration-200',
                     vol.notificationsEnabled
                       ? 'text-primary bg-primary/10 border-primary/30 border shadow-sm'
                       : 'hover:bg-muted/50 text-zinc-500 hover:text-zinc-300',
@@ -208,6 +186,11 @@ export function VolumeSidebar({
                   ) : (
                     <BellOff className='h-4 w-4' />
                   )}
+                  {unreadCount > 0 ? (
+                    <span className='bg-primary text-primary-foreground pointer-events-none absolute -top-1 -right-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[9px] leading-none font-bold tabular-nums shadow-md'>
+                      {unreadLabel}
+                    </span>
+                  ) : null}
                 </Button>
               </div>
             )
@@ -241,8 +224,6 @@ export function VolumeSidebar({
               </p>
             ) : (
               sortedDevices.map((device) => {
-                const OSIcon = getOSIcon(device.os)
-                const BrowserIcon = getBrowserIcon(device.browser)
                 const lastSeenLabel = formatRelative(device.lastSeenAt)
                 const color = getPathColor(device.name + (device.id || ''))
 
@@ -273,22 +254,16 @@ export function VolumeSidebar({
                         }}
                       />{' '}
                       <div className='flex min-w-0 flex-col'>
-                        <div className='flex items-center gap-1.5'>
-                          <div className='mr-1 flex shrink-0 items-center gap-1'>
-                            <OSIcon className='h-3 w-3 text-zinc-400' />
-                            <BrowserIcon className='h-3 w-3 text-zinc-400' />
-                          </div>
-                          <span
-                            className={cn(
-                              'truncate text-xs leading-none font-semibold tracking-wide transition-colors',
-                              device.isCurrent
-                                ? 'text-primary'
-                                : 'text-muted-foreground group-hover:text-foreground',
-                            )}
-                          >
-                            {device.name}
-                          </span>
-                        </div>
+                        <span
+                          className={cn(
+                            'truncate text-xs leading-none font-semibold tracking-wide transition-colors',
+                            device.isCurrent
+                              ? 'text-primary'
+                              : 'text-muted-foreground group-hover:text-foreground',
+                          )}
+                        >
+                          {device.name}
+                        </span>
                         <div className='mt-1.5 flex items-center gap-1.5 transition-colors'>
                           {device.isCurrent ? (
                             <span className='text-xxs text-primary bg-primary/10 border-primary/20 rounded border px-1.5 py-0.5 font-semibold tracking-wide'>
@@ -301,6 +276,18 @@ export function VolumeSidebar({
                                 : lastSeenLabel}
                             </span>
                           )}
+                          <div className='ml-1 flex shrink-0 items-center gap-1'>
+                            <DeviceBrandIcon
+                              kind='os'
+                              name={device.os}
+                              className='h-3 w-3 text-zinc-400'
+                            />
+                            <DeviceBrandIcon
+                              kind='browser'
+                              name={device.browser}
+                              className='h-3 w-3 text-zinc-400'
+                            />
+                          </div>
                         </div>
                       </div>
                     </div>

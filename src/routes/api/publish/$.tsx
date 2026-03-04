@@ -75,11 +75,28 @@ export const Route = createFileRoute('/api/publish/$')({
             payload.status = statusOverride
           }
 
-          // Case 1: Volume Key provided in header
+          // Case 1: Volume key provided in header.
+          // Supports both:
+          // - /api/publish/<subpath>
+          // - /api/publish/key/<subpath> (explicit key marker)
           if (headerVolumeKey) {
+            const headerSubpath =
+              urlParts[0]?.toLowerCase() === 'key'
+                ? urlParts.slice(1).join('/')
+                : splat
+            if (!headerSubpath) {
+              return Response.json(
+                {
+                  error:
+                    'A path segment is required after /api/publish/key when using x-volume-key.',
+                },
+                { status: 400, headers: corsHeaders },
+              )
+            }
+
             const event = await convex.mutation(api.events.publishByKey, {
               key: headerVolumeKey,
-              subpath: splat,
+              subpath: headerSubpath,
               ...payload,
             })
             return Response.json(

@@ -1,5 +1,5 @@
 import { useQuery } from 'convex/react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   getLastSeenTimestamp,
   NotificationManager,
@@ -46,7 +46,7 @@ export function useDashboardData({
 
   const logsArgs = useMemo(() => {
     const next: Record<string, unknown> = {
-      limit: 200,
+      limit: 50,
     }
     if (normalizedVolume) next.volume = normalizedVolume
     if (normalizedTopicPrefix) next.topicPrefix = normalizedTopicPrefix
@@ -96,7 +96,7 @@ export function useDashboardData({
     hasInitialLoadRef.current = true
   }, [data])
 
-  const markAllSeen = () => {
+  const markAllSeen = useCallback(() => {
     // Determine the newest time from current data (events or entity updates).
     let newest = lastSeenAt
     if (data?.events && data.events.length > 0) {
@@ -114,7 +114,7 @@ export function useDashboardData({
 
     setLastSeenTimestamp(newest)
     setLastSeenAtState(newest)
-  }
+  }, [data, lastSeenAt])
 
   const refresh = () => {
     setIsRefreshing(true)

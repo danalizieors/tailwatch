@@ -63,19 +63,19 @@ export function AppShellHeader({ current, topRight }: AppShellHeaderProps) {
       {
         id: 'events',
         label: 'Events',
-        href: '/personal',
+        href: '/dashboard/personal',
         icon: Activity,
       },
       {
         id: 'volumes',
         label: 'Volumes',
-        href: '/settings/volumes',
+        href: '/dashboard/settings/volumes',
         icon: HardDrive,
       },
       {
         id: 'devices',
         label: 'Devices',
-        href: '/settings/devices',
+        href: '/dashboard/settings/devices',
         icon: Laptop,
       },
     ]

@@ -4,20 +4,16 @@ import { useAction, useConvexAuth, useMutation, useQuery } from 'convex/react'
 import {
   Bell,
   BellOff,
-  Command,
-  Compass,
-  Globe,
   Laptop,
-  Layout,
   Loader2,
   LogIn,
   Monitor,
   Save,
   Send,
-  Terminal,
   Trash2,
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
+import { DeviceBrandIcon } from '~/components/device/device-brand-icon'
 import { AppShellHeader } from '~/components/layout/app-shell-header'
 import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
@@ -38,34 +34,14 @@ import {
 import { formatRelative, toTimestamp } from '~/lib/format'
 import { NotificationManager } from '~/lib/notifications'
 import { cn, getPathColor } from '~/lib/utils'
-import { api } from '../../../convex/_generated/api'
+import { api } from '../../../../convex/_generated/api'
 
-export const Route = createFileRoute('/settings/devices')({
+export const Route = createFileRoute('/dashboard/settings/devices')({
   head: () => ({
     meta: [{ title: 'Device Settings | Tailwatch' }],
   }),
   component: DeviceSettingsPage,
 })
-
-function getOSIcon(os?: string) {
-  const name = os?.toLowerCase() || ''
-  if (name.includes('win')) return Layout
-  if (
-    name.includes('mac') ||
-    name.includes('ios') ||
-    name.includes('iphone') ||
-    name.includes('ipad')
-  )
-    return Command
-  if (name.includes('linux') || name.includes('android')) return Terminal
-  return Monitor
-}
-
-function getBrowserIcon(browser?: string) {
-  const name = browser?.toLowerCase() || ''
-  if (name.includes('safari')) return Compass
-  return Globe
-}
 
 function DeviceSettingsPage() {
   const { isLoading: authLoading, isAuthenticated } = useConvexAuth()
@@ -341,7 +317,7 @@ function DeviceSettingsPage() {
                 className='gap-1.5'
                 onClick={() =>
                   void signIn('github', {
-                    redirectTo: '/settings/devices',
+                    redirectTo: '/dashboard/settings/devices',
                   })
                 }
               >
@@ -404,8 +380,6 @@ function DeviceSettingsPage() {
               const isBusy = busyAction?.id === deviceId
               const lastSeenLabel = formatRelative(device.lastSeenAt)
               const color = getPathColor(device.name + deviceId)
-              const OSIcon = getOSIcon(device.os)
-              const BrowserIcon = getBrowserIcon(device.browser)
 
               return (
                 <Card
@@ -429,10 +403,6 @@ function DeviceSettingsPage() {
                             {device.name}
                           </CardTitle>
                           <div className='mt-0.5 flex items-center gap-1.5'>
-                            <div className='flex shrink-0 items-center gap-1'>
-                              <OSIcon className='h-3 w-3 text-zinc-500' />
-                              <BrowserIcon className='h-3 w-3 text-zinc-500' />
-                            </div>
                             {device.isCurrent ? (
                               <Badge
                                 variant='info'
@@ -448,6 +418,18 @@ function DeviceSettingsPage() {
                                   : lastSeenLabel}
                               </span>
                             )}
+                            <div className='ml-1 flex shrink-0 items-center gap-1'>
+                              <DeviceBrandIcon
+                                kind='os'
+                                name={device.os}
+                                className='h-3 w-3 text-zinc-500'
+                              />
+                              <DeviceBrandIcon
+                                kind='browser'
+                                name={device.browser}
+                                className='h-3 w-3 text-zinc-500'
+                              />
+                            </div>
                           </div>
                         </div>
                       </div>

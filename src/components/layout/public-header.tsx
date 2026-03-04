@@ -35,7 +35,7 @@ export function PublicHeader({
 
     event.preventDefault()
     try {
-      await signIn('github', { redirectTo: '/personal' })
+      await signIn('github', { redirectTo: '/dashboard/personal' })
     } catch (error) {
       console.error('Failed to initiate sign-in', error)
     }
@@ -71,7 +71,7 @@ export function PublicHeader({
           ) : null}
 
           <Link
-            to='/$volumeId'
+            to='/dashboard/$volumeId'
             params={{ volumeId: 'personal' }}
             onClick={(event) => void handleDashboardNavigation(event)}
             className={cn(

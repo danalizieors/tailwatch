@@ -26,9 +26,9 @@ import {
 import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label'
 import { cn, getPathColor } from '~/lib/utils'
-import { api } from '../../../convex/_generated/api'
+import { api } from '../../../../convex/_generated/api'
 
-export const Route = createFileRoute('/settings/volumes')({
+export const Route = createFileRoute('/dashboard/settings/volumes')({
   head: () => ({
     meta: [{ title: 'Volume Settings | Tailwatch' }],
   }),
@@ -218,7 +218,7 @@ function VolumeSettingsPage() {
                 className='gap-1.5'
                 onClick={() =>
                   void signIn('github', {
-                    redirectTo: '/settings/volumes',
+                    redirectTo: '/dashboard/settings/volumes',
                   })
                 }
               >

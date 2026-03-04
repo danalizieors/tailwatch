@@ -1,4 +1,5 @@
 import { Hash, LayoutGrid } from 'lucide-react'
+import type { ReactNode } from 'react'
 import type { TopicNode } from '~/lib/types'
 import { cn } from '~/lib/utils'
 import { TopicSelector } from './topic-selector'
@@ -9,6 +10,7 @@ interface ControlBarProps {
   topicTree: TopicNode[]
   selectedTopic?: string
   onSelectTopic: (topic?: string) => void
+  rightSlot?: ReactNode
 }
 
 export function ControlBar({
@@ -17,6 +19,7 @@ export function ControlBar({
   topicTree,
   selectedTopic,
   onSelectTopic,
+  rightSlot,
 }: ControlBarProps) {
   return (
     <div className='flex flex-col gap-3 backdrop-blur-sm md:flex-row md:items-center md:gap-4'>
@@ -61,6 +64,10 @@ export function ControlBar({
           Status
         </button>
       </div>
+
+      {rightSlot ? (
+        <div className='ml-auto shrink-0'>{rightSlot}</div>
+      ) : null}
     </div>
   )
 }

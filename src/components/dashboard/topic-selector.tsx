@@ -76,8 +76,8 @@ export function TopicSelector({
   }, [allTopics, query, selectedTopic])
 
   const normalizedQueryPath = useMemo(
-    () => normalizeCustomTopicPath(query),
-    [query],
+    () => resolveCustomTopicPath(query, selectedTopic),
+    [query, selectedTopic],
   )
   const hasExactQueryMatch = useMemo(() => {
     if (!normalizedQueryPath) return false
@@ -151,7 +151,7 @@ export function TopicSelector({
           setQuery('')
           setIsOpen(true)
         } else {
-          const customPath = normalizeCustomTopicPath(query)
+          const customPath = resolveCustomTopicPath(query, selectedTopic)
           if (customPath) {
             handleSelectTopic(customPath)
             setQuery('')
@@ -335,8 +335,21 @@ export function TopicSelector({
   )
 }
 
-function normalizeCustomTopicPath(value: string) {
+function resolveCustomTopicPath(value: string, selectedTopic?: string) {
   const trimmed = value.trim()
   if (!trimmed || trimmed === '/') return undefined
-  return trimmed.replace(/^\/+|\/+$/g, '').replace(/\/+/g, '/')
+
+  const isAbsolute = trimmed.startsWith('/')
+  const normalized = trimmed.replace(/^\/+|\/+$/g, '').replace(/\/+/g, '/')
+  if (!normalized) return undefined
+  if (isAbsolute || !selectedTopic) return normalized
+
+  const selected = selectedTopic.replace(/^\/+|\/+$/g, '').replace(/\/+/g, '/')
+  if (!selected) return normalized
+
+  if (normalized === selected || normalized.startsWith(`${selected}/`)) {
+    return normalized
+  }
+
+  return `${selected}/${normalized}`.replace(/\/+/g, '/')
 }

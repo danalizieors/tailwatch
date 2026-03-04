@@ -312,6 +312,65 @@ export const dashboardSnapshot = query({
 
 export const statusSnapshot = dashboardSnapshot
 
+export const unreadCountsByVolume = query({
+  args: {
+    since: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const userId = await auth.getUserId(ctx)
+    if (typeof userId !== 'string' || userId.trim().length === 0) return []
+
+    const since = Number.isFinite(args.since) ? (args.since as number) : 0
+
+    const volumes = await ctx.db
+      .query('volumes')
+      .withIndex('by_user', (q: any) => q.eq('userId', userId))
+      .collect()
+
+    const rows = await Promise.all(
+      volumes.map(async (volume: any) => {
+        const volumeId = String(volume._id)
+        const paths = await ctx.db
+          .query('paths')
+          .withIndex('by_volumeId', (q: any) => q.eq('volumeId', volumeId))
+          .collect()
+
+        const counts = await Promise.all(
+          paths.map(async (pathDoc: any) => {
+            const events = await ctx.db
+              .query('events')
+              .withIndex('by_pathId', (q: any) =>
+                q.eq('pathId', String(pathDoc._id)),
+              )
+              .collect()
+
+            return events.reduce((total: number, event: any) => {
+              const timestamp = Date.parse(event.time)
+              return Number.isFinite(timestamp) && timestamp > since
+                ? total + 1
+                : total
+            }, 0)
+          }),
+        )
+
+        return {
+          volumeId,
+          volumeName: String(volume.name ?? ''),
+          count: counts.reduce((total, value) => total + value, 0),
+        }
+      }),
+    )
+
+    return rows.sort((left, right) => {
+      if (left.volumeName === DEFAULT_VOLUME && right.volumeName !== DEFAULT_VOLUME)
+        return -1
+      if (left.volumeName !== DEFAULT_VOLUME && right.volumeName === DEFAULT_VOLUME)
+        return 1
+      return left.volumeName.localeCompare(right.volumeName)
+    })
+  },
+})
+
 async function buildSnapshot(
   ctx: any,
   args: {

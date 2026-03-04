@@ -1,11 +1,12 @@
 import { useNavigate } from '@tanstack/react-router'
 import { useConvexAuth, useMutation, useQuery } from 'convex/react'
+import { humanId } from 'human-id'
 import {
   Info,
-  LayoutGrid,
   PanelLeft,
   PanelLeftClose,
   ShieldCheck,
+  Shuffle,
   Zap,
 } from 'lucide-react'
 import { nanoid } from 'nanoid'
@@ -13,16 +14,16 @@ import { useDeferredValue, useEffect, useMemo, useState } from 'react'
 import { AppShellHeader } from '~/components/layout/app-shell-header'
 import { Button } from '~/components/ui/button'
 import { Card, CardContent } from '~/components/ui/card'
-import { getUAInfo } from '~/lib/device-identity'
+import { getClientDeviceName, getUAInfo } from '~/lib/device-identity'
 import { NotificationManager } from '~/lib/notifications'
 import type { EventStatus } from '~/lib/types'
 import { cn } from '~/lib/utils'
 import { api } from '../../../convex/_generated/api'
-import { ActionBar } from './action-bar'
 import { ControlBar } from './control-bar'
 import { IngestTools } from './ingest-tools'
 import { LogStream } from './log-stream'
 import { StatusBoard } from './status-board'
+import { TestEventDialog } from './test-event-dialog'
 import { useDashboardData } from './use-dashboard-data'
 import { VolumeSidebar } from './volume-sidebar'
 
@@ -46,11 +47,21 @@ export function DashboardView({
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<EventStatus | 'all'>('all')
   const [isDebugMode, setIsDebugMode] = useState(false)
-  const [isGeneratingRandomEvents, setIsGeneratingRandomEvents] =
-    useState(false)
-  const [generatorMessage, setGeneratorMessage] = useState<string | null>(null)
+  const [isTestEventDialogOpen, setIsTestEventDialogOpen] = useState(false)
+  const [testEventPath, setTestEventPath] = useState('')
+  const [testEventStatus, setTestEventStatus] = useState<'idle' | 'busy'>(
+    'busy',
+  )
+  const [testEventContent, setTestEventContent] = useState('')
+  const [isSendingTestEvent, setIsSendingTestEvent] = useState(false)
+  const [testEventError, setTestEventError] = useState<string | null>(null)
   const [volumePublishKey, setVolumePublishKey] = useState<string | null>(null)
   const [volumeOptions, setVolumeOptions] = useState<string[]>(['personal'])
+  const [clearedUnreadBaselineByVolumeId, setClearedUnreadBaselineByVolumeId] =
+    useState<Record<string, number>>({})
+  const [pendingVolumeClearById, setPendingVolumeClearById] = useState<
+    Record<string, true>
+  >({})
   const [isHydratingFilter, setIsHydratingFilter] = useState(true)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
@@ -102,7 +113,7 @@ export function DashboardView({
       const { system, browser } = getUAInfo()
       void upsertDevice({
         deviceKey: currentDeviceKey,
-        name: 'This device',
+        name: getClientDeviceName(),
         system,
         browser,
       })
@@ -117,6 +128,90 @@ export function DashboardView({
       volume,
       topicPrefix: selectedTopic,
     })
+
+  const unreadCountsByVolume = useQuery(
+    (api as any).events.unreadCountsByVolume,
+    isAuthenticated ? { since: lastSeenAt } : 'skip',
+  ) as
+    | Array<{
+        volumeId: string
+        volumeName: string
+        count: number
+      }>
+    | undefined
+
+  const rawUnreadCountByVolumeId = useMemo(() => {
+    const map = new Map<string, number>()
+    for (const row of unreadCountsByVolume ?? []) {
+      map.set(row.volumeId, row.count)
+    }
+    return map
+  }, [unreadCountsByVolume])
+
+  const unreadCountByVolumeId = useMemo(() => {
+    const map = new Map<string, number>()
+    for (const row of unreadCountsByVolume ?? []) {
+      const baseline = clearedUnreadBaselineByVolumeId[row.volumeId] ?? 0
+      map.set(row.volumeId, Math.max(0, row.count - baseline))
+    }
+    return map
+  }, [unreadCountsByVolume, clearedUnreadBaselineByVolumeId])
+
+  useEffect(() => {
+    setClearedUnreadBaselineByVolumeId({})
+  }, [lastSeenAt])
+
+  useEffect(() => {
+    const pendingIds = Object.keys(pendingVolumeClearById)
+    if (pendingIds.length === 0) return
+
+    const resolvedIds = pendingIds.filter((volumeId) =>
+      rawUnreadCountByVolumeId.has(volumeId),
+    )
+    if (resolvedIds.length === 0) return
+
+    setClearedUnreadBaselineByVolumeId((prev) => {
+      const next = { ...prev }
+      for (const volumeId of resolvedIds) {
+        next[volumeId] = rawUnreadCountByVolumeId.get(volumeId) ?? 0
+      }
+      return next
+    })
+
+    setPendingVolumeClearById((prev) => {
+      const next = { ...prev }
+      for (const volumeId of resolvedIds) {
+        delete next[volumeId]
+      }
+      return next
+    })
+  }, [pendingVolumeClearById, rawUnreadCountByVolumeId])
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof document === 'undefined') return
+
+    const persistLastSeen = () => {
+      markAllSeen()
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        persistLastSeen()
+      }
+    }
+
+    window.addEventListener('blur', persistLastSeen)
+    window.addEventListener('beforeunload', persistLastSeen)
+    window.addEventListener('pagehide', persistLastSeen)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      window.removeEventListener('blur', persistLastSeen)
+      window.removeEventListener('beforeunload', persistLastSeen)
+      window.removeEventListener('pagehide', persistLastSeen)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [markAllSeen])
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -211,41 +306,85 @@ export function DashboardView({
 
   const switchVolume = (nextVolumeRaw: string) => {
     const nextVolume = nextVolumeRaw.trim() || 'personal'
+    const volumeBeingLeft =
+      (managedVolumes ?? []).find((row) => row.name === activeVolume) ??
+      (activeVolume === 'personal'
+        ? (managedVolumes ?? []).find((row) => row.isDefault)
+        : undefined)
+    if (volumeBeingLeft) {
+      const volumeId = String(volumeBeingLeft.id)
+      const currentUnread = rawUnreadCountByVolumeId.get(volumeId) ?? 0
+      setClearedUnreadBaselineByVolumeId((prev) => ({
+        ...prev,
+        [volumeId]: currentUnread,
+      }))
+      if (!rawUnreadCountByVolumeId.has(volumeId)) {
+        setPendingVolumeClearById((prev) => ({
+          ...prev,
+          [volumeId]: true,
+        }))
+      }
+    }
     void navigate({
-      to: '/$volumeId',
+      to: '/dashboard/$volumeId',
       params: { volumeId: nextVolume },
       search: (prev: any) => prev,
     })
   }
 
-  const generateRandomEvents = async () => {
-    if (isGeneratingRandomEvents) return
+  const openTestEventDialog = () => {
+    const testEvent = buildRandomTestEvent(selectedTopic)
+    setTestEventPath(testEvent.path)
+    setTestEventStatus(testEvent.payload.status)
+    setTestEventContent(testEvent.payload.content)
+    setTestEventError(null)
+    setIsTestEventDialogOpen(true)
+  }
 
-    setIsGeneratingRandomEvents(true)
-    setGeneratorMessage(null)
+  const closeTestEventDialog = () => {
+    if (isSendingTestEvent) return
+    setIsTestEventDialogOpen(false)
+    setTestEventError(null)
+  }
 
-    const testEvent = buildRandomTestEvent()
+  const sendTestEvent = async () => {
+    if (isSendingTestEvent) return
+
+    const normalizedPath = normalizeTopicPath(testEventPath)
+    if (!normalizedPath) {
+      setTestEventError('Path is required')
+      return
+    }
+
+    setIsSendingTestEvent(true)
+    setTestEventError(null)
+
+    const payload = {
+      time: new Date().toISOString(),
+      status: testEventStatus,
+      content: testEventContent,
+    }
+
     try {
       if (volumePublishKey) {
         await publishByKey({
           key: volumePublishKey,
-          subpath: testEvent.path,
-          ...testEvent.payload,
+          subpath: normalizedPath,
+          ...payload,
         })
       } else {
         await publish({
-          path: testEvent.path,
+          path: normalizedPath,
           volume: activeVolume,
-          ...testEvent.payload,
+          ...payload,
         })
       }
       refresh()
-      setGeneratorMessage(`Test event sent: ${testEvent.path}`)
+      setIsTestEventDialogOpen(false)
     } catch {
-      setGeneratorMessage('Failed to send test event')
+      setTestEventError('Failed to send test event')
     }
-
-    setIsGeneratingRandomEvents(false)
+    setIsSendingTestEvent(false)
   }
 
   const filteredEvents = (data?.events ?? []).filter((event) => {
@@ -266,6 +405,9 @@ export function DashboardView({
       `${entity.path} ${entity.lastContent ?? ''} ${entity.entityId ?? ''}`.toLowerCase()
     return haystack.includes(q)
   })
+
+  const showIngestTools =
+    mode === 'logs' && Boolean(data) && filteredEvents.length === 0
 
   return (
     <div className='text-foreground bg-background relative flex h-dvh min-h-dvh w-full flex-col overflow-hidden'>
@@ -297,6 +439,7 @@ export function DashboardView({
             name: v.name,
             notificationsEnabled: v.notificationsEnabled,
             key: v.key?.value,
+            unreadCount: unreadCountByVolumeId.get(String(v.id)) ?? 0,
           }))}
           onVolumeChange={(v) => {
             switchVolume(v)
@@ -365,6 +508,16 @@ export function DashboardView({
                   onSelectTopic={(topic) =>
                     setSelectedTopic(normalizeTopicPath(topic))
                   }
+                  rightSlot={
+                    <Button
+                      size='sm'
+                      className='shadow-primary-glow bg-primary h-10 gap-2 rounded-lg px-4 text-[10px] font-semibold tracking-wide text-black transition-all hover:opacity-90'
+                      onClick={openTestEventDialog}
+                    >
+                      <Shuffle className='h-3.5 w-3.5' />
+                      Test
+                    </Button>
+                  }
                 />
               </div>
             </div>
@@ -378,10 +531,12 @@ export function DashboardView({
                     </div>
                   ) : data ? (
                     mode === 'logs' ? (
-                      <LogStream
-                        events={filteredEvents}
-                        lastSeenAt={lastSeenAt}
-                      />
+                      filteredEvents.length > 0 ? (
+                        <LogStream
+                          events={filteredEvents}
+                          lastSeenAt={lastSeenAt}
+                        />
+                      ) : null
                     ) : (
                       <StatusBoard
                         rows={filteredEntities}
@@ -391,16 +546,14 @@ export function DashboardView({
                   ) : null}
                 </div>
 
-                {/* Ingest Tools */}
-                <div className='mt-4'>
-                  <IngestTools
-                    volumePublishKey={volumePublishKey}
-                    selectedTopic={selectedTopic}
-                    onSendTest={generateRandomEvents}
-                    isGeneratingRandomEvents={isGeneratingRandomEvents}
-                    generatorMessage={generatorMessage}
-                  />
-                </div>
+                {showIngestTools ? (
+                  <div className='mt-4'>
+                    <IngestTools
+                      volumePublishKey={volumePublishKey}
+                      selectedTopic={selectedTopic}
+                    />
+                  </div>
+                ) : null}
               </div>
             </div>
           </div>
@@ -441,6 +594,20 @@ export function DashboardView({
           </div>
         </div>
       )}
+
+      <TestEventDialog
+        open={isTestEventDialogOpen}
+        onClose={closeTestEventDialog}
+        path={testEventPath}
+        onPathChange={setTestEventPath}
+        status={testEventStatus}
+        onStatusChange={setTestEventStatus}
+        content={testEventContent}
+        onContentChange={setTestEventContent}
+        onSend={() => void sendTestEvent()}
+        isSending={isSendingTestEvent}
+        error={testEventError}
+      />
     </div>
   )
 }
@@ -452,44 +619,59 @@ function normalizeTopicPath(value?: string | null) {
   return trimmed.replace(/^\/+|\/+$/g, '').replace(/\/+/g, '/')
 }
 
-const RANDOM_PATHS = [
-  'ops/cron/nightly-backup',
-  'app/frontend/messages',
-  'team-a/project-x/task/planner',
-  'team-b/pipeline/ingest',
-  'ml/trainer/retrain',
-  'payments/reconciler/daily',
-  'search/indexer/shard-3',
-  'support/webhook/slack-sync',
+const RANDOM_TITLES = [
+  'Pipeline health checkpoint',
+  'Notification delivery smoke test',
+  'Scheduler execution sample',
+  'Cross-service handoff marker',
+  'Telemetry payload validation',
 ] as const
 
-const RANDOM_TEST_MESSAGES = [
-  'Synthetic push delivery check',
-  'Notification channel smoke test',
-  'Randomized test signal from dashboard',
-  'End-to-end browser alert validation',
-  'Service worker wakeup verification',
+const RANDOM_CONTEXT_LINES = [
+  'verifying webhook delivery',
+  'checking downstream acknowledgement',
+  'inspecting queue depth',
+  'sampling edge latency',
+  'validating markdown rendering',
 ] as const
 
 function pickRandom<T>(items: readonly T[]): T {
   return items[Math.floor(Math.random() * items.length)] as T
 }
 
-function randomId(prefix: string) {
-  return `${prefix}_${nanoid(8)}`
+function createHumanPathId() {
+  return humanId({
+    separator: '-',
+    capitalize: false,
+    adjectiveCount: Math.random() < 0.3 ? 2 : 1,
+  })
+    .replace(/[^a-z0-9-]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
 }
 
-function buildRandomTestEvent() {
-  const path = pickRandom(RANDOM_PATHS)
-  const testId = randomId('test')
-  const status = Math.random() < 0.75 ? 'idle' : 'busy'
+function buildRandomTestEvent(filteredPrefix?: string) {
+  const status = Math.random() < 0.55 ? 'busy' : 'idle'
+  const randomSegment = createHumanPathId() || `node-${nanoid(4)}`
+  const prefix = normalizeTopicPath(filteredPrefix)
+  const path = prefix ? `${prefix}/${randomSegment}` : randomSegment
+  const title = pickRandom(RANDOM_TITLES)
+  const context = pickRandom(RANDOM_CONTEXT_LINES)
+
+  const content = [
+    `### ${title}`,
+    status === 'busy'
+      ? `- **BUSY** \`${randomSegment}\` ${context}`
+      : `- **IDLE** \`${randomSegment}\` ${context}`,
+    status === 'busy' ? '> _processing_ synthetic run' : '> _idle_ awaiting next task',
+  ].join('\n')
 
   return {
     path,
     payload: {
       time: new Date().toISOString(),
       status,
-      content: `TEST EVENT ${testId}: ${pickRandom(RANDOM_TEST_MESSAGES)}`,
+      content,
     },
   }
 }

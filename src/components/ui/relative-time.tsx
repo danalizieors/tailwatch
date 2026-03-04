@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { formatAbsolute, formatRelative } from '~/lib/format'
 import { cn } from '~/lib/utils'
 
@@ -10,6 +10,8 @@ interface RelativeTimeProps {
 
 export function RelativeTime({ time, className, title }: RelativeTimeProps) {
   const [, setTick] = useState(0)
+  const [flashSequence, setFlashSequence] = useState(0)
+  const previousRelativeRef = useRef<string | null>(null)
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -21,6 +23,18 @@ export function RelativeTime({ time, className, title }: RelativeTimeProps) {
   const relative = formatRelative(time)
   const absolute = formatAbsolute(time)
 
+  useEffect(() => {
+    if (previousRelativeRef.current === null) {
+      previousRelativeRef.current = relative
+      return
+    }
+
+    if (previousRelativeRef.current !== relative) {
+      previousRelativeRef.current = relative
+      setFlashSequence((value) => value + 1)
+    }
+  }, [relative])
+
   return (
     <span
       className={cn(
@@ -30,8 +44,11 @@ export function RelativeTime({ time, className, title }: RelativeTimeProps) {
       title={title}
     >
       <span
-        key={relative}
-        className='animate-flash font-bold whitespace-nowrap text-zinc-400'
+        key={`relative-${flashSequence}`}
+        className={cn(
+          'font-bold whitespace-nowrap text-zinc-400',
+          flashSequence > 0 && 'animate-flash',
+        )}
       >
         {relative}
       </span>
