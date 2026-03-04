@@ -23,7 +23,7 @@ export const Route = createRootRoute({
         name: 'viewport',
         content: 'width=device-width, initial-scale=1, viewport-fit=cover',
       },
-      { title: 'Tailwatch | Event Monitor' },
+      { title: 'Tailwatch' },
       {
         name: 'robots',
         content: 'noindex, nofollow, noarchive, nosnippet, noimageindex',

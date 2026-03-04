@@ -71,7 +71,7 @@ export function IngestTools({
       {/* Test Event Section */}
       <Card className='border-primary/20 bg-primary/5 overflow-hidden shadow-sm'>
         <CardHeader className='p-4 pb-2'>
-          <CardTitle className='text-primary flex items-center gap-2 text-xs font-black tracking-widest uppercase'>
+          <CardTitle className='text-primary flex items-center gap-2 text-xs font-semibold tracking-wide'>
             <Shuffle className='h-3.5 w-3.5' />
             Quick Test
           </CardTitle>
@@ -83,7 +83,7 @@ export function IngestTools({
           </p>
           <Button
             size='sm'
-            className='h-9 w-full gap-2 rounded-lg text-xs font-black tracking-widest uppercase shadow-sm'
+            className='h-9 w-full gap-2 rounded-lg text-xs font-semibold tracking-wide shadow-sm'
             onClick={onSendTest}
             disabled={isGeneratingRandomEvents}
           >
@@ -102,7 +102,7 @@ export function IngestTools({
           {generatorMessage && (
             <p
               className={cn(
-                'text-center text-xs font-black tracking-widest uppercase',
+                'text-center text-xs font-semibold tracking-wide',
                 generatorMessage.includes('Failed')
                   ? 'text-destructive'
                   : 'text-info',
@@ -120,7 +120,7 @@ export function IngestTools({
           className='hover:bg-muted/30 cursor-pointer p-4 pb-2 transition-colors'
           onClick={() => setIsCurlExpanded(!isCurlExpanded)}
         >
-          <CardTitle className='flex items-center justify-between gap-2 text-xs font-black tracking-widest text-zinc-300 uppercase'>
+          <CardTitle className='flex items-center justify-between gap-2 text-xs font-semibold tracking-wide text-zinc-300'>
             <div className='flex items-center gap-2'>
               <Terminal className='h-3.5 w-3.5' />
               Ingest via Curl
@@ -147,7 +147,7 @@ export function IngestTools({
             ) : !volumePublishKey ? (
               <div className='bg-warning/10 border-warning/20 flex items-start gap-2 rounded-lg border p-3'>
                 <Box className='text-warning mt-0.5 h-3.5 w-3.5 shrink-0' />
-                <p className='text-warning text-xs leading-normal font-black tracking-widest uppercase'>
+                <p className='text-warning text-xs leading-normal font-semibold tracking-wide'>
                   No API key found for this volume. Please check your volume
                   settings to enable publishing.
                 </p>
@@ -159,7 +159,7 @@ export function IngestTools({
                     <Button
                       variant='ghost'
                       size='sm'
-                      className='h-6 gap-1.5 px-2 text-xs font-black tracking-widest uppercase'
+                      className='h-6 gap-1.5 px-2 text-xs font-semibold tracking-wide'
                       onClick={() =>
                         curlCommands &&
                         copyToClipboard(curlCommands.header, 'header')
@@ -183,7 +183,7 @@ export function IngestTools({
                     <Button
                       variant='ghost'
                       size='sm'
-                      className='h-6 gap-1.5 px-2 text-xs font-black tracking-widest uppercase'
+                      className='h-6 gap-1.5 px-2 text-xs font-semibold tracking-wide'
                       onClick={() =>
                         curlCommands && copyToClipboard(curlCommands.url, 'url')
                       }

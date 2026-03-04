@@ -15,7 +15,7 @@ import {
   X,
 } from 'lucide-react'
 import { Button } from '~/components/ui/button'
-import { formatRelative } from '~/lib/format'
+import { formatRelative, toTimestamp } from '~/lib/format'
 import { cn, getPathColor } from '~/lib/utils'
 
 interface VolumeSidebarProps {
@@ -34,7 +34,7 @@ interface VolumeSidebarProps {
     name: string
     isCurrent: boolean
     enabled: boolean
-    lastSeenAt?: string
+    lastSeenAt?: string | number
     os?: string
     browser?: string
   }>
@@ -77,7 +77,10 @@ export function VolumeSidebar({
   const sortedDevices = [...(devices ?? [])].sort((a, b) => {
     if (a.isCurrent) return -1
     if (b.isCurrent) return 1
-    return (b.lastSeenAt ?? '').localeCompare(a.lastSeenAt ?? '')
+
+    const bSeen = toTimestamp(b.lastSeenAt) ?? 0
+    const aSeen = toTimestamp(a.lastSeenAt) ?? 0
+    return bSeen - aSeen
   })
 
   return (
@@ -95,7 +98,7 @@ export function VolumeSidebar({
           <div className='border-primary/25 bg-primary/10 text-primary flex h-8 w-8 items-center justify-center rounded-lg border'>
             <Terminal className='h-4 w-4' />
           </div>
-          <span className='text-foreground text-xs font-black tracking-widest uppercase'>
+          <span className='text-foreground text-xs font-semibold tracking-wide'>
             Menu
           </span>
         </div>
@@ -113,7 +116,7 @@ export function VolumeSidebar({
       <div className='flex flex-col gap-4'>
         <div className='flex items-center gap-2 px-1'>
           <HardDrive className='text-primary h-4 w-4' />
-          <span className='text-foreground/70 text-xs font-black tracking-widest uppercase'>
+          <span className='text-foreground/70 text-xs font-semibold tracking-wide'>
             Volumes
           </span>
         </div>
@@ -155,7 +158,7 @@ export function VolumeSidebar({
                   <div className='flex min-w-0 flex-col'>
                     <span
                       className={cn(
-                        'mb-1.5 truncate text-xs leading-none font-black tracking-widest uppercase transition-colors',
+                        'mb-1.5 truncate text-xs leading-none font-semibold tracking-wide transition-colors',
                         isActive
                           ? 'text-primary'
                           : 'text-muted-foreground group-hover:text-foreground',
@@ -217,7 +220,7 @@ export function VolumeSidebar({
         <div className='flex flex-col gap-4'>
           <div className='flex items-center gap-2 px-1'>
             <Laptop className='text-primary h-4 w-4' />
-            <span className='text-foreground/70 text-xs font-black tracking-widest uppercase'>
+            <span className='text-foreground/70 text-xs font-semibold tracking-wide'>
               Devices
             </span>
           </div>
@@ -233,13 +236,14 @@ export function VolumeSidebar({
                 ))}
               </div>
             ) : devices.length === 0 ? (
-              <p className='px-2 text-xs font-black tracking-widest text-zinc-400 uppercase italic'>
+              <p className='px-2 text-xs font-medium tracking-wide text-zinc-400 italic'>
                 No devices
               </p>
             ) : (
               sortedDevices.map((device) => {
                 const OSIcon = getOSIcon(device.os)
                 const BrowserIcon = getBrowserIcon(device.browser)
+                const lastSeenLabel = formatRelative(device.lastSeenAt)
                 const color = getPathColor(device.name + (device.id || ''))
 
                 return (
@@ -276,7 +280,7 @@ export function VolumeSidebar({
                           </div>
                           <span
                             className={cn(
-                              'truncate text-xs leading-none font-black tracking-widest uppercase transition-colors',
+                              'truncate text-xs leading-none font-semibold tracking-wide transition-colors',
                               device.isCurrent
                                 ? 'text-primary'
                                 : 'text-muted-foreground group-hover:text-foreground',
@@ -287,14 +291,14 @@ export function VolumeSidebar({
                         </div>
                         <div className='mt-1.5 flex items-center gap-1.5 transition-colors'>
                           {device.isCurrent ? (
-                            <span className='text-xxs text-primary bg-primary/10 border-primary/20 rounded border px-1.5 py-0.5 font-black tracking-tighter uppercase'>
+                            <span className='text-xxs text-primary bg-primary/10 border-primary/20 rounded border px-1.5 py-0.5 font-semibold tracking-wide'>
                               You
                             </span>
                           ) : (
                             <span className='text-xxs font-bold text-zinc-400 group-hover:text-zinc-300'>
-                              {device.lastSeenAt
-                                ? formatRelative(device.lastSeenAt)
-                                : 'never seen'}
+                              {lastSeenLabel === '—'
+                                ? 'never seen'
+                                : lastSeenLabel}
                             </span>
                           )}
                         </div>
@@ -334,7 +338,7 @@ export function VolumeSidebar({
         <div className='border-border/60 bg-muted/20 mt-auto rounded-xl border border-dashed p-4'>
           <div className='flex items-start gap-2 text-zinc-300'>
             <Info className='mt-0.5 h-3.5 w-3.5 shrink-0' />
-            <p className='text-xs leading-relaxed font-black tracking-widest uppercase'>
+            <p className='text-xs leading-relaxed font-medium tracking-wide'>
               Sign in to manage custom volumes and device alerts.
             </p>
           </div>

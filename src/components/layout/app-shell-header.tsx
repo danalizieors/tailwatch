@@ -8,9 +8,6 @@ import {
   LogIn,
   LogOut,
   Menu,
-  PanelLeft,
-  PanelLeftClose,
-  Terminal,
   X,
 } from 'lucide-react'
 import {
@@ -20,6 +17,7 @@ import {
   type ComponentType,
   type ReactNode,
 } from 'react'
+import { TailwatchBrand } from '~/components/layout/tailwatch-brand'
 import { Button } from '~/components/ui/button'
 import { cn } from '~/lib/utils'
 import { api } from '../../../convex/_generated/api'
@@ -29,8 +27,6 @@ type HeaderSection = 'events' | 'volumes' | 'devices'
 interface AppShellHeaderProps {
   current?: HeaderSection
   topRight?: ReactNode
-  onSidebarToggle?: () => void
-  isSidebarOpen?: boolean
 }
 
 type NavItem = {
@@ -40,17 +36,7 @@ type NavItem = {
   icon: ComponentType<{ className?: string }>
 }
 
-function currentPathForRedirect() {
-  if (typeof window === 'undefined') return '/personal'
-  return `${window.location.pathname}${window.location.search}`
-}
-
-export function AppShellHeader({
-  current,
-  topRight,
-  onSidebarToggle,
-  isSidebarOpen,
-}: AppShellHeaderProps) {
+export function AppShellHeader({ current, topRight }: AppShellHeaderProps) {
   const { isAuthenticated, isLoading } = useConvexAuth()
   const { signIn, signOut } = useAuthActions()
   const navigate = useNavigate()
@@ -121,16 +107,8 @@ export function AppShellHeader({
       >
         <div className='flex h-14 items-center justify-between gap-4 md:gap-8'>
           <div className='flex items-center gap-6 md:gap-8'>
-            <Link
-              to='/'
-              className='group relative inline-flex shrink-0 items-center gap-2.5'
-            >
-              <div className='border-primary/25 bg-primary/10 text-primary group-hover:border-primary/40 group-hover:bg-primary/20 group-hover:shadow-primary-glow relative z-10 flex h-9 w-9 items-center justify-center rounded-lg border transition-all duration-300'>
-                <Terminal className='h-5 w-5' />
-              </div>
-              <p className='text-foreground group-hover:text-primary text-base font-black tracking-tight uppercase transition-colors'>
-                Tailwatch
-              </p>
+            <Link to='/' className='shrink-0'>
+              <TailwatchBrand />
             </Link>
 
             <div className='bg-border/60 hidden h-5 w-px md:block' />
@@ -145,7 +123,7 @@ export function AppShellHeader({
                     key={item.id}
                     to={item.href as any}
                     className={cn(
-                      'group relative flex items-center gap-2.5 text-xs font-black tracking-widest uppercase transition-all duration-300',
+                      'group relative flex items-center gap-2.5 text-xs font-semibold tracking-wide transition-all duration-300',
                       active
                         ? 'text-primary'
                         : 'hover:text-foreground text-zinc-400',
@@ -171,7 +149,7 @@ export function AppShellHeader({
                     <span
                       className={cn(
                         'relative z-10 transition-all duration-300',
-                        active && 'text-primary font-black',
+                        active && 'text-primary font-semibold',
                       )}
                     >
                       {item.label}
@@ -195,7 +173,7 @@ export function AppShellHeader({
                   <button
                     type='button'
                     onClick={() => setIsProfileOpen(!isProfileOpen)}
-                    className='border-border/70 bg-muted/40 hover:bg-muted/60 hover:ring-primary/20 focus:ring-primary/40 flex h-8 w-8 cursor-pointer items-center justify-center overflow-hidden rounded-full border transition-all hover:ring-2 focus:ring-2 focus:outline-none'
+                    className='border-border/70 bg-muted/40 hover:bg-muted/60 hover:ring-primary/20 focus:ring-primary/40 flex h-10 w-10 cursor-pointer items-center justify-center overflow-hidden rounded-full border transition-all hover:ring-2 focus:ring-2 focus:outline-none'
                   >
                     {user?.image ? (
                       <img
@@ -233,7 +211,7 @@ export function AppShellHeader({
                         )}
                       </div>
                       <div className='flex min-w-0 flex-col'>
-                        <p className='text-foreground truncate text-xs font-black tracking-widest uppercase'>
+                        <p className='text-foreground truncate text-xs font-semibold tracking-wide'>
                           {displayName}
                         </p>
                         {user?.email ? (
@@ -253,7 +231,7 @@ export function AppShellHeader({
                           replace: true,
                         })
                       }}
-                      className='text-foreground hover:bg-destructive/10 hover:text-destructive flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-black tracking-widest uppercase transition-colors'
+                      className='text-foreground hover:bg-destructive/10 hover:text-destructive flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-semibold tracking-wide transition-colors'
                     >
                       <LogOut className='h-3.5 w-3.5' />
                       Sign out
@@ -267,7 +245,7 @@ export function AppShellHeader({
                 size='sm'
                 variant='outline'
                 onClick={() => void signIn('github')}
-                className='hidden gap-1.5 text-xs font-black tracking-widest uppercase md:flex'
+                className='hidden min-h-10 gap-1.5 text-xs font-semibold tracking-wide md:flex'
               >
                 <LogIn className='h-3.5 w-3.5' />
                 Sign in
@@ -278,7 +256,7 @@ export function AppShellHeader({
             <Button
               variant='ghost'
               size='icon'
-              className='relative h-8 w-8 overflow-hidden md:hidden'
+              className='relative h-11 w-11 overflow-hidden md:hidden'
               onClick={() => setIsMenuOpen(!isMenuOpen)}
             >
               <div
@@ -304,6 +282,30 @@ export function AppShellHeader({
             </Button>
           </div>
         </div>
+
+        {isAuthenticated ? (
+          <nav className='no-scrollbar -mx-1 mt-1 flex gap-2 overflow-x-auto pb-2 md:hidden'>
+            {navItems.map((item) => {
+              const Icon = item.icon
+              const active = current === item.id
+              return (
+                <Link
+                  key={item.id}
+                  to={item.href as any}
+                  className={cn(
+                    'flex min-h-11 shrink-0 items-center gap-2 rounded-lg px-3 text-xs font-semibold tracking-wide',
+                    active
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted/40 text-muted-foreground hover:text-foreground',
+                  )}
+                >
+                  <Icon className='h-3.5 w-3.5' />
+                  {item.label}
+                </Link>
+              )
+            })}
+          </nav>
+        ) : null}
       </header>
 
       {/* Mobile Menu Backdrop */}
@@ -340,7 +342,7 @@ export function AppShellHeader({
               )}
             </div>
             <div className='flex min-w-0 flex-col'>
-              <p className='text-foreground truncate text-sm font-black tracking-widest uppercase'>
+              <p className='text-foreground truncate text-sm font-semibold tracking-tight'>
                 {displayName}
               </p>
               {user.email ? (
@@ -361,7 +363,7 @@ export function AppShellHeader({
                     to={item.href as any}
                     onClick={() => setIsMenuOpen(false)}
                     className={cn(
-                      'flex items-center gap-3 rounded-lg px-3 py-2.5 text-xs font-black tracking-widest uppercase transition-colors',
+                      'flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-xs font-semibold tracking-wide transition-colors',
                       active
                         ? 'bg-primary text-primary-foreground shadow-primary/20 shadow-sm'
                         : 'text-muted-foreground hover:bg-muted hover:text-foreground',
@@ -376,7 +378,7 @@ export function AppShellHeader({
                 <Button
                   variant='outline'
                   size='sm'
-                  className='text-primary border-primary/20 h-11 justify-start gap-3 text-xs font-black tracking-widest uppercase'
+                  className='text-primary border-primary/20 min-h-11 justify-start gap-3 text-xs font-semibold tracking-wide'
                   onClick={() => {
                     setIsMenuOpen(false)
                     void signIn('github')
@@ -395,7 +397,7 @@ export function AppShellHeader({
             <Button
               variant='ghost'
               size='sm'
-              className='hover:text-destructive hover:bg-destructive/10 h-9 gap-2 text-xs font-black tracking-widest text-zinc-400 uppercase'
+              className='hover:text-destructive hover:bg-destructive/10 min-h-11 gap-2 text-xs font-semibold tracking-wide text-zinc-400'
               onClick={async () => {
                 setIsMenuOpen(false)
                 await signOut()
@@ -414,7 +416,7 @@ export function AppShellHeader({
                   setIsMenuOpen(false)
                   void signIn('github')
                 }}
-                className='h-9 gap-2 px-4 text-xs font-black tracking-widest uppercase'
+                className='min-h-11 gap-2 px-4 text-xs font-semibold tracking-wide'
               >
                 <LogIn className='h-4 w-4' />
                 <span>Sign in</span>

@@ -422,16 +422,7 @@ async function buildSnapshot(
       lastSeenAt: state.lastSeenAt,
       lastContent: state.lastContent,
     }))
-    .sort((a, b) => {
-      if (a.currentStatus !== b.currentStatus) {
-        return a.currentStatus === 'idle' ? -1 : 1
-      }
-      if (a.currentStatus === 'idle') {
-        return a.lastSeenAt.localeCompare(b.lastSeenAt) // oldest to newest
-      } else {
-        return b.lastSeenAt.localeCompare(a.lastSeenAt) // newest to oldest
-      }
-    })
+    .sort((a, b) => b.lastSeenAt.localeCompare(a.lastSeenAt))
 
   const busyCount = Array.from(entityStates.values()).filter(
     (s) => s.status === 'busy',

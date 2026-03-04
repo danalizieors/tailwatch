@@ -7,7 +7,7 @@
   "scripts": {
     "format": "prettier --write .",
     "develop": "pnpm run '/^develop:.*/'",
-    "develop:vite": "vite dev",
+    "develop:vite": "vite dev --host",
     "develop:convex": "convex dev",
     "build": "vite build",
     "typecheck": "tsc --noEmit",

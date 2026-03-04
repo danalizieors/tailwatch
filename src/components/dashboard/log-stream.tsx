@@ -63,7 +63,7 @@ export function LogStream({ events, lastSeenAt }: LogStreamProps) {
                         <span
                           key={`${event.id}-${event.status}`}
                           className={cn(
-                            'text-xxs animate-glow rounded border px-1.5 py-0.5 leading-none font-black tracking-widest uppercase',
+                            'text-xxs animate-glow rounded border px-1.5 py-0.5 leading-none font-semibold tracking-wide',
                             eventStatusColors(event.status),
                           )}
                         >
@@ -76,14 +76,14 @@ export function LogStream({ events, lastSeenAt }: LogStreamProps) {
                     <div className='mt-0.5 w-full min-w-0 self-center md:mt-0 md:w-auto'>
                       <div className='mb-1 flex flex-wrap items-center gap-x-2 gap-y-1 md:mb-0.5 md:overflow-hidden'>
                         <span
-                          className='max-w-full min-w-0 truncate text-xs font-black tracking-widest uppercase'
+                          className='max-w-full min-w-0 truncate text-xs font-semibold tracking-wide'
                           style={{ color: pathColor }}
                         >
                           {event.path}
                         </span>
                         {event.entityId && (
                           <span
-                            className='shrink-0 text-xs font-black tracking-widest uppercase'
+                            className='shrink-0 text-xs font-semibold tracking-wide'
                             style={{
                               color: pathColorDim,
                             }}
@@ -104,7 +104,7 @@ export function LogStream({ events, lastSeenAt }: LogStreamProps) {
 
                     {/* Path (Desktop Only) */}
                     <div className='hidden flex-col items-end justify-center overflow-hidden md:flex'>
-                      <span className='max-w-[90px] truncate text-xs font-black tracking-widest text-zinc-500 uppercase transition-colors group-hover:text-zinc-400'>
+                      <span className='max-w-[90px] truncate text-xs font-medium tracking-wide text-zinc-500 transition-colors group-hover:text-zinc-400'>
                         {event.path.split('/').slice(-1)[0]}
                       </span>
                     </div>

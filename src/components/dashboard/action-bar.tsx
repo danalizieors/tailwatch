@@ -30,7 +30,7 @@ export function ActionBar({
     <div className='border-border/40 mb-2 flex flex-col gap-3 border-b py-2 md:flex-row md:items-center md:justify-between'>
       <div className='flex items-center gap-4'>
         <div className='flex h-8 items-center gap-2'>
-          <span className='border-border/60 bg-muted/40 text-primary flex h-5 items-center justify-center rounded-md border px-1.5 text-xs font-black tabular-nums'>
+          <span className='border-border/60 bg-muted/40 text-primary flex h-5 items-center justify-center rounded-md border px-1.5 text-xs font-semibold tabular-nums'>
             {itemCount}
           </span>
         </div>
@@ -41,7 +41,7 @@ export function ActionBar({
         <Button
           size='sm'
           variant='ghost'
-          className='text-primary hover:bg-primary/5 hover:border-primary/20 h-8 gap-2 rounded-lg border border-transparent px-3 text-xs font-black tracking-widest uppercase'
+          className='text-primary hover:bg-primary/5 hover:border-primary/20 h-8 gap-2 rounded-lg border border-transparent px-3 text-xs font-semibold tracking-wide'
           onClick={onAcknowledgeAll}
         >
           <CheckCircle2 className='h-3.5 w-3.5' />
@@ -55,7 +55,7 @@ export function ActionBar({
             <div className='group relative w-32 md:w-48 lg:w-64'>
               <Search className='group-focus-within:text-primary absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 text-zinc-400 transition-colors' />
               <input
-                className='border-border/40 bg-background/50 focus:ring-primary/40 focus:border-primary/40 h-8 w-full rounded-lg border pr-4 pl-8 text-xs font-black tracking-widest uppercase transition-all outline-none placeholder:text-zinc-400 focus:ring-1'
+                className='border-border/40 bg-background/50 focus:ring-primary/40 focus:border-primary/40 h-8 w-full rounded-lg border pr-4 pl-8 text-xs font-medium tracking-wide transition-all outline-none placeholder:text-zinc-400 focus:ring-1'
                 placeholder='Search...'
                 value={search}
                 onChange={(e) => onSearchChange(e.target.value)}
@@ -65,7 +65,7 @@ export function ActionBar({
             <div className='border-border/40 bg-background/50 flex h-8 items-center gap-2 rounded-lg border px-2.5 shadow-sm'>
               <Filter className='h-3.5 w-3.5 text-zinc-400' />
               <select
-                className='cursor-pointer bg-transparent text-xs font-black tracking-widest text-zinc-200 uppercase outline-none'
+                className='cursor-pointer bg-transparent text-xs font-medium tracking-wide text-zinc-200 outline-none'
                 value={statusFilter}
                 onChange={(e) =>
                   onStatusFilterChange(e.target.value as EventStatus | 'all')
@@ -75,7 +75,7 @@ export function ActionBar({
                   <option
                     key={value}
                     value={value}
-                    className='bg-background text-foreground uppercase'
+                    className='bg-background text-foreground'
                   >
                     {value === 'all' ? 'All' : value}
                   </option>

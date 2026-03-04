@@ -91,7 +91,7 @@ export function DashboardView({
       name: d.name,
       isCurrent: d.deviceKey === currentDeviceKey,
       enabled: d.notifications,
-      lastSeenAt: String(d.lastSeenAt),
+      lastSeenAt: d.lastSeenAt,
       os: d.system,
       browser: d.browser,
     }))
@@ -421,7 +421,7 @@ export function DashboardView({
 
       {isDebugMode && (
         <div className='fixed bottom-4 left-3 z-[100] md:left-4'>
-          <div className='bg-warning/20 border-warning/30 text-warning flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-bold tracking-widest uppercase shadow-lg backdrop-blur-md'>
+          <div className='bg-warning/20 border-warning/30 text-warning flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold tracking-wide shadow-lg backdrop-blur-md'>
             <ShieldCheck className='h-3 w-3' />
             Debug Mode Active
           </div>

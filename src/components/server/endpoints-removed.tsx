@@ -24,7 +24,7 @@ export function EndpointsRemoved({
           <div className='border-warning/35 bg-warning/10 text-warning inline-flex h-10 w-10 items-center justify-center rounded-lg border'>
             <AlertTriangle className='h-5 w-5' />
           </div>
-          <CardTitle className='text-lg font-black tracking-wide uppercase'>
+          <CardTitle className='text-lg font-semibold tracking-tight'>
             {title}
           </CardTitle>
           <CardDescription className='text-muted-foreground text-sm'>

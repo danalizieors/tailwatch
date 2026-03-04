@@ -38,7 +38,7 @@ export function ControlBar({
           type='button'
           onClick={() => onModeChange('logs')}
           className={cn(
-            'flex h-full min-w-28 flex-1 items-center justify-center gap-2 rounded-md px-4 py-1.5 text-xs font-black tracking-widest uppercase transition-all',
+            'flex h-full min-w-28 flex-1 items-center justify-center gap-2 rounded-md px-4 py-1.5 text-xs font-semibold tracking-wide transition-all',
             mode === 'logs'
               ? 'bg-primary text-primary-foreground shadow-sm'
               : 'text-muted-foreground hover:text-foreground',
@@ -51,7 +51,7 @@ export function ControlBar({
           type='button'
           onClick={() => onModeChange('status')}
           className={cn(
-            'flex h-full min-w-28 flex-1 items-center justify-center gap-2 rounded-md px-4 py-1.5 text-xs font-black tracking-widest uppercase transition-all',
+            'flex h-full min-w-28 flex-1 items-center justify-center gap-2 rounded-md px-4 py-1.5 text-xs font-semibold tracking-wide transition-all',
             mode === 'status'
               ? 'bg-primary text-primary-foreground shadow-sm'
               : 'text-muted-foreground hover:text-foreground',

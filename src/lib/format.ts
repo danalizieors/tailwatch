@@ -1,7 +1,35 @@
+export function toTimestamp(value?: string | number | Date): number | null {
+  if (value === undefined || value === null) return null
+
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : null
+  }
+
+  if (value instanceof Date) {
+    const ts = value.getTime()
+    return Number.isNaN(ts) ? null : ts
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim()
+    if (!trimmed) return null
+
+    // Numeric timestamp strings (e.g. "1700000000000") should be parsed as epoch ms.
+    if (/^\d+$/.test(trimmed)) {
+      const numeric = Number(trimmed)
+      return Number.isFinite(numeric) ? numeric : null
+    }
+  }
+
+  const ts = new Date(value).getTime()
+  return Number.isNaN(ts) ? null : ts
+}
+
 export function formatDateTime(value?: string | number | Date): string {
-  if (!value) return '—'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return String(value)
+  const ts = toTimestamp(value)
+  if (ts === null) return '—'
+
+  const date = new Date(ts)
   return new Intl.DateTimeFormat(undefined, {
     dateStyle: 'medium',
     timeStyle: 'medium',
@@ -9,9 +37,10 @@ export function formatDateTime(value?: string | number | Date): string {
 }
 
 export function formatAbsolute(value?: string | number | Date): string {
-  if (!value) return '—'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return String(value)
+  const ts = toTimestamp(value)
+  if (ts === null) return '—'
+
+  const date = new Date(ts)
 
   const pad = (n: number) => n.toString().padStart(2, '0')
 
@@ -26,10 +55,10 @@ export function formatAbsolute(value?: string | number | Date): string {
 }
 
 export function formatRelative(value?: string | number | Date): string {
-  if (!value) return '—'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return String(value)
-  const deltaMs = date.getTime() - Date.now()
+  const ts = toTimestamp(value)
+  if (ts === null) return '—'
+
+  const deltaMs = ts - Date.now()
   const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' })
 
   const ranges: Array<[Intl.RelativeTimeFormatUnit, number]> = [
@@ -44,8 +73,7 @@ export function formatRelative(value?: string | number | Date): string {
       return rtf.format(Math.round(deltaMs / ms), unit)
     }
   }
-
-  return String(value)
+  return '—'
 }
 
 export function formatDuration(ms?: number) {

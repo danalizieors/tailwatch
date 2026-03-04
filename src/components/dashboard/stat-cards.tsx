@@ -72,7 +72,7 @@ export function StatCards({
             </div>
           )}
           <div className='flex flex-col'>
-            <span className='mb-1.5 text-xs leading-none font-black tracking-widest text-zinc-300 uppercase'>
+            <span className='mb-1.5 text-xs leading-none font-medium tracking-wide text-zinc-300'>
               {item.label}
             </span>
             <span
