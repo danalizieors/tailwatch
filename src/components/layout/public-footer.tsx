@@ -38,12 +38,6 @@ export function PublicFooter({
         <div className='flex flex-wrap items-center gap-6'>
           {leadText ? <span className='text-zinc-400'>{leadText}</span> : null}
           <Link
-            to='/pricing'
-            className='hover:text-primary tracking-widest text-zinc-500 uppercase transition-colors'
-          >
-            Pricing
-          </Link>
-          <Link
             to='/privacy'
             className='hover:text-primary tracking-widest text-zinc-500 uppercase transition-colors'
           >

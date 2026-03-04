@@ -7,7 +7,6 @@ import { TailwatchBrand } from '~/components/layout/tailwatch-brand'
 import { cn } from '~/lib/utils'
 
 interface PublicHeaderProps {
-  showPricingLink?: boolean
   navClassName?: string
 }
 
@@ -15,7 +14,6 @@ const publicHeaderActionBaseClassName =
   'inline-flex min-h-11 items-center gap-2 rounded-lg px-6 text-xs font-bold tracking-tight transition-all active:scale-[0.98]'
 
 export function PublicHeader({
-  showPricingLink = true,
   navClassName,
 }: PublicHeaderProps) {
   const { signIn } = useAuthActions()
@@ -58,18 +56,6 @@ export function PublicHeader({
         </Link>
 
         <div className='ml-auto flex w-full min-w-0 items-center justify-end gap-3 sm:w-auto'>
-          {showPricingLink ? (
-            <Link
-              to='/pricing'
-              className={cn(
-                publicHeaderActionBaseClassName,
-                'hover:text-foreground border border-white/10 bg-white/5 text-zinc-400 hover:bg-white/10',
-              )}
-            >
-              Pricing
-            </Link>
-          ) : null}
-
           <Link
             to='/dashboard/$volumeId'
             params={{ volumeId: 'personal' }}

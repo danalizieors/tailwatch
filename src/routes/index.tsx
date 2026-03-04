@@ -59,7 +59,8 @@ function TailwatchLandingPage() {
 
               <div className='mt-12 flex flex-col items-center justify-center gap-4 sm:flex-row'>
                 <Link
-                  to='/pricing'
+                  to='/dashboard/$volumeId'
+                  params={{ volumeId: 'personal' }}
                   className='bg-primary shadow-primary/10 flex h-14 w-full items-center justify-center gap-3 rounded-lg px-10 text-sm font-bold text-black shadow-lg transition-all hover:opacity-90 sm:w-auto'
                 >
                   Get Started
@@ -306,7 +307,8 @@ function TailwatchLandingPage() {
               visibility today.
             </p>
             <Link
-              to='/pricing'
+              to='/dashboard/$volumeId'
+              params={{ volumeId: 'personal' }}
               className='bg-primary shadow-primary/20 inline-flex h-16 items-center justify-center gap-3 rounded-lg px-12 text-sm font-bold text-black shadow-xl transition-all hover:opacity-90'
             >
               Launch Dashboard
