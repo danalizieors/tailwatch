@@ -30,7 +30,7 @@ export function IngestTools({
       .map((segment) => encodeURIComponent(segment))
       .join('/')
 
-    const body = 'busy --- synthetic ingest check'
+    const body = 'busy --- test event'
     const escapedBody = body.replace(/'/g, `'"'"'`)
 
     return {
@@ -55,7 +55,7 @@ export function IngestTools({
       <CardHeader className='p-4 pb-3 md:p-6 md:pb-3'>
         <div className='flex flex-wrap items-center gap-2'>
           <CardTitle className='mr-auto flex min-w-0 items-center gap-2 text-xs font-bold tracking-widest text-zinc-400 uppercase'>
-            Send events via cURL
+            Publish events via curl
           </CardTitle>
         </div>
 
@@ -69,7 +69,7 @@ export function IngestTools({
           <div className='flex items-start gap-2 rounded-2xl bg-white/5 p-4'>
             <Info className='mt-0.5 h-3.5 w-3.5 shrink-0 text-zinc-500' />
             <p className='text-xs leading-normal font-medium text-zinc-500'>
-              Select a topic/path above to generate customized ingest commands.
+              Select a path above to generate customized events.
             </p>
           </div>
         ) : !volumePublishKey ? (
