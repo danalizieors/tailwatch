@@ -326,7 +326,7 @@ function TailwatchLandingPage() {
 
               <div className='relative p-5 sm:p-6'>
                 <p className='font-mono text-[10px] tracking-wide text-zinc-500'>
-                  From the builder
+                  From the maintainer
                 </p>
                 <h3 className='mt-1 text-base font-semibold tracking-tight sm:text-lg'>
                   I want Tailwatch to be useful.
@@ -341,6 +341,10 @@ function TailwatchLandingPage() {
                   free for as long as I can, always self-hostable, always
                   yours. If paid tiers show up, they're just there to cover
                   infrastructure costs and 1-9 beers — not to squeeze anyone.
+                </p>
+                <p className='mt-2 max-w-2xl text-sm leading-relaxed text-zinc-300'>
+                  Still in early phases — expect rough edges, breaking changes,
+                  and the occasional surprise.
                 </p>
               </div>
 
