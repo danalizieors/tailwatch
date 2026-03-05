@@ -3,7 +3,6 @@ import { Gavel, ScrollText, Shield } from 'lucide-react'
 import { PublicFooter } from '~/components/layout/public-footer'
 import { PublicHeader } from '~/components/layout/public-header'
 import { PublicPageShell } from '~/components/layout/public-page-shell'
-import { Badge } from '~/components/ui/badge'
 import {
   Card,
   CardContent,
@@ -14,12 +13,12 @@ import {
 
 export const Route = createFileRoute('/terms')({
   head: () => ({
-    meta: [{ title: 'Terms | Tailwatch' }],
+    meta: [{ title: 'Terms and Conditions | Tailwatch' }],
   }),
   component: TermsPage,
 })
 
-const EFFECTIVE_DATE = 'March 4, 2026'
+const EFFECTIVE_DATE = 'March 5, 2026'
 
 function TermsPage() {
   return (
@@ -28,27 +27,15 @@ function TermsPage() {
 
       <main className='mx-auto flex w-full max-w-5xl min-w-0 flex-col gap-6 px-4 py-8 md:gap-8 md:px-6 md:py-12'>
         <section className='space-y-4'>
-          <div className='flex flex-wrap items-center gap-2'>
-            <Badge
-              variant='outline'
-              className='border-border/70 bg-card/70 text-foreground px-3 py-1 text-xs font-semibold tracking-wide'
-            >
-              Terms of Service
-            </Badge>
-            <Badge
-              variant='outline'
-              className='border-border/70 bg-card/70 px-3 py-1 text-xs font-medium tracking-wide text-zinc-400'
-            >
-              Effective {EFFECTIVE_DATE}
-            </Badge>
-          </div>
           <h1 className='text-foreground text-4xl leading-tight font-semibold tracking-tight text-balance sm:text-5xl md:text-6xl'>
-            Simple terms for using Tailwatch
+            Terms and Conditions
           </h1>
           <p className='text-muted-foreground max-w-3xl text-base leading-7 md:text-lg'>
-            These terms govern access to the hosted Tailwatch service. If you
-            self-host Tailwatch, your deployment is your responsibility.
+            These Terms and Conditions govern access to the hosted Tailwatch
+            service. If you self-host Tailwatch, your deployment is your
+            responsibility.
           </p>
+          <p className='text-muted-foreground text-sm'>Effective {EFFECTIVE_DATE}</p>
         </section>
 
         <section className='grid gap-4 md:grid-cols-3'>
@@ -61,8 +48,8 @@ function TermsPage() {
                 Use it responsibly
               </CardTitle>
               <CardDescription className='text-sm leading-6'>
-                No abuse, spam, unlawful content, or attempts to disrupt the
-                service.
+                No abuse, spam, unlawful content, or attempts to disrupt
+                Tailwatch.
               </CardDescription>
             </CardHeader>
           </Card>
@@ -75,8 +62,8 @@ function TermsPage() {
                 Your data stays yours
               </CardTitle>
               <CardDescription className='text-sm leading-6'>
-                You retain rights to content you send; you grant Tailwatch only
-                rights needed to operate the service.
+                You retain ownership of your content and grant Tailwatch only
+                the rights needed to run the service.
               </CardDescription>
             </CardHeader>
           </Card>
@@ -89,8 +76,8 @@ function TermsPage() {
                 Service is provided as-is
               </CardTitle>
               <CardDescription className='text-sm leading-6'>
-                Tailwatch is offered without warranties, especially while the
-                hosted service is evolving.
+                Tailwatch is provided as-is and as-available, without
+                warranties.
               </CardDescription>
             </CardHeader>
           </Card>
@@ -108,8 +95,8 @@ function TermsPage() {
               If you do not agree, do not use the hosted service.
             </p>
             <p className='text-muted-foreground'>
-              You are responsible for making sure your use complies with laws
-              and regulations applicable to you.
+              You are responsible for ensuring your use complies with laws and
+              regulations that apply to you.
             </p>
           </CardContent>
         </Card>
@@ -122,8 +109,8 @@ function TermsPage() {
           </CardHeader>
           <CardContent className='space-y-3 text-sm leading-7 md:text-base'>
             <p className='text-muted-foreground'>
-              You are responsible for your account activity, API keys, and
-              access to your devices.
+              You are responsible for activity on your account, including API
+              keys and device access.
             </p>
             <p className='text-muted-foreground'>
               Notify the project maintainer if you suspect unauthorized access
@@ -142,7 +129,8 @@ function TermsPage() {
             <ul className='text-muted-foreground list-disc space-y-1 pl-5'>
               <li>No illegal content or illegal use.</li>
               <li>
-                No service abuse, scraping abuse, spam, or denial attempts.
+                No service abuse, scraping abuse, spam, or denial-of-service
+                attempts.
               </li>
               <li>
                 No attempts to bypass authentication, authorization, or usage
@@ -165,8 +153,8 @@ function TermsPage() {
               content to provide the service.
             </p>
             <p className='text-muted-foreground'>
-              Tailwatch source code is currently available under the MIT license
-              in this repository.
+              Tailwatch source code is available in this repository under the
+              MIT License.
             </p>
           </CardContent>
         </Card>
@@ -179,8 +167,8 @@ function TermsPage() {
           </CardHeader>
           <CardContent className='space-y-3 text-sm leading-7 md:text-base'>
             <p className='text-muted-foreground'>
-              Tailwatch may change over time. Features can evolve, and the
-              hosted service may have outages or maintenance windows.
+              Tailwatch may change over time. Features may evolve, and the
+              hosted service may experience outages or maintenance windows.
             </p>
             <p className='text-muted-foreground'>
               Hosted pricing is currently free. Future paid tiers may be
@@ -198,7 +186,7 @@ function TermsPage() {
           <CardContent className='space-y-3 text-sm leading-7 md:text-base'>
             <p className='text-muted-foreground'>
               We may suspend or terminate access to protect the service, enforce
-              these terms, or comply with legal obligations.
+              these terms, respond to abuse, or comply with legal obligations.
             </p>
           </CardContent>
         </Card>
@@ -217,7 +205,7 @@ function TermsPage() {
             <p className='text-muted-foreground'>
               To the maximum extent permitted by law, Tailwatch and its
               maintainer are not liable for indirect, incidental, special, or
-              consequential damages.
+              consequential damages arising from use of the service.
             </p>
           </CardContent>
         </Card>
@@ -230,8 +218,8 @@ function TermsPage() {
           </CardHeader>
           <CardContent className='space-y-3 text-sm leading-7 md:text-base'>
             <p className='text-muted-foreground'>
-              These terms may be updated. Material changes will be reflected by
-              updating the effective date on this page.
+              We may update these terms from time to time. Material changes will
+              be reflected by updating the effective date on this page.
             </p>
           </CardContent>
         </Card>
