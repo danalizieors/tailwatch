@@ -52,7 +52,7 @@ function TermsPage() {
         </section>
 
         <section className='grid gap-4 md:grid-cols-3'>
-          <Card className='border-border/70 bg-card/70 shadow-none'>
+          <Card className='border-primary/30 bg-primary/5 shadow-sm'>
             <CardHeader className='space-y-3'>
               <div className='border-primary/15 bg-primary/10 text-primary flex h-10 w-10 items-center justify-center rounded-xl border'>
                 <ScrollText className='h-4 w-4' />
@@ -66,7 +66,7 @@ function TermsPage() {
               </CardDescription>
             </CardHeader>
           </Card>
-          <Card className='border-border/70 bg-card/70 shadow-none'>
+          <Card className='border-info/30 bg-info/5 shadow-sm'>
             <CardHeader className='space-y-3'>
               <div className='border-info/20 bg-info/10 text-info flex h-10 w-10 items-center justify-center rounded-xl border'>
                 <Shield className='h-4 w-4' />
@@ -80,7 +80,7 @@ function TermsPage() {
               </CardDescription>
             </CardHeader>
           </Card>
-          <Card className='border-border/70 bg-card/70 shadow-none'>
+          <Card className='border-warning/30 bg-warning/5 shadow-sm'>
             <CardHeader className='space-y-3'>
               <div className='border-warning/30 bg-warning/10 text-warning flex h-10 w-10 items-center justify-center rounded-xl border'>
                 <Gavel className='h-4 w-4' />
@@ -96,7 +96,7 @@ function TermsPage() {
           </Card>
         </section>
 
-        <Card className='border-border/70 bg-card/80 shadow-sm'>
+        <Card className='border-border bg-card shadow-md'>
           <CardHeader>
             <CardTitle className='text-foreground text-xl font-semibold tracking-tight md:text-2xl'>
               1. Acceptance and eligibility
@@ -114,7 +114,7 @@ function TermsPage() {
           </CardContent>
         </Card>
 
-        <Card className='border-border/70 bg-card/80 shadow-sm'>
+        <Card className='border-border bg-card shadow-md'>
           <CardHeader>
             <CardTitle className='text-foreground text-xl font-semibold tracking-tight md:text-2xl'>
               2. Accounts and security
@@ -132,7 +132,7 @@ function TermsPage() {
           </CardContent>
         </Card>
 
-        <Card className='border-border/70 bg-card/80 shadow-sm'>
+        <Card className='border-border bg-card shadow-md'>
           <CardHeader>
             <CardTitle className='text-foreground text-xl font-semibold tracking-tight md:text-2xl'>
               3. Acceptable use
@@ -152,7 +152,7 @@ function TermsPage() {
           </CardContent>
         </Card>
 
-        <Card className='border-border/70 bg-card/80 shadow-sm'>
+        <Card className='border-border bg-card shadow-md'>
           <CardHeader>
             <CardTitle className='text-foreground text-xl font-semibold tracking-tight md:text-2xl'>
               4. Content and license
@@ -171,7 +171,7 @@ function TermsPage() {
           </CardContent>
         </Card>
 
-        <Card className='border-border/70 bg-card/80 shadow-sm'>
+        <Card className='border-border bg-card shadow-md'>
           <CardHeader>
             <CardTitle className='text-foreground text-xl font-semibold tracking-tight md:text-2xl'>
               5. Availability, changes, and pricing
@@ -189,7 +189,7 @@ function TermsPage() {
           </CardContent>
         </Card>
 
-        <Card className='border-border/70 bg-card/80 shadow-sm'>
+        <Card className='border-border bg-card shadow-md'>
           <CardHeader>
             <CardTitle className='text-foreground text-xl font-semibold tracking-tight md:text-2xl'>
               6. Suspension and termination
@@ -203,7 +203,7 @@ function TermsPage() {
           </CardContent>
         </Card>
 
-        <Card className='border-border/70 bg-card/80 shadow-sm'>
+        <Card className='border-border bg-card shadow-md'>
           <CardHeader>
             <CardTitle className='text-foreground text-xl font-semibold tracking-tight md:text-2xl'>
               7. Disclaimers and limitation of liability
@@ -222,7 +222,7 @@ function TermsPage() {
           </CardContent>
         </Card>
 
-        <Card className='border-border/70 bg-card/80 shadow-sm'>
+        <Card className='border-border bg-card shadow-md'>
           <CardHeader>
             <CardTitle className='text-foreground text-xl font-semibold tracking-tight md:text-2xl'>
               8. Updates to these terms
