@@ -10,11 +10,17 @@ import {
   CardHeader,
   CardTitle,
 } from '~/components/ui/card'
+import { buildPublicPageHead } from '~/lib/seo'
 
 export const Route = createFileRoute('/privacy')({
-  head: () => ({
-    meta: [{ title: 'Privacy Policy | Tailwatch' }],
-  }),
+  head: () =>
+    buildPublicPageHead({
+      title: 'Privacy Policy | Tailwatch',
+      description:
+        'Read how Tailwatch handles account, device, and event data for the hosted service.',
+      path: '/privacy',
+      type: 'article',
+    }),
   component: PrivacyPage,
 })
 

@@ -33,13 +33,16 @@ import {
 } from '~/lib/device-identity'
 import { formatRelative, toTimestamp } from '~/lib/format'
 import { NotificationManager } from '~/lib/notifications'
+import { buildNoIndexPageHead } from '~/lib/seo'
 import { cn, getPathColor } from '~/lib/utils'
 import { api } from '../../../../convex/_generated/api'
 
 export const Route = createFileRoute('/dashboard/settings/devices')({
-  head: () => ({
-    meta: [{ title: 'Device Settings | Tailwatch' }],
-  }),
+  head: () =>
+    buildNoIndexPageHead({
+      title: 'Device Settings | Tailwatch',
+      description: 'Private Tailwatch device settings page.',
+    }),
   component: DeviceSettingsPage,
 })
 

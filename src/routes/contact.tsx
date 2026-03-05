@@ -2,11 +2,17 @@ import { createFileRoute } from '@tanstack/react-router'
 import { PublicFooter } from '~/components/layout/public-footer'
 import { PublicHeader } from '~/components/layout/public-header'
 import { PublicPageShell } from '~/components/layout/public-page-shell'
+import { buildPublicPageHead } from '~/lib/seo'
 
 export const Route = createFileRoute('/contact')({
-  head: () => ({
-    meta: [{ title: 'Contact | Tailwatch' }],
-  }),
+  head: () =>
+    buildPublicPageHead({
+      title: 'Contact | Tailwatch',
+      description:
+        'Send a message to Tailwatch through the contact publish endpoint or open a GitHub issue.',
+      path: '/contact',
+      type: 'website',
+    }),
   component: ContactPage,
 })
 

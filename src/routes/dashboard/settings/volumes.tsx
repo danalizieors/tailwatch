@@ -25,13 +25,16 @@ import {
 } from '~/components/ui/card'
 import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label'
+import { buildNoIndexPageHead } from '~/lib/seo'
 import { cn, getPathColor } from '~/lib/utils'
 import { api } from '../../../../convex/_generated/api'
 
 export const Route = createFileRoute('/dashboard/settings/volumes')({
-  head: () => ({
-    meta: [{ title: 'Volume Settings | Tailwatch' }],
-  }),
+  head: () =>
+    buildNoIndexPageHead({
+      title: 'Volume Settings | Tailwatch',
+      description: 'Private Tailwatch volume settings page.',
+    }),
   component: VolumeSettingsPage,
 })
 

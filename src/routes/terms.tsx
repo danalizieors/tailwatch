@@ -10,11 +10,17 @@ import {
   CardHeader,
   CardTitle,
 } from '~/components/ui/card'
+import { buildPublicPageHead } from '~/lib/seo'
 
 export const Route = createFileRoute('/terms')({
-  head: () => ({
-    meta: [{ title: 'Terms and Conditions | Tailwatch' }],
-  }),
+  head: () =>
+    buildPublicPageHead({
+      title: 'Terms and Conditions | Tailwatch',
+      description:
+        'Review the Tailwatch terms and conditions for using the hosted service.',
+      path: '/terms',
+      type: 'article',
+    }),
   component: TermsPage,
 })
 

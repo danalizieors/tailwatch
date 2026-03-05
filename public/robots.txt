@@ -1,2 +1,7 @@
 User-agent: *
-Disallow: /
+Allow: /
+Disallow: /dashboard
+Disallow: /api
+Disallow: /sign-in
+
+Sitemap: https://tailwatch.dev/sitemap.xml

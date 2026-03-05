@@ -7,6 +7,7 @@ import { PublicPageShell } from '~/components/layout/public-page-shell'
 import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
 import { Card } from '~/components/ui/card'
+import { buildPublicPageHead } from '~/lib/seo'
 
 interface DemoEventTemplate {
   path: string
@@ -105,9 +106,14 @@ const stateLabels: Record<DemoEvent['state'], string> = {
 }
 
 export const Route = createFileRoute('/')({
-  head: () => ({
-    meta: [{ title: 'Tailwatch - Terminal Telemetry & Instant Alerts' }],
-  }),
+  head: () =>
+    buildPublicPageHead({
+      title: 'Tailwatch - Stay entailed',
+      description:
+        'Track live events, status transitions, and push alerts for agents and background workflows in one place.',
+      path: '/',
+      type: 'website',
+    }),
   component: TailwatchLandingPage,
 })
 

@@ -14,11 +14,14 @@ import {
   CardHeader,
   CardTitle,
 } from '~/components/ui/card'
+import { buildNoIndexPageHead } from '~/lib/seo'
 
 export const Route = createFileRoute('/sign-in')({
-  head: () => ({
-    meta: [{ title: 'Sign in | Tailwatch' }],
-  }),
+  head: () =>
+    buildNoIndexPageHead({
+      title: 'Sign in | Tailwatch',
+      description: 'Sign in with GitHub to access your Tailwatch dashboard.',
+    }),
   component: SignInPage,
 })
 
