@@ -77,7 +77,7 @@ async function handlePush(event) {
       body: payload.body,
       tag: payload.tag,
       renotify: true,
-      badge: '/push-badge-96x96.png',
+      icon: '/pwa-192x192.png',
       data: { url: payload.url },
     })
   } catch {
