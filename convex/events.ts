@@ -36,6 +36,40 @@ function normalizeEventStatus(input?: string) {
   return normalized === 'busy' ? 'busy' : 'idle'
 }
 
+function markdownToPlainText(input?: string) {
+  if (typeof input !== 'string') return ''
+
+  const normalizedNewlines = input.replace(/\r\n?/g, '\n')
+  const withoutFences = normalizedNewlines.replace(
+    /```[^\n]*\n?([\s\S]*?)```/g,
+    '$1',
+  )
+  const withoutInlineCode = withoutFences.replace(/`([^`]+)`/g, '$1')
+  const withoutImages = withoutInlineCode.replace(
+    /!\[([^\]]*)\]\(([^)]+)\)/g,
+    '$1',
+  )
+  const withoutLinks = withoutImages.replace(
+    /\[([^\]]+)\]\(([^)]+)\)/g,
+    '$1',
+  )
+  const withoutHeadings = withoutLinks.replace(/^\s{0,3}#{1,6}\s+/gm, '')
+  const withoutQuotes = withoutHeadings.replace(/^\s{0,3}>\s?/gm, '')
+  const withoutListBullets = withoutQuotes.replace(
+    /^\s{0,3}(?:[-*+]|\d+\.)\s+/gm,
+    '',
+  )
+  const withoutHr = withoutListBullets.replace(/^\s{0,3}[-*_]{3,}\s*$/gm, '')
+  const withoutFormatting = withoutHr.replace(/[*_~]+/g, '')
+  const withoutHtmlTags = withoutFormatting.replace(/<[^>]*>/g, '')
+  const decodedEntities = withoutHtmlTags
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+  return decodedEntities.replace(/\s+/g, ' ').trim()
+}
+
 function pickRandomItem(values: readonly string[]) {
   const index = Math.floor(Math.random() * values.length)
   return values[index] ?? values[0] ?? 'steady'
@@ -188,10 +222,10 @@ async function publishResolved(
             .collect()
         : await ctx.db.query('devices').collect()
 
-      const title = `Tailwatch ${status === 'busy' ? 'Busy' : 'Idle'}`
-      const bodyText = input.content?.trim()
-        ? `${finalPath}: ${input.content}`
-        : `${finalPath} is ${status}`
+      const statusLabel = status.toUpperCase()
+      const title = `${statusLabel} | ${finalPath}`
+      const plainBody = markdownToPlainText(input.content)
+      const bodyText = plainBody || `${finalPath} is ${statusLabel}`
       const tag = `tailwatch:${volumeName}:${finalPath}`
       const url = buildDashboardEventUrl(volumeName, finalPath)
 
