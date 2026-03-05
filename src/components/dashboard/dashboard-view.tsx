@@ -574,14 +574,15 @@ export function DashboardView({
       {/* Floating Action Button (Mobile Sidebar Toggle) */}
       <div className='fixed right-6 bottom-6 z-[110] lg:hidden'>
         <Button
+          size='icon'
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-          className='bg-primary text-primary-foreground shadow-primary-glow flex h-14 w-14 items-center justify-center rounded-full border-none backdrop-blur-md transition-all active:scale-95'
+          className='bg-primary text-primary-foreground shadow-primary-glow flex h-12 w-12 p-0 items-center justify-center rounded-full border-none backdrop-blur-md transition-all active:scale-95 [&>svg]:!h-6 [&>svg]:!w-6'
           title='Toggle Volumes & Devices'
         >
           {isSidebarOpen ? (
-            <PanelLeftClose className='h-6 w-6' />
+            <PanelLeftClose />
           ) : (
-            <PanelLeft className='h-6 w-6' />
+            <PanelLeft />
           )}
         </Button>
       </div>

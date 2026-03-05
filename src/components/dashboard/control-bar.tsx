@@ -33,41 +33,41 @@ export function ControlBar({
         />
       </div>
 
-      <div className='bg-border/40 hidden h-8 w-px md:block' />
+      <div className='flex items-center gap-2 md:shrink-0 md:gap-4'>
+        <div className='bg-border/40 hidden h-8 w-px md:block' />
 
-      {/* Mode Switcher */}
-      <div className='inline-flex h-11 shrink-0 items-center rounded-lg border border-white/5 bg-zinc-900/40 p-1 backdrop-blur-md'>
-        <button
-          type='button'
-          onClick={() => onModeChange('logs')}
-          className={cn(
-            'flex h-full min-w-28 flex-1 items-center justify-center gap-2 rounded-lg px-4 py-1.5 text-xs font-bold tracking-wide transition-all',
-            mode === 'logs'
-              ? 'bg-primary shadow-primary/10 text-black shadow-lg'
-              : 'hover:text-foreground text-zinc-500',
-          )}
-        >
-          <Hash className='h-3.5 w-3.5' />
-          Logs
-        </button>
-        <button
-          type='button'
-          onClick={() => onModeChange('status')}
-          className={cn(
-            'flex h-full min-w-28 flex-1 items-center justify-center gap-2 rounded-lg px-4 py-1.5 text-xs font-bold tracking-wide transition-all',
-            mode === 'status'
-              ? 'bg-primary shadow-primary/10 text-black shadow-lg'
-              : 'hover:text-foreground text-zinc-500',
-          )}
-        >
-          <LayoutGrid className='h-3.5 w-3.5' />
-          Status
-        </button>
+        {/* Mode Switcher */}
+        <div className='inline-flex h-11 min-w-0 flex-1 items-center rounded-lg border border-white/5 bg-zinc-900/40 p-1 backdrop-blur-md md:flex-none'>
+          <button
+            type='button'
+            onClick={() => onModeChange('logs')}
+            className={cn(
+              'flex h-full min-w-0 flex-1 items-center justify-center gap-2 rounded-lg px-3 py-1.5 text-xs font-bold tracking-wide transition-all md:min-w-28 md:px-4',
+              mode === 'logs'
+                ? 'bg-primary shadow-primary/10 text-black shadow-lg'
+                : 'hover:text-foreground text-zinc-500',
+            )}
+          >
+            <Hash className='h-3.5 w-3.5' />
+            Logs
+          </button>
+          <button
+            type='button'
+            onClick={() => onModeChange('status')}
+            className={cn(
+              'flex h-full min-w-0 flex-1 items-center justify-center gap-2 rounded-lg px-3 py-1.5 text-xs font-bold tracking-wide transition-all md:min-w-28 md:px-4',
+              mode === 'status'
+                ? 'bg-primary shadow-primary/10 text-black shadow-lg'
+                : 'hover:text-foreground text-zinc-500',
+            )}
+          >
+            <LayoutGrid className='h-3.5 w-3.5' />
+            Status
+          </button>
+        </div>
+
+        {rightSlot ? <div className='shrink-0'>{rightSlot}</div> : null}
       </div>
-
-      {rightSlot ? (
-        <div className='ml-auto shrink-0'>{rightSlot}</div>
-      ) : null}
     </div>
   )
 }

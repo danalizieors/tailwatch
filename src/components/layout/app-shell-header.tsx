@@ -283,29 +283,6 @@ export function AppShellHeader({ current, topRight }: AppShellHeaderProps) {
           </div>
         </div>
 
-        {isAuthenticated ? (
-          <nav className='no-scrollbar -mx-1 mt-1 flex gap-2 overflow-x-auto pb-2 md:hidden'>
-            {navItems.map((item) => {
-              const Icon = item.icon
-              const active = current === item.id
-              return (
-                <Link
-                  key={item.id}
-                  to={item.href as any}
-                  className={cn(
-                    'flex min-h-11 shrink-0 items-center gap-2 rounded-lg px-3 text-xs font-semibold tracking-wide',
-                    active
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted/40 text-muted-foreground hover:text-foreground',
-                  )}
-                >
-                  <Icon className='h-3.5 w-3.5' />
-                  {item.label}
-                </Link>
-              )
-            })}
-          </nav>
-        ) : null}
       </header>
 
       {/* Mobile Menu Backdrop */}
