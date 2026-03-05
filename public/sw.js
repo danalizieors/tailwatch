@@ -21,6 +21,7 @@ function readPushPayload(event) {
     body: 'New event received.',
     tag: 'tailwatch-event',
     url: '/',
+    status: undefined,
   }
 
   if (!event.data) {
@@ -35,11 +36,16 @@ function readPushPayload(event) {
 
     const value = JSON.parse(raw)
     if (value && typeof value === 'object') {
+      const title =
+        typeof value.title === 'string' && value.title.trim()
+          ? value.title
+          : fallback.title
+      const explicitStatus =
+        typeof value.status === 'string' ? normalizeStatus(value.status) : undefined
+      const inferredStatus = normalizeStatus(title.split('|')[0])
+
       return {
-        title:
-          typeof value.title === 'string' && value.title.trim()
-            ? value.title
-            : fallback.title,
+        title,
         body:
           typeof value.body === 'string' && value.body.trim()
             ? value.body
@@ -52,12 +58,21 @@ function readPushPayload(event) {
           typeof value.url === 'string' && value.url.trim()
             ? value.url
             : fallback.url,
+        status: explicitStatus ?? inferredStatus,
       }
     }
     return { ...fallback, body: raw }
   } catch {
     return fallback
   }
+}
+
+function normalizeStatus(value) {
+  if (typeof value !== 'string') return undefined
+  const status = value.trim().toLowerCase()
+  if (status === 'busy') return 'busy'
+  if (status === 'idle') return 'idle'
+  return undefined
 }
 
 async function handlePush(event) {
@@ -73,12 +88,20 @@ async function handlePush(event) {
   } catch {}
 
   try {
+    const statusImage =
+      payload.status === 'busy'
+        ? '/push-status-busy-192x192.png'
+        : payload.status === 'idle'
+          ? '/push-status-idle-192x192.png'
+          : undefined
+
     await self.registration.showNotification(payload.title, {
       body: payload.body,
       tag: payload.tag,
       renotify: true,
       icon: '/push-icon-transparent-192x192.png',
       badge: '/push-badge-96x96.png',
+      image: statusImage,
       data: { url: payload.url },
     })
   } catch {
