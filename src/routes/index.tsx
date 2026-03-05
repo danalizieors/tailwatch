@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { Bell, Play, Terminal } from 'lucide-react'
+import { Play, Terminal } from 'lucide-react'
 import { useState } from 'react'
 import { LogStream } from '~/components/dashboard/log-stream'
 import { PublicFooter } from '~/components/layout/public-footer'
@@ -147,7 +147,7 @@ function TailwatchLandingPage() {
         <div className='pixel-grid opacity-30' />
 
         <section className='mx-auto grid w-full max-w-7xl gap-10 overflow-x-hidden px-4 py-10 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] lg:gap-12 lg:py-16'>
-          <div className='border-white/5 flex min-w-0 flex-col justify-center lg:border-r lg:pr-10'>
+          <div className='border-white/5 flex min-w-0 flex-col justify-start lg:border-r lg:pr-10'>
             <h1 className='mt-6 text-3xl leading-[1.14] font-bold tracking-tight text-balance sm:text-5xl sm:leading-[1.05]'>
               Watch every agent, job, and service.
               <span className='text-primary mt-2 block'>
@@ -156,9 +156,10 @@ function TailwatchLandingPage() {
             </h1>
 
             <p className='mt-5 max-w-xl text-base leading-relaxed text-pretty text-zinc-400 sm:text-lg'>
-              Tailwatch is the sweet spot between messy logs and complex
-              monitoring. A living Status Board and real-time alerts for your
-              entire agentic workforce.
+              Publish events with curl, get push notifications instantly, watch
+              paths shift between busy and idle in real time. Tailwatch sits
+              between messy logs and complex monitoring - nothing idles
+              unnoticed.
             </p>
 
             <div className='mt-8 flex flex-col gap-3 sm:flex-row'>
@@ -183,16 +184,16 @@ function TailwatchLandingPage() {
             <div className='absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent' />
             <div className='flex items-center justify-between gap-3 border-b border-white/5 p-5 sm:p-6'>
               <div>
-                <p className='font-mono text-[10px] tracking-[0.22em] text-zinc-500 uppercase'>
-                  fake data stream
+                <p className='font-mono text-[10px] tracking-wide text-zinc-500'>
+                  Local demo (in-memory)
                 </p>
                 <h2 className='mt-1 text-lg font-semibold tracking-tight'>
-                  logs + push previews
+                  Events and push notifications
                 </h2>
               </div>
               <Button size='sm' onClick={handleSendTestData}>
                 <Play className='h-3.5 w-3.5' />
-                Send test data
+                Send test event
               </Button>
             </div>
 
@@ -204,12 +205,11 @@ function TailwatchLandingPage() {
               </div>
 
               <div className='rounded-xl border border-white/10 bg-black/30 p-3'>
-                <div className='mb-3 flex items-center gap-2 text-xs font-semibold tracking-wide text-zinc-300'>
-                  <Bell className='text-info h-4 w-4' />
+                <div className='mb-3 text-xs font-semibold tracking-wide text-zinc-300'>
                   Push notifications
                 </div>
 
-                <div className='scroll-thin max-h-[320px] space-y-2 overflow-y-auto pr-1'>
+                <div className='scroll-thin h-[240px] space-y-2 overflow-y-scroll [scrollbar-gutter:stable] pr-1'>
                   {notifications.map((notification) => (
                     <article
                       key={notification.id}
@@ -323,14 +323,13 @@ function formatNotificationTime(value: string) {
 function CurlIngestSnippet() {
   return (
     <div className='rounded-2xl border border-white/10 bg-black/40 p-5 backdrop-blur'>
-      <div className='mb-3 flex items-center gap-2 text-xs tracking-widest text-zinc-500 uppercase'>
+      <div className='mb-3 flex items-center gap-2 text-xs tracking-wide text-zinc-500'>
         <Terminal className='text-primary h-3.5 w-3.5' />
-        add events with curl
+        Publish events with curl
       </div>
       <pre className='text-primary/80 overflow-hidden rounded-lg border border-white/10 bg-black/40 p-4 font-mono text-[10px] leading-relaxed whitespace-pre-wrap break-words sm:text-[11px]'>
-        <code className='block whitespace-pre-wrap break-words'>{`curl -X POST https://tailwatch.app/api/publish/YOUR_VOLUME/agents/router \\
-  -H "Content-Type: application/json" \\
-  -d '{"status":"busy","content":"collecting source documents"}'`}</code>
+        <code className='block whitespace-pre-wrap break-words'>{`curl https://tailwatch.dev/api/publish/YOUR_VOLUME_KEY/path \\
+   -d 'busy --- example content'`}</code>
       </pre>
     </div>
   )
