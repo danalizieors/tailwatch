@@ -628,6 +628,13 @@ async function buildSnapshot(
     : eventsInVolume
 
   const pathMap = new Map(matchedPaths.map((p: any) => [String(p._id), p.path]))
+  const eventCountByPath = new Map<string, number>()
+  for (const event of eventsInVolume) {
+    const eventPath = pathMap.get(event.pathId)
+    if (!eventPath) continue
+    eventCountByPath.set(eventPath, (eventCountByPath.get(eventPath) ?? 0) + 1)
+  }
+
   const displayEvents = filteredEvents.slice(0, args.limit).map((e: any) => ({
     id: String(e._id),
     path: pathMap.get(e.pathId) ?? 'unknown',
@@ -684,16 +691,22 @@ async function buildSnapshot(
     topicTree: buildTopicTree(
       matchedPaths.map((p: any) => p.path),
       args.topicPrefix,
+      eventCountByPath,
     ),
   }
 }
 
-function buildTopicTree(paths: string[], prefix?: string) {
-  const root: any = { name: 'root', children: new Map() }
+function buildTopicTree(
+  paths: string[],
+  prefix?: string,
+  eventCountByPath?: Map<string, number>,
+) {
+  const root: any = { name: 'root', children: new Map(), count: 0 }
   const prefixSegments = prefix ? prefix.split('/').filter(Boolean) : []
 
   for (const path of paths) {
     const segments = path.split('/').filter(Boolean)
+    const pathCount = eventCountByPath?.get(path) ?? 0
     let current = root
     for (const segment of segments) {
       if (!current.children.has(segment)) {
@@ -701,9 +714,11 @@ function buildTopicTree(paths: string[], prefix?: string) {
           name: segment,
           children: new Map(),
           fullPath: '',
+          count: 0,
         })
       }
       current = current.children.get(segment)
+      current.count += pathCount
     }
   }
 
@@ -723,7 +738,7 @@ function buildTopicTree(paths: string[], prefix?: string) {
       id: path,
       name: node.name,
       path,
-      count: 0, // Could be enriched if needed
+      count: node.count ?? 0,
       children: Array.from(node.children.values())
         .map((child) => convert(child, currentPath))
         .sort((a, b) => a.name.localeCompare(b.name)),
