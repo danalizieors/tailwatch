@@ -22,7 +22,7 @@ export function TailwatchBrand({ className }: TailwatchBrandProps) {
           <span className='text-foreground block truncate text-[1.06rem] font-semibold tracking-normal'>
             Tailwatch
           </span>
-          <span className='border-info/35 bg-info/15 text-info inline-flex h-4 -translate-y-1 items-center rounded-full border px-1.5 text-[0.52rem] font-semibold tracking-wide uppercase'>
+          <span className='border-info/35 bg-info/15 text-info hidden h-4 -translate-y-1 items-center rounded-full border px-1.5 text-[0.52rem] font-semibold tracking-wide uppercase sm:inline-flex'>
             alpha
           </span>
         </div>

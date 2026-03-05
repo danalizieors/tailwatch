@@ -33,7 +33,7 @@ export function StreamEntryRow({
   return (
     <div
       className={cn(
-        'group relative flex flex-col gap-2 border-l-4 px-4 py-3 pr-8 md:grid md:grid-cols-[150px_minmax(0,1fr)_100px] md:gap-4 md:px-6 md:py-2 md:pr-6',
+        'group relative flex min-w-0 flex-col gap-2 border-l-4 px-4 py-3 pr-8 md:grid md:grid-cols-[150px_minmax(0,1fr)_100px] md:gap-4 md:px-6 md:py-2 md:pr-6',
         isUnread && 'bg-amber-500/10',
       )}
       style={{
@@ -49,7 +49,7 @@ export function StreamEntryRow({
         </div>
       )}
 
-      <div className='flex items-center justify-between gap-3'>
+      <div className='flex min-w-0 flex-wrap items-center justify-between gap-3'>
         <RelativeTime
           time={time}
           className='cursor-help self-center text-xs font-bold tracking-tighter whitespace-nowrap text-zinc-400 tabular-nums'

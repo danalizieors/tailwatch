@@ -166,10 +166,10 @@ function TailwatchLandingPage() {
     <PublicPageShell>
       <PublicHeader />
 
-      <main className='relative flex w-full min-w-0 flex-1 flex-col overflow-x-hidden'>
+      <main className='relative flex w-full min-w-0 flex-1 flex-col overflow-x-clip'>
         <div className='pixel-grid opacity-30' />
 
-        <section className='mx-auto grid w-full max-w-6xl gap-10 overflow-x-hidden px-4 py-10 sm:px-6 lg:grid-cols-[minmax(0,30rem)_minmax(0,44rem)] lg:justify-center lg:gap-12 lg:py-16'>
+        <section className='mx-auto grid w-full min-w-0 max-w-6xl gap-10 overflow-x-clip px-4 py-10 sm:px-6 lg:grid-cols-[minmax(0,30rem)_minmax(0,44rem)] lg:justify-center lg:gap-12 lg:py-16'>
           <div className='border-white/5 flex min-w-0 flex-col justify-start lg:border-r lg:pr-10'>
             <h1 className='mt-6 text-3xl leading-[1.14] font-bold tracking-tight text-balance sm:text-5xl sm:leading-[1.05]'>
               Watch every agent, job, and service.
@@ -221,23 +221,23 @@ function TailwatchLandingPage() {
               </Button>
             </div>
 
-            <div className='grid gap-4 p-5 sm:p-6'>
+            <div className='grid min-w-0 gap-4 p-5 sm:p-6'>
               <div className='min-w-0'>
                 <div className='h-[380px]'>
                   <LogStream events={events} lastSeenAt={demoLastSeenAt} />
                 </div>
               </div>
 
-              <div className='rounded-xl border border-white/10 bg-black/30 p-3'>
+              <div className='min-w-0 rounded-xl border border-white/10 bg-black/30 p-3'>
                 <div className='mb-3 text-xs font-semibold tracking-wide text-zinc-300'>
                   Push notifications
                 </div>
 
-                <div className='scroll-thin h-[240px] space-y-2 overflow-y-scroll [scrollbar-gutter:stable] pr-1'>
+                <div className='scroll-thin h-[240px] min-w-0 space-y-2 overflow-x-hidden overflow-y-scroll [scrollbar-gutter:stable] pr-1'>
                   {notifications.map((notification) => (
                     <article
                       key={notification.id}
-                      className='rounded-lg border border-info/25 bg-info/10 p-2.5'
+                      className='min-w-0 rounded-lg border border-info/25 bg-info/10 p-2.5'
                     >
                       <div className='flex items-center justify-between gap-2'>
                         <span
@@ -256,7 +256,7 @@ function TailwatchLandingPage() {
                       <p className='mt-1 truncate font-mono text-[11px] text-zinc-300'>
                         {notification.path}
                       </p>
-                      <p className='mt-1 text-[11px] leading-relaxed text-zinc-300'>
+                      <p className='mt-1 break-words text-[11px] leading-relaxed text-zinc-300'>
                         {notification.content}
                       </p>
                     </article>
@@ -271,9 +271,9 @@ function TailwatchLandingPage() {
           </div>
         </section>
 
-        <section className='mx-auto w-full max-w-6xl px-4 pb-12 sm:px-6 lg:pb-16'>
+        <section className='mx-auto w-full min-w-0 max-w-6xl px-4 pb-12 sm:px-6 lg:pb-16'>
           <div className='grid justify-items-center gap-5 xl:grid-cols-[minmax(0,42rem)_minmax(0,30rem)] xl:justify-center'>
-            <Card className='relative w-full overflow-hidden border-primary/20 bg-gradient-to-br from-zinc-950/85 via-zinc-950/75 to-primary/10'>
+            <Card className='relative w-full min-w-0 overflow-hidden border-primary/20 bg-gradient-to-br from-zinc-950/85 via-zinc-950/75 to-primary/10'>
               <div className='pointer-events-none absolute -top-20 -right-20 h-48 w-48 rounded-full bg-primary/20 blur-3xl' />
               <div className='absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent' />
 
@@ -320,7 +320,7 @@ function TailwatchLandingPage() {
               </ol>
             </Card>
 
-            <Card className='relative w-full max-w-2xl overflow-hidden border-info/25 bg-zinc-950/55 xl:max-w-none'>
+            <Card className='relative w-full min-w-0 max-w-2xl overflow-hidden border-info/25 bg-zinc-950/55 xl:max-w-none'>
               <div className='pointer-events-none absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-info/15 to-transparent' />
               <div className='absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-info/60 to-transparent' />
 
@@ -427,12 +427,12 @@ function formatNotificationTime(value: string) {
 
 function CurlIngestSnippet() {
   return (
-    <div className='rounded-2xl border border-white/10 bg-black/40 p-5 backdrop-blur'>
+    <div className='min-w-0 rounded-2xl border border-white/10 bg-black/40 p-5 backdrop-blur'>
       <div className='mb-3 text-xs font-semibold tracking-wide text-zinc-300'>
         Publish events with curl
       </div>
-      <pre className='text-primary/80 overflow-hidden rounded-lg border border-white/10 bg-black/40 p-4 font-mono text-[10px] leading-relaxed whitespace-pre-wrap break-words sm:text-[11px]'>
-        <code className='block whitespace-pre-wrap break-words'>{`curl https://tailwatch.dev/api/publish/YOUR_VOLUME_KEY/path \\
+      <pre className='text-primary/80 max-w-full overflow-hidden rounded-lg border border-white/10 bg-black/40 p-4 font-mono text-[10px] leading-relaxed whitespace-pre-wrap break-words sm:text-[11px]'>
+        <code className='block whitespace-pre-wrap break-all'>{`curl https://tailwatch.dev/api/publish/YOUR_VOLUME_KEY/path \\
    -d 'busy --- example content'`}</code>
       </pre>
     </div>
