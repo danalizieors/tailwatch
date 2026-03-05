@@ -1,11 +1,10 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { ArrowRight, Bell, Play, Terminal } from 'lucide-react'
+import { Bell, Play, Terminal } from 'lucide-react'
 import { useState } from 'react'
 import { LogStream } from '~/components/dashboard/log-stream'
 import { PublicFooter } from '~/components/layout/public-footer'
 import { PublicHeader } from '~/components/layout/public-header'
 import { PublicPageShell } from '~/components/layout/public-page-shell'
-import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
 import { Card } from '~/components/ui/card'
 import { buildPublicPageHead } from '~/lib/seo'
@@ -135,7 +134,7 @@ function TailwatchLandingPage() {
       time: timestamp,
     })
 
-    setNotifications((prev) => [nextNotification, ...prev].slice(0, 4))
+    setNotifications((prev) => [nextNotification, ...prev])
 
     setTemplateIndex((prev) => prev + 1)
   }
@@ -147,23 +146,19 @@ function TailwatchLandingPage() {
       <main className='relative flex w-full min-w-0 flex-1 overflow-hidden'>
         <div className='pixel-grid opacity-30' />
 
-        <section className='mx-auto grid w-full max-w-7xl gap-10 px-4 py-10 sm:px-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] xl:gap-12 xl:py-16'>
-          <div className='border-white/5 flex min-w-0 flex-col justify-center xl:border-r xl:pr-10'>
-            <Badge
-              variant='outline'
-              className='border-primary/30 bg-primary/10 text-primary w-fit rounded-full px-4 py-1 text-[10px] tracking-[0.24em] uppercase'
-            >
-              Split telemetry view
-            </Badge>
-
-            <h1 className='mt-6 text-4xl leading-[0.95] font-bold tracking-tight sm:text-5xl xl:text-6xl'>
-              Monitor agent work and human decisions in one divided surface.
+        <section className='mx-auto grid w-full max-w-7xl gap-10 overflow-x-hidden px-4 py-10 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] lg:gap-12 lg:py-16'>
+          <div className='border-white/5 flex min-w-0 flex-col justify-center lg:border-r lg:pr-10'>
+            <h1 className='mt-6 text-3xl leading-[1.14] font-bold tracking-tight text-balance sm:text-5xl sm:leading-[1.05]'>
+              Watch every agent, job, and service.
+              <span className='text-primary mt-2 block'>
+                Push notifications everywhere.
+              </span>
             </h1>
 
-            <p className='mt-5 max-w-xl text-base leading-relaxed text-zinc-400 sm:text-lg'>
-              Left side explains your flow. Right side runs a live stream demo
-              with fake events. Use the test button or post directly with curl,
-              then see push alerts appear instantly.
+            <p className='mt-5 max-w-xl text-base leading-relaxed text-pretty text-zinc-400 sm:text-lg'>
+              Tailwatch is the sweet spot between messy logs and complex
+              monitoring. A living Status Board and real-time alerts for your
+              entire agentic workforce.
             </p>
 
             <div className='mt-8 flex flex-col gap-3 sm:flex-row'>
@@ -172,27 +167,12 @@ function TailwatchLandingPage() {
                 params={{ volumeId: 'personal' }}
                 className='bg-primary text-primary-foreground shadow-primary/20 inline-flex h-12 items-center justify-center gap-2 rounded-lg px-6 text-sm font-bold tracking-tight shadow-lg transition-opacity hover:opacity-90'
               >
-                Open dashboard
-                <ArrowRight className='h-4 w-4' />
+                Open Dashboard
               </Link>
-              <a
-                href='#live-logs'
-                className='inline-flex h-12 items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/5 px-6 text-sm font-bold tracking-tight transition-colors hover:bg-white/10'
-              >
-                Jump to stream
-              </a>
             </div>
 
-            <div className='mt-8 rounded-2xl border border-white/10 bg-black/40 p-5 backdrop-blur'>
-              <div className='mb-3 flex items-center gap-2 text-xs tracking-widest text-zinc-500 uppercase'>
-                <Terminal className='text-primary h-3.5 w-3.5' />
-                add events with curl
-              </div>
-              <pre className='text-primary/80 overflow-x-auto rounded-lg border border-white/10 bg-black/40 p-4 font-mono text-[11px] leading-relaxed'>
-                <code>{`curl -X POST https://tailwatch.app/api/publish/YOUR_VOLUME/agents/router \\
-  -H "Content-Type: application/json" \\
-  -d '{"status":"busy","content":"collecting source documents"}'`}</code>
-              </pre>
+            <div className='mt-8 hidden lg:block'>
+              <CurlIngestSnippet />
             </div>
           </div>
 
@@ -229,7 +209,7 @@ function TailwatchLandingPage() {
                   Push notifications
                 </div>
 
-                <div className='space-y-2'>
+                <div className='scroll-thin max-h-[320px] space-y-2 overflow-y-auto pr-1'>
                   {notifications.map((notification) => (
                     <article
                       key={notification.id}
@@ -261,6 +241,10 @@ function TailwatchLandingPage() {
               </div>
             </div>
           </Card>
+
+          <div className='order-last lg:hidden'>
+            <CurlIngestSnippet />
+          </div>
         </section>
       </main>
 
@@ -334,4 +318,20 @@ function formatNotificationTime(value: string) {
         second: '2-digit',
       })
     : '--:--:--'
+}
+
+function CurlIngestSnippet() {
+  return (
+    <div className='rounded-2xl border border-white/10 bg-black/40 p-5 backdrop-blur'>
+      <div className='mb-3 flex items-center gap-2 text-xs tracking-widest text-zinc-500 uppercase'>
+        <Terminal className='text-primary h-3.5 w-3.5' />
+        add events with curl
+      </div>
+      <pre className='text-primary/80 overflow-hidden rounded-lg border border-white/10 bg-black/40 p-4 font-mono text-[10px] leading-relaxed whitespace-pre-wrap break-words sm:text-[11px]'>
+        <code className='block whitespace-pre-wrap break-words'>{`curl -X POST https://tailwatch.app/api/publish/YOUR_VOLUME/agents/router \\
+  -H "Content-Type: application/json" \\
+  -d '{"status":"busy","content":"collecting source documents"}'`}</code>
+      </pre>
+    </div>
+  )
 }
