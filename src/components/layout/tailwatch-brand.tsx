@@ -1,4 +1,3 @@
-import { Terminal } from 'lucide-react'
 import { cn } from '~/lib/utils'
 
 interface TailwatchBrandProps {
@@ -13,9 +12,11 @@ export function TailwatchBrand({ className }: TailwatchBrandProps) {
         className,
       )}
     >
-      <div className='border-primary/25 bg-primary/10 text-primary flex h-10 w-10 items-center justify-center rounded-xl border'>
-        <Terminal className='h-[18px] w-[18px]' />
-      </div>
+      <img
+        src='/icon.svg'
+        alt='Tailwatch logo'
+        className='h-10 w-10 shrink-0'
+      />
       <div className='min-w-0 leading-none'>
         <div className='flex min-w-0 items-start gap-0.5'>
           <span className='text-foreground block truncate text-[1.06rem] font-semibold tracking-normal'>
