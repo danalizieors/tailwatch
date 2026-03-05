@@ -28,7 +28,12 @@ function readPushPayload(event) {
   }
 
   try {
-    const value = event.data.json()
+    const raw = event.data.text()
+    if (!raw || !raw.trim()) {
+      return fallback
+    }
+
+    const value = JSON.parse(raw)
     if (value && typeof value === 'object') {
       return {
         title:
@@ -49,37 +54,43 @@ function readPushPayload(event) {
             : fallback.url,
       }
     }
+    return { ...fallback, body: raw }
   } catch {
-    const text = event.data.text()
-    if (text) {
-      return { ...fallback, body: text }
-    }
+    return fallback
   }
-
-  return fallback
 }
 
 async function handlePush(event) {
-  const payload = readPushPayload(event)
+  let payload = {
+    title: 'Tailwatch',
+    body: 'New event received.',
+    tag: 'tailwatch-event',
+    url: '/',
+  }
+
+  try {
+    payload = readPushPayload(event)
+  } catch {}
 
   try {
     await self.registration.showNotification(payload.title, {
       body: payload.body,
       tag: payload.tag,
       renotify: true,
-      // Keep icon minimal/transparent so Android does not render a large card tile.
-      icon: '/push-badge-96x96.png',
+      icon: '/pwa-192x192.png',
       badge: '/push-badge-96x96.png',
       data: { url: payload.url },
     })
   } catch {
-    // Fallback: show at least a basic notification if icon/badge decoding fails.
-    await self.registration.showNotification(payload.title, {
-      body: payload.body,
-      tag: payload.tag,
-      renotify: true,
-      data: { url: payload.url },
-    })
+    try {
+      // Fallback: show at least a basic notification if icon/badge decoding fails.
+      await self.registration.showNotification(payload.title, {
+        body: payload.body,
+        tag: payload.tag,
+        renotify: true,
+        data: { url: payload.url },
+      })
+    } catch {}
   }
 }
 
