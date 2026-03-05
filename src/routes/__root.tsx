@@ -5,8 +5,10 @@ import { ConvexAuthProvider } from '@convex-dev/auth/react'
 import {
   createRootRoute,
   HeadContent,
+  Link,
   Outlet,
   Scripts,
+  useRouterState,
 } from '@tanstack/react-router'
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 import { ConvexReactClient } from 'convex/react'
@@ -41,6 +43,7 @@ export const Route = createRootRoute({
     ],
   }),
   component: RootDocument,
+  notFoundComponent: RootNotFound,
 })
 
 function RootDocument() {
@@ -94,5 +97,33 @@ function RootDocument() {
         <Scripts />
       </body>
     </html>
+  )
+}
+
+function RootNotFound() {
+  const { location } = useRouterState()
+  const requestedPath = `${location.pathname}${location.search}${location.hash}`
+
+  return (
+    <main className='mx-auto flex w-full max-w-3xl min-w-0 flex-1 flex-col items-center justify-center gap-4 px-4 py-16 text-center sm:px-6'>
+      <p className='text-primary text-xs font-semibold tracking-[0.18em] uppercase'>
+        404
+      </p>
+      <h1 className='text-2xl font-semibold tracking-tight sm:text-3xl'>
+        page not found
+      </h1>
+      <p className='text-muted-foreground text-sm sm:text-base'>
+        No route matches this URL:
+      </p>
+      <code className='border-border/60 bg-card/40 text-foreground block max-w-full overflow-x-auto rounded-lg border px-3 py-2 text-left font-mono text-xs sm:text-sm'>
+        {requestedPath || '/'}
+      </code>
+      <Link
+        to='/'
+        className='bg-primary text-primary-foreground inline-flex h-10 items-center justify-center rounded-lg px-4 text-sm font-semibold transition-opacity hover:opacity-90'
+      >
+        back to home
+      </Link>
+    </main>
   )
 }
