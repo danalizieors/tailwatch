@@ -187,7 +187,7 @@ async function publishResolved(
         ? `${finalPath}: ${input.content}`
         : `${finalPath} is ${status}`
       const tag = `tailwatch:${volumeName}:${finalPath}`
-      const url = `/${volumeName}?path=${encodeURIComponent(finalPath)}`
+      const url = `/dashboard/${encodeURIComponent(volumeName)}?path=${encodeURIComponent(finalPath)}`
 
       for (const target of targets) {
         if (!target.notifications || !target.subscription) continue

@@ -263,7 +263,7 @@ function DeviceSettingsPage() {
           title: 'Tailwatch Test',
           body: `Test notification for ${device.name}`,
           tag: 'aa:test',
-          url: '/',
+          url: '/settings/devices',
         },
         options: {
           ttl: 300,
