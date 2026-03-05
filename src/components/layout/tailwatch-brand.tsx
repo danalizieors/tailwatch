@@ -15,7 +15,7 @@ export function TailwatchBrand({ className }: TailwatchBrandProps) {
       <img
         src='/icon.svg'
         alt='Tailwatch logo'
-        className='h-10 w-10 shrink-0'
+        className='h-10 w-10 shrink-0 rounded-md border-2 border-white/50'
       />
       <div className='min-w-0 leading-none'>
         <div className='flex min-w-0 items-start gap-0.5'>
