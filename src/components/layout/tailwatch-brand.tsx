@@ -17,9 +17,14 @@ export function TailwatchBrand({ className }: TailwatchBrandProps) {
         <Terminal className='h-[18px] w-[18px]' />
       </div>
       <div className='min-w-0 leading-none'>
-        <span className='text-foreground block truncate text-[1.06rem] font-semibold tracking-normal'>
-          Tailwatch
-        </span>
+        <div className='flex min-w-0 items-start gap-0.5'>
+          <span className='text-foreground block truncate text-[1.06rem] font-semibold tracking-normal'>
+            Tailwatch
+          </span>
+          <span className='border-info/35 bg-info/15 text-info inline-flex h-4 -translate-y-1 items-center rounded-full border px-1.5 text-[0.52rem] font-semibold tracking-wide uppercase'>
+            alpha
+          </span>
+        </div>
       </div>
     </div>
   )

@@ -26,8 +26,7 @@ export const Route = createRootRoute({
       { title: 'Tailwatch' },
       {
         name: 'description',
-        content:
-          'Tailwatch gives you real-time event streams, status boards, and push alerts for human-in-the-loop workflows.',
+        content: 'Hierarchical event monitor with push notifications',
       },
       { name: 'theme-color', content: '#1a1410' },
       { name: 'apple-mobile-web-app-capable', content: 'yes' },

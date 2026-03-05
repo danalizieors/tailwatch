@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { Play, Terminal } from 'lucide-react'
+import { Activity, Bell, Monitor, Play, Send } from 'lucide-react'
 import { useState } from 'react'
 import { LogStream } from '~/components/dashboard/log-stream'
 import { PublicFooter } from '~/components/layout/public-footer'
@@ -53,6 +53,29 @@ const initialEventOffsetsMs = {
   old: 6 * 60 * 60 * 1000 + 12 * 60 * 1000,
 }
 
+const landingFlowCards = [
+  {
+    title: '1. Install PWA',
+    detail: 'Install Tailwatch from your browser for an app-like experience.',
+    icon: Monitor,
+  },
+  {
+    title: '2. Publish event',
+    detail: 'Publish an event with curl to a volume key path.',
+    icon: Send,
+  },
+  {
+    title: '3. Watch status',
+    detail: 'Watch each path shift between busy and idle in real time.',
+    icon: Activity,
+  },
+  {
+    title: '4. Get alerted',
+    detail: 'Receive push notifications and take action.',
+    icon: Bell,
+  },
+]
+
 const initialEvents: StoredEvent[] = [
   createDemoEvent({
     id: 'seed-3',
@@ -96,8 +119,7 @@ export const Route = createFileRoute('/')({
   head: () =>
     buildPublicPageHead({
       title: 'Tailwatch - Stay entailed',
-      description:
-        'Track live events, status transitions, and push alerts for agents and background workflows in one place.',
+      description: 'Hierarchical event monitor with push notifications',
       path: '/',
       type: 'website',
     }),
@@ -143,7 +165,7 @@ function TailwatchLandingPage() {
     <PublicPageShell>
       <PublicHeader />
 
-      <main className='relative flex w-full min-w-0 flex-1 overflow-hidden'>
+      <main className='relative flex w-full min-w-0 flex-1 flex-col overflow-x-hidden'>
         <div className='pixel-grid opacity-30' />
 
         <section className='mx-auto grid w-full max-w-7xl gap-10 overflow-x-hidden px-4 py-10 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] lg:gap-12 lg:py-16'>
@@ -175,6 +197,7 @@ function TailwatchLandingPage() {
             <div className='mt-8 hidden lg:block'>
               <CurlIngestSnippet />
             </div>
+
           </div>
 
           <Card
@@ -245,6 +268,48 @@ function TailwatchLandingPage() {
           <div className='order-last lg:hidden'>
             <CurlIngestSnippet />
           </div>
+        </section>
+
+        <section className='mx-auto w-full max-w-7xl px-4 pb-12 sm:px-6 lg:max-w-6xl lg:pb-16 xl:max-w-5xl'>
+          <Card className='overflow-hidden border-white/10 bg-zinc-950/55'>
+            <div className='border-b border-white/5 p-5 sm:p-6'>
+              <p className='font-mono text-[10px] tracking-wide text-zinc-500'>
+                Installable PWA
+              </p>
+              <h3 className='mt-1 text-lg font-semibold tracking-tight sm:text-xl'>
+                Install from your browser, then run the full event flow.
+              </h3>
+              <p className='mt-2 max-w-3xl text-pretty text-sm leading-relaxed text-zinc-400'>
+                Tailwatch runs as a Progressive Web App. Install it from your
+                browser, publish events with curl, follow each path as it moves
+                between busy and idle, and get push notifications when your
+                attention is needed.
+              </p>
+            </div>
+
+            <div className='grid gap-3 p-5 sm:grid-cols-2 sm:p-6 lg:grid-cols-4'>
+              {landingFlowCards.map((step) => {
+                const Icon = step.icon
+
+                return (
+                  <article
+                    key={step.title}
+                    className='rounded-xl border border-white/10 bg-black/25 p-4'
+                  >
+                    <span className='bg-primary/15 text-primary inline-flex h-8 w-8 items-center justify-center rounded-lg border border-white/10'>
+                      <Icon className='h-4 w-4' />
+                    </span>
+                    <p className='mt-3 text-sm font-semibold tracking-tight text-zinc-100'>
+                      {step.title}
+                    </p>
+                    <p className='mt-1 text-xs leading-relaxed text-zinc-400'>
+                      {step.detail}
+                    </p>
+                  </article>
+                )
+              })}
+            </div>
+          </Card>
         </section>
       </main>
 
@@ -323,8 +388,7 @@ function formatNotificationTime(value: string) {
 function CurlIngestSnippet() {
   return (
     <div className='rounded-2xl border border-white/10 bg-black/40 p-5 backdrop-blur'>
-      <div className='mb-3 flex items-center gap-2 text-xs tracking-wide text-zinc-500'>
-        <Terminal className='text-primary h-3.5 w-3.5' />
+      <div className='mb-3 text-xs font-semibold tracking-wide text-zinc-300'>
         Publish events with curl
       </div>
       <pre className='text-primary/80 overflow-hidden rounded-lg border border-white/10 bg-black/40 p-4 font-mono text-[10px] leading-relaxed whitespace-pre-wrap break-words sm:text-[11px]'>
