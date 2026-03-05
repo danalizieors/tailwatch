@@ -221,7 +221,7 @@ function TailwatchLandingPage() {
               </Button>
             </div>
 
-            <div className='grid gap-4 p-5 sm:p-6 2xl:grid-cols-[minmax(0,1fr)_15rem]'>
+            <div className='grid gap-4 p-5 sm:p-6'>
               <div className='min-w-0'>
                 <div className='h-[380px]'>
                   <LogStream events={events} lastSeenAt={demoLastSeenAt} />
