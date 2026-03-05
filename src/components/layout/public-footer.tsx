@@ -25,6 +25,12 @@ export function PublicFooter({
 
         <div className='flex flex-wrap items-center gap-6'>
           <Link
+            to='/contact'
+            className='text-zinc-400 transition-colors hover:text-primary'
+          >
+            Contact
+          </Link>
+          <Link
             to='/privacy'
             className='text-zinc-400 transition-colors hover:text-primary'
           >
