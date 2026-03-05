@@ -185,13 +185,11 @@ export function DashboardView({
     }
 
     window.addEventListener('blur', persistLastSeen)
-    window.addEventListener('beforeunload', persistLastSeen)
     window.addEventListener('pagehide', persistLastSeen)
     document.addEventListener('visibilitychange', handleVisibilityChange)
 
     return () => {
       window.removeEventListener('blur', persistLastSeen)
-      window.removeEventListener('beforeunload', persistLastSeen)
       window.removeEventListener('pagehide', persistLastSeen)
       document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
