@@ -14,6 +14,7 @@ import {
   CardHeader,
   CardTitle,
 } from '~/components/ui/card'
+import { getStoredLastVolumeNameOrDefault } from '~/lib/last-volume'
 import { buildNoIndexPageHead } from '~/lib/seo'
 
 export const Route = createFileRoute('/sign-in')({
@@ -33,9 +34,10 @@ function SignInPage() {
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
+      const targetVolume = getStoredLastVolumeNameOrDefault()
       void navigate({
         to: '/dashboard/$volumeId',
-        params: { volumeId: 'personal' },
+        params: { volumeId: targetVolume },
         replace: true,
       })
     }
@@ -44,7 +46,10 @@ function SignInPage() {
   const handleGitHubSignIn = async () => {
     setIsSubmitting(true)
     try {
-      await signIn('github', { redirectTo: '/dashboard/personal' })
+      const targetVolume = getStoredLastVolumeNameOrDefault()
+      await signIn('github', {
+        redirectTo: `/dashboard/${encodeURIComponent(targetVolume)}`,
+      })
     } catch (error) {
       console.error('Failed to start GitHub sign in', error)
       setIsSubmitting(false)

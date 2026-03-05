@@ -19,6 +19,7 @@ import {
 } from 'react'
 import { TailwatchBrand } from '~/components/layout/tailwatch-brand'
 import { Button } from '~/components/ui/button'
+import { getStoredLastVolumeNameOrDefault } from '~/lib/last-volume'
 import { cn } from '~/lib/utils'
 import { api } from '../../../convex/_generated/api'
 
@@ -42,6 +43,7 @@ export function AppShellHeader({ current, topRight }: AppShellHeaderProps) {
   const navigate = useNavigate()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isProfileOpen, setIsProfileOpen] = useState(false)
+  const [eventsHref, setEventsHref] = useState('/dashboard/personal')
 
   const user = useQuery(
     (api as any).users.currentUser,
@@ -63,7 +65,7 @@ export function AppShellHeader({ current, topRight }: AppShellHeaderProps) {
       {
         id: 'events',
         label: 'Events',
-        href: '/dashboard/personal',
+        href: eventsHref,
         icon: Activity,
       },
       {
@@ -79,6 +81,11 @@ export function AppShellHeader({ current, topRight }: AppShellHeaderProps) {
         icon: Laptop,
       },
     ]
+  }, [eventsHref])
+
+  useEffect(() => {
+    const volume = getStoredLastVolumeNameOrDefault()
+    setEventsHref(`/dashboard/${encodeURIComponent(volume)}`)
   }, [])
 
   useEffect(() => {

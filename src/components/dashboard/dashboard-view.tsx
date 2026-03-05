@@ -16,6 +16,12 @@ import { AppShellHeader } from '~/components/layout/app-shell-header'
 import { Button } from '~/components/ui/button'
 import { Card, CardContent } from '~/components/ui/card'
 import { getClientDeviceName, getUAInfo } from '~/lib/device-identity'
+import {
+  findManagedVolumeByToken,
+  getStoredLastVolumeName,
+  resolveManagedVolumeName,
+  setStoredLastVolumeName,
+} from '~/lib/last-volume'
 import { NotificationManager } from '~/lib/notifications'
 import type { EventStatus } from '~/lib/types'
 import { cn } from '~/lib/utils'
@@ -237,14 +243,46 @@ export function DashboardView({
   }, [selectedTopic, volume, isHydratingFilter])
 
   useEffect(() => {
+    if (!isAuthenticated) return
+    if (managedVolumes === undefined) return
+
+    const matchedVolume = findManagedVolumeByToken(managedVolumes, activeVolume)
+    if (matchedVolume) {
+      const canonicalVolume = matchedVolume.name.trim() || 'personal'
+      if (canonicalVolume !== activeVolume) {
+        void navigate({
+          to: '/dashboard/$volumeId',
+          params: { volumeId: canonicalVolume },
+          search: (prev: any) => prev,
+          replace: true,
+        })
+        return
+      }
+      setStoredLastVolumeName(canonicalVolume)
+      return
+    }
+
+    const fallbackVolume = resolveManagedVolumeName(
+      managedVolumes,
+      getStoredLastVolumeName(),
+    )
+    if (fallbackVolume !== activeVolume) {
+      void navigate({
+        to: '/dashboard/$volumeId',
+        params: { volumeId: fallbackVolume },
+        search: (prev: any) => prev,
+        replace: true,
+      })
+      return
+    }
+
+    setStoredLastVolumeName(fallbackVolume)
+  }, [activeVolume, isAuthenticated, managedVolumes, navigate])
+
+  useEffect(() => {
     const volumes = managedVolumes ?? []
     const volumeToken = activeVolume.trim()
-    const matchedVolume =
-      volumes.find((row) => row.key?.value?.trim() === volumeToken) ??
-      volumes.find((row) => row.name === volumeToken) ??
-      (volumeToken === 'personal'
-        ? volumes.find((row) => row.isDefault)
-        : undefined)
+    const matchedVolume = findManagedVolumeByToken(volumes, volumeToken)
 
     const key = matchedVolume?.key?.value?.trim()
     if (key && key.length > 0) {
@@ -262,6 +300,7 @@ export function DashboardView({
 
   const switchVolume = (nextVolumeRaw: string) => {
     const nextVolume = nextVolumeRaw.trim() || 'personal'
+    setStoredLastVolumeName(nextVolume)
     markAllSeen()
     void navigate({
       to: '/dashboard/$volumeId',

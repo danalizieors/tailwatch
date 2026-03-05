@@ -1,14 +1,21 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import { useConvexAuth, useQuery } from 'convex/react'
 import { Activity, Bell, Monitor, Play, Send } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { LogStream } from '~/components/dashboard/log-stream'
 import { PublicFooter } from '~/components/layout/public-footer'
 import { PublicHeader } from '~/components/layout/public-header'
 import { PublicPageShell } from '~/components/layout/public-page-shell'
 import { Button } from '~/components/ui/button'
 import { Card } from '~/components/ui/card'
+import {
+  getStoredLastVolumeNameOrDefault,
+  resolveManagedVolumeName,
+  setStoredLastVolumeName,
+} from '~/lib/last-volume'
 import { buildPublicPageHead } from '~/lib/seo'
 import type { StoredEvent } from '~/lib/types'
+import { api } from '../../convex/_generated/api'
 
 interface DemoEventTemplate {
   path: string
@@ -128,11 +135,39 @@ export const Route = createFileRoute('/')({
 })
 
 function TailwatchLandingPage() {
+  const { isAuthenticated, isLoading: isAuthLoading } = useConvexAuth()
+  const navigate = useNavigate()
   const [events, setEvents] = useState<StoredEvent[]>(initialEvents)
   const [notifications, setNotifications] = useState<DemoNotification[]>(
     initialNotifications,
   )
   const [templateIndex, setTemplateIndex] = useState(0)
+  const [dashboardVolume, setDashboardVolume] = useState('personal')
+
+  const managedVolumes = useQuery(
+    api.volumes.listManagedVolumes,
+    isAuthenticated ? {} : 'skip',
+  ) as Array<{ name: string; isDefault?: boolean }> | undefined
+
+  useEffect(() => {
+    setDashboardVolume(getStoredLastVolumeNameOrDefault())
+  }, [])
+
+  useEffect(() => {
+    if (isAuthLoading || !isAuthenticated) return
+    if (managedVolumes === undefined) return
+
+    const targetVolume = resolveManagedVolumeName(
+      managedVolumes,
+      getStoredLastVolumeNameOrDefault(),
+    )
+    setStoredLastVolumeName(targetVolume)
+    void navigate({
+      to: '/dashboard/$volumeId',
+      params: { volumeId: targetVolume },
+      replace: true,
+    })
+  }, [isAuthLoading, isAuthenticated, managedVolumes, navigate])
 
   const handleSendTestData = () => {
     const template = demoEventTemplates[templateIndex % demoEventTemplates.length]
@@ -188,7 +223,7 @@ function TailwatchLandingPage() {
             <div className='mt-8 flex flex-col gap-3 sm:flex-row'>
               <Link
                 to='/dashboard/$volumeId'
-                params={{ volumeId: 'personal' }}
+                params={{ volumeId: dashboardVolume }}
                 className='bg-primary text-primary-foreground shadow-primary/20 inline-flex h-12 items-center justify-center gap-2 rounded-lg px-6 text-sm font-bold tracking-tight shadow-lg transition-opacity hover:opacity-90'
               >
                 Open Dashboard

@@ -1,7 +1,9 @@
 import { Link } from '@tanstack/react-router'
 import { useConvexAuth } from 'convex/react'
 import { ArrowRight, Github } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { TailwatchBrand } from '~/components/layout/tailwatch-brand'
+import { getStoredLastVolumeNameOrDefault } from '~/lib/last-volume'
 import { cn } from '~/lib/utils'
 
 interface PublicHeaderProps {
@@ -17,6 +19,11 @@ export function PublicHeader({
   navClassName,
 }: PublicHeaderProps) {
   const { isAuthenticated, isLoading } = useConvexAuth()
+  const [dashboardVolume, setDashboardVolume] = useState('personal')
+
+  useEffect(() => {
+    setDashboardVolume(getStoredLastVolumeNameOrDefault())
+  }, [])
 
   return (
     <header
@@ -48,7 +55,7 @@ export function PublicHeader({
           {!isLoading && isAuthenticated ? (
             <Link
               to='/dashboard/$volumeId'
-              params={{ volumeId: 'personal' }}
+              params={{ volumeId: dashboardVolume }}
               className={cn(
                 publicHeaderActionBaseClassName,
                 'bg-primary shadow-primary/20 text-black shadow-lg hover:opacity-90',
