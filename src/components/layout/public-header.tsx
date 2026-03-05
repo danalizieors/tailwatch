@@ -1,8 +1,6 @@
-import { useAuthActions } from '@convex-dev/auth/react'
 import { Link } from '@tanstack/react-router'
 import { useConvexAuth } from 'convex/react'
-import { ArrowRight } from 'lucide-react'
-import type { MouseEvent } from 'react'
+import { ArrowRight, Github } from 'lucide-react'
 import { TailwatchBrand } from '~/components/layout/tailwatch-brand'
 import { cn } from '~/lib/utils'
 
@@ -10,34 +8,15 @@ interface PublicHeaderProps {
   navClassName?: string
 }
 
+const GITHUB_REPOSITORY_URL = 'https://github.com/danalizieors/tailwatch'
+
 const publicHeaderActionBaseClassName =
-  'inline-flex min-h-11 items-center gap-2 rounded-lg px-6 text-xs font-bold tracking-tight transition-all active:scale-[0.98]'
+  'inline-flex min-h-11 items-center gap-2 rounded-lg px-4 sm:px-6 text-xs font-bold tracking-tight transition-all active:scale-[0.98]'
 
 export function PublicHeader({
   navClassName,
 }: PublicHeaderProps) {
-  const { signIn } = useAuthActions()
   const { isAuthenticated, isLoading } = useConvexAuth()
-
-  const handleDashboardNavigation = async (
-    event: MouseEvent<HTMLAnchorElement>,
-  ) => {
-    if (isLoading) {
-      event.preventDefault()
-      return
-    }
-
-    if (isAuthenticated) {
-      return
-    }
-
-    event.preventDefault()
-    try {
-      await signIn('github', { redirectTo: '/dashboard/personal' })
-    } catch (error) {
-      console.error('Failed to initiate sign-in', error)
-    }
-  }
 
   return (
     <header
@@ -47,7 +26,7 @@ export function PublicHeader({
       <nav
         aria-label='Primary'
         className={cn(
-          'mx-auto flex min-h-20 w-full max-w-7xl min-w-0 flex-wrap items-center justify-between gap-3 px-4 py-2 md:h-20 md:flex-nowrap md:gap-4 md:px-6 md:py-0',
+          'mx-auto flex h-16 w-full max-w-7xl min-w-0 items-center justify-between gap-2 px-4 sm:gap-3 md:h-20 md:gap-4 md:px-6',
           navClassName,
         )}
       >
@@ -55,29 +34,40 @@ export function PublicHeader({
           <TailwatchBrand />
         </Link>
 
-        <div className='ml-auto flex w-full min-w-0 items-center justify-end gap-3 sm:w-auto'>
-          <Link
-            to='/dashboard/$volumeId'
-            params={{ volumeId: 'personal' }}
-            onClick={(event) => void handleDashboardNavigation(event)}
-            className={cn(
-              publicHeaderActionBaseClassName,
-              'bg-primary shadow-primary/20 text-black shadow-lg hover:opacity-90',
-            )}
+        <div className='ml-auto flex min-w-0 items-center justify-end gap-2 sm:gap-3'>
+          <a
+            href={GITHUB_REPOSITORY_URL}
+            target='_blank'
+            rel='noreferrer'
+            aria-label='Open Tailwatch repository on GitHub'
+            className='inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-zinc-300 transition-colors hover:bg-white/10 hover:text-white'
           >
-            {!isLoading && !isAuthenticated ? (
-              <>
-                <span className='hidden sm:inline'>Sign in with GitHub</span>
-                <span className='sm:hidden'>Sign in</span>
-              </>
-            ) : (
-              <>
-                <span className='hidden sm:inline'>Open Dashboard</span>
-                <span className='sm:hidden'>Open</span>
-              </>
-            )}
-            <ArrowRight className='h-3.5 w-3.5' />
-          </Link>
+            <Github className='h-4 w-4' />
+          </a>
+
+          {!isLoading && isAuthenticated ? (
+            <Link
+              to='/dashboard/$volumeId'
+              params={{ volumeId: 'personal' }}
+              className={cn(
+                publicHeaderActionBaseClassName,
+                'bg-primary shadow-primary/20 text-black shadow-lg hover:opacity-90',
+              )}
+            >
+              Dashboard
+              <ArrowRight className='h-3.5 w-3.5' />
+            </Link>
+          ) : (
+            <Link
+              to='/sign-in'
+              className={cn(
+                publicHeaderActionBaseClassName,
+                'bg-primary shadow-primary/20 text-black shadow-lg hover:opacity-90',
+              )}
+            >
+              Sign in
+            </Link>
+          )}
         </div>
       </nav>
     </header>

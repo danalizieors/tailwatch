@@ -3,9 +3,9 @@ import { Link, useNavigate } from '@tanstack/react-router'
 import { useConvexAuth, useQuery } from 'convex/react'
 import {
   Activity,
+  Github,
   HardDrive,
   Laptop,
-  LogIn,
   LogOut,
   Menu,
   X,
@@ -38,7 +38,7 @@ type NavItem = {
 
 export function AppShellHeader({ current, topRight }: AppShellHeaderProps) {
   const { isAuthenticated, isLoading } = useConvexAuth()
-  const { signIn, signOut } = useAuthActions()
+  const { signOut } = useAuthActions()
   const navigate = useNavigate()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isProfileOpen, setIsProfileOpen] = useState(false)
@@ -244,10 +244,10 @@ export function AppShellHeader({ current, topRight }: AppShellHeaderProps) {
                 type='button'
                 size='sm'
                 variant='outline'
-                onClick={() => void signIn('github')}
+                onClick={() => void navigate({ to: '/sign-in' })}
                 className='hidden min-h-10 gap-1.5 text-xs font-semibold tracking-wide md:flex'
               >
-                <LogIn className='h-3.5 w-3.5' />
+                <Github className='h-3.5 w-3.5' />
                 Sign in
               </Button>
             )}
@@ -358,10 +358,13 @@ export function AppShellHeader({ current, topRight }: AppShellHeaderProps) {
                   className='text-primary border-primary/20 min-h-11 justify-start gap-3 text-xs font-semibold tracking-wide'
                   onClick={() => {
                     setIsMenuOpen(false)
-                    void signIn('github')
+                    void navigate({
+                      to: '/sign-in',
+                      replace: true,
+                    })
                   }}
                 >
-                  <LogIn className='h-4 w-4' />
+                  <Github className='h-4 w-4' />
                   Sign in to access dashboard
                 </Button>
               )}
@@ -391,11 +394,14 @@ export function AppShellHeader({ current, topRight }: AppShellHeaderProps) {
                 size='sm'
                 onClick={() => {
                   setIsMenuOpen(false)
-                  void signIn('github')
+                  void navigate({
+                    to: '/sign-in',
+                    replace: true,
+                  })
                 }}
                 className='min-h-11 gap-2 px-4 text-xs font-semibold tracking-wide'
               >
-                <LogIn className='h-4 w-4' />
+                <Github className='h-4 w-4' />
                 <span>Sign in</span>
               </Button>
             )

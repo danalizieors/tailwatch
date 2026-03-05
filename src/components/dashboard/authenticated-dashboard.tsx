@@ -14,7 +14,7 @@ export function AuthenticatedDashboard({
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      void navigate({ to: '/', replace: true })
+      void navigate({ to: '/sign-in', replace: true })
     }
   }, [isLoading, isAuthenticated, navigate])
 
