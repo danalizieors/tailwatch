@@ -110,21 +110,15 @@ export class NotificationManager {
       if (!key) {
         this.lastPushError =
           'Web Push Public Key is missing in client configuration.'
-        console.error(
-          'Missing VITE_WEB_PUSH_PUBLIC_KEY / VITE_VAPID_PUBLIC_KEY',
-        )
         return false
       }
 
-      console.log('Attempting to create new push subscription...')
       await reg.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: base64UrlToUint8Array(key),
       })
-      console.log('Push subscription created successfully.')
       return true
     } catch (error) {
-      console.error('Service Worker Subscribe Error:', error)
       this.lastPushError =
         error instanceof Error
           ? `Browser Error: ${error.message}`
@@ -138,8 +132,7 @@ export class NotificationManager {
     try {
       const reg = await navigator.serviceWorker.ready
       return await reg.pushManager.getSubscription()
-    } catch (error) {
-      console.error('Failed to get subscription:', error)
+    } catch {
       return null
     }
   }

@@ -1,20 +1,16 @@
 self.addEventListener('install', () => {
-  console.log('[SW] Service Worker installing.')
   self.skipWaiting()
 })
 
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Service Worker activating.')
   event.waitUntil(self.clients.claim())
 })
 
 self.addEventListener('push', (event) => {
-  console.log('[SW] Push event received.')
   event.waitUntil(handlePush(event))
 })
 
 self.addEventListener('notificationclick', (event) => {
-  console.log('[SW] Notification click received.')
   event.notification.close()
   event.waitUntil(openTailwatch(event))
 })
@@ -28,13 +24,11 @@ function readPushPayload(event) {
   }
 
   if (!event.data) {
-    console.log('[SW] Push event has no data.')
     return fallback
   }
 
   try {
     const value = event.data.json()
-    console.log('[SW] Push payload parsed as JSON:', value)
     if (value && typeof value === 'object') {
       return {
         title:
@@ -55,8 +49,7 @@ function readPushPayload(event) {
             : fallback.url,
       }
     }
-  } catch (error) {
-    console.log('[SW] Push payload not JSON, trying as text:', error)
+  } catch {
     const text = event.data.text()
     if (text) {
       return { ...fallback, body: text }
@@ -67,19 +60,26 @@ function readPushPayload(event) {
 }
 
 async function handlePush(event) {
+  const payload = readPushPayload(event)
+
   try {
-    const payload = readPushPayload(event)
-    console.log('[SW] Showing notification:', payload.title)
     await self.registration.showNotification(payload.title, {
       body: payload.body,
       tag: payload.tag,
       renotify: true,
+      // Keep icon minimal/transparent so Android does not render a large card tile.
+      icon: '/push-badge-96x96.png',
       badge: '/push-badge-96x96.png',
       data: { url: payload.url },
     })
-    console.log('[SW] Notification shown successfully.')
-  } catch (error) {
-    console.error('[SW] Push handle error:', error)
+  } catch {
+    // Fallback: show at least a basic notification if icon/badge decoding fails.
+    await self.registration.showNotification(payload.title, {
+      body: payload.body,
+      tag: payload.tag,
+      renotify: true,
+      data: { url: payload.url },
+    })
   }
 }
 
@@ -93,8 +93,6 @@ async function openTailwatch(event) {
       ? event.notification.data.url
       : '/'
 
-  console.log('[SW] Opening URL:', requestedUrl)
-
   const windows = await self.clients.matchAll({
     type: 'window',
     includeUncontrolled: true,
@@ -102,13 +100,10 @@ async function openTailwatch(event) {
 
   for (const client of windows) {
     if ('focus' in client && client.type === 'window') {
-      console.log('[SW] Focusing existing client.')
       if ('navigate' in client) {
         try {
           await client.navigate(requestedUrl)
-        } catch (error) {
-          console.error('[SW] Navigation error:', error)
-        }
+        } catch {}
       }
       await client.focus()
       return
@@ -116,9 +111,6 @@ async function openTailwatch(event) {
   }
 
   if (self.clients.openWindow) {
-    console.log('[SW] Opening new window.')
     await self.clients.openWindow(requestedUrl)
   }
 }
-
-console.log('[Tailwatch] Service Worker initialized.')

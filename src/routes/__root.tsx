@@ -69,23 +69,16 @@ function RootDocument() {
 
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
       if (!window.isSecureContext) {
-        console.warn(
-          '[Tailwatch] Service Worker registration skipped: Not a secure context',
-        )
         return
       }
 
       // Manual registration with classic type for better browser/environment compatibility
-      navigator.serviceWorker
+      void navigator.serviceWorker
         .register('/sw.js', {
           type: 'classic',
           scope: '/',
         })
-        .then((registration) => {
-          console.log('SW Registered successfully:', registration)
-        })
         .catch((error) => {
-          console.error('SW registration error:', error)
           // Alert specifically for insecure or 404 errors during transition
           if (error.name !== 'AbortError') {
             alert(
