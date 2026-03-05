@@ -5,6 +5,7 @@ import {
   Info,
   PanelLeft,
   PanelLeftClose,
+  Eraser,
   ShieldCheck,
   Shuffle,
   Zap,
@@ -55,21 +56,19 @@ export function DashboardView({
   const [testEventContent, setTestEventContent] = useState('')
   const [isSendingTestEvent, setIsSendingTestEvent] = useState(false)
   const [testEventError, setTestEventError] = useState<string | null>(null)
+  const [isDeletingByPrefix, setIsDeletingByPrefix] = useState(false)
   const [volumePublishKey, setVolumePublishKey] = useState<string | null>(null)
-  const [volumeOptions, setVolumeOptions] = useState<string[]>(['personal'])
-  const [clearedUnreadBaselineByVolumeId, setClearedUnreadBaselineByVolumeId] =
-    useState<Record<string, number>>({})
-  const [pendingVolumeClearById, setPendingVolumeClearById] = useState<
-    Record<string, true>
-  >({})
   const [isHydratingFilter, setIsHydratingFilter] = useState(true)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
   const { isAuthenticated } = useConvexAuth()
   const navigate = useNavigate()
+  const activeVolume = volume?.trim() || 'personal'
 
   const publish = useMutation(api.events.publish)
   const publishByKey = useMutation(api.events.publishByKey)
+  const deleteByTopicPrefix = useMutation((api as any).events.deleteByTopicPrefix)
+  const markVolumeSeen = useMutation((api as any).events.markVolumeSeen)
   const setNotifications = useMutation(api.devices.setNotifications)
   const setVolumeNotifications = useMutation(api.volumes.setVolumeNotifications)
   const upsertDevice = useMutation(api.devices.upsertDevice)
@@ -87,6 +86,14 @@ export function DashboardView({
         key?: { value?: string }
       }>
     | undefined
+  const activeVolumeId = useMemo(() => {
+    const matchedVolume =
+      (managedVolumes ?? []).find((row) => row.name === activeVolume) ??
+      (activeVolume === 'personal'
+        ? (managedVolumes ?? []).find((row) => row.isDefault)
+        : undefined)
+    return matchedVolume ? String(matchedVolume.id) : undefined
+  }, [managedVolumes, activeVolume])
 
   const currentDeviceKey = useMemo(() => NotificationManager.getDeviceKey(), [])
   const devicesRaw = useQuery(
@@ -127,65 +134,42 @@ export function DashboardView({
       mode,
       volume,
       topicPrefix: selectedTopic,
+      isAuthenticated,
+      activeVolumeId,
     })
 
   const unreadCountsByVolume = useQuery(
     (api as any).events.unreadCountsByVolume,
-    isAuthenticated ? { since: lastSeenAt } : 'skip',
+    isAuthenticated ? {} : 'skip',
   ) as
     | Array<{
         volumeId: string
         volumeName: string
+        seenAt: number
         count: number
       }>
     | undefined
 
-  const rawUnreadCountByVolumeId = useMemo(() => {
-    const map = new Map<string, number>()
-    for (const row of unreadCountsByVolume ?? []) {
-      map.set(row.volumeId, row.count)
-    }
-    return map
-  }, [unreadCountsByVolume])
-
   const unreadCountByVolumeId = useMemo(() => {
     const map = new Map<string, number>()
     for (const row of unreadCountsByVolume ?? []) {
-      const baseline = clearedUnreadBaselineByVolumeId[row.volumeId] ?? 0
-      map.set(row.volumeId, Math.max(0, row.count - baseline))
+      map.set(row.volumeId, Math.max(0, row.count))
     }
     return map
-  }, [unreadCountsByVolume, clearedUnreadBaselineByVolumeId])
-
-  useEffect(() => {
-    setClearedUnreadBaselineByVolumeId({})
-  }, [lastSeenAt])
-
-  useEffect(() => {
-    const pendingIds = Object.keys(pendingVolumeClearById)
-    if (pendingIds.length === 0) return
-
-    const resolvedIds = pendingIds.filter((volumeId) =>
-      rawUnreadCountByVolumeId.has(volumeId),
-    )
-    if (resolvedIds.length === 0) return
-
-    setClearedUnreadBaselineByVolumeId((prev) => {
-      const next = { ...prev }
-      for (const volumeId of resolvedIds) {
-        next[volumeId] = rawUnreadCountByVolumeId.get(volumeId) ?? 0
-      }
-      return next
-    })
-
-    setPendingVolumeClearById((prev) => {
-      const next = { ...prev }
-      for (const volumeId of resolvedIds) {
-        delete next[volumeId]
-      }
-      return next
-    })
-  }, [pendingVolumeClearById, rawUnreadCountByVolumeId])
+  }, [unreadCountsByVolume])
+  const seenAtByVolumeId = useMemo(() => {
+    const map = new Map<string, number>()
+    for (const row of unreadCountsByVolume ?? []) {
+      map.set(row.volumeId, Number.isFinite(row.seenAt) ? row.seenAt : 0)
+    }
+    return map
+  }, [unreadCountsByVolume])
+  const activeVolumeSeenAt =
+    activeVolumeId ? seenAtByVolumeId.get(activeVolumeId) : undefined
+  const effectiveLastSeenAt =
+    isAuthenticated && activeVolumeId
+      ? (activeVolumeSeenAt ?? lastSeenAt)
+      : lastSeenAt
 
   useEffect(() => {
     if (typeof window === 'undefined' || typeof document === 'undefined') return
@@ -254,34 +238,8 @@ export function DashboardView({
     window.history.replaceState({}, '', url.toString())
   }, [selectedTopic, volume, isHydratingFilter])
 
-  const activeVolume = volume?.trim() || 'personal'
-  const volumeChoices = useMemo(() => {
-    const values = Array.from(
-      new Set(
-        ['personal', ...volumeOptions, activeVolume]
-          .map((value) => value.trim())
-          .filter(Boolean),
-      ),
-    )
-    return values.sort((left, right) => {
-      if (left === 'personal') return -1
-      if (right === 'personal') return 1
-      return left.localeCompare(right)
-    })
-  }, [volumeOptions, activeVolume])
-
   useEffect(() => {
     const volumes = managedVolumes ?? []
-    const knownVolumes = Array.from(
-      new Set(
-        volumes
-          .map((row) => row.name?.trim())
-          .filter((name): name is string => Boolean(name && name.length > 0)),
-      ),
-    )
-
-    setVolumeOptions(knownVolumes.length > 0 ? knownVolumes : ['personal'])
-
     const volumeToken = activeVolume.trim()
     const matchedVolume =
       volumes.find((row) => row.key?.value?.trim() === volumeToken) ??
@@ -306,25 +264,7 @@ export function DashboardView({
 
   const switchVolume = (nextVolumeRaw: string) => {
     const nextVolume = nextVolumeRaw.trim() || 'personal'
-    const volumeBeingLeft =
-      (managedVolumes ?? []).find((row) => row.name === activeVolume) ??
-      (activeVolume === 'personal'
-        ? (managedVolumes ?? []).find((row) => row.isDefault)
-        : undefined)
-    if (volumeBeingLeft) {
-      const volumeId = String(volumeBeingLeft.id)
-      const currentUnread = rawUnreadCountByVolumeId.get(volumeId) ?? 0
-      setClearedUnreadBaselineByVolumeId((prev) => ({
-        ...prev,
-        [volumeId]: currentUnread,
-      }))
-      if (!rawUnreadCountByVolumeId.has(volumeId)) {
-        setPendingVolumeClearById((prev) => ({
-          ...prev,
-          [volumeId]: true,
-        }))
-      }
-    }
+    markAllSeen()
     void navigate({
       to: '/dashboard/$volumeId',
       params: { volumeId: nextVolume },
@@ -387,6 +327,26 @@ export function DashboardView({
     setIsSendingTestEvent(false)
   }
 
+  const deleteFilteredPrefix = async () => {
+    const normalizedPrefix = normalizeTopicPath(selectedTopic)
+    if (isDeletingByPrefix) return
+
+    setIsDeletingByPrefix(true)
+    try {
+      await deleteByTopicPrefix({
+        volume: activeVolume,
+        topicPrefix: normalizedPrefix,
+      })
+      refresh()
+    } catch {
+      if (typeof window !== 'undefined') {
+        window.alert('Failed to clear filtered events and paths')
+      }
+    } finally {
+      setIsDeletingByPrefix(false)
+    }
+  }
+
   const filteredEvents = (data?.events ?? []).filter((event) => {
     if (statusFilter !== 'all' && event.status !== statusFilter) return false
     if (!deferredSearch.trim()) return true
@@ -445,9 +405,15 @@ export function DashboardView({
             switchVolume(v)
             setIsSidebarOpen(false)
           }}
-          onToggleVolumeNotifications={(volumeId, enabled) =>
+          onToggleVolumeNotifications={(volumeId, enabled) => {
+            if (!enabled) {
+              void markVolumeSeen({
+                volumeId: String(volumeId),
+                seenAt: Date.now(),
+              })
+            }
             void setVolumeNotifications({ volumeId, enabled })
-          }
+          }}
           isAuthenticated={isAuthenticated}
           devices={devices}
           onToggleDeviceMute={async (deviceId, enabled) => {
@@ -509,14 +475,31 @@ export function DashboardView({
                     setSelectedTopic(normalizeTopicPath(topic))
                   }
                   rightSlot={
-                    <Button
-                      size='sm'
-                      className='shadow-primary-glow bg-primary h-10 gap-2 rounded-lg px-4 text-[10px] font-semibold tracking-wide text-black transition-all hover:opacity-90'
-                      onClick={openTestEventDialog}
-                    >
-                      <Shuffle className='h-3.5 w-3.5' />
-                      Test
-                    </Button>
+                    <div className='flex items-center gap-2'>
+                      <Button
+                        size='sm'
+                        className='shadow-primary-glow bg-primary h-10 gap-2 rounded-lg px-4 text-[10px] font-semibold tracking-wide text-black transition-all hover:opacity-90'
+                        onClick={openTestEventDialog}
+                      >
+                        <Shuffle className='h-3.5 w-3.5' />
+                        Test
+                      </Button>
+                      <Button
+                        size='sm'
+                        variant='outline'
+                        className='border-primary/60 bg-primary/5 text-primary hover:bg-primary/10 h-10 gap-2 rounded-lg px-3 text-[10px] font-semibold tracking-wide'
+                        onClick={() => void deleteFilteredPrefix()}
+                        disabled={isDeletingByPrefix}
+                        title={
+                          selectedTopic
+                            ? `Clear all events and paths with prefix ${selectedTopic}`
+                            : `Clear all events and paths in volume ${activeVolume}`
+                        }
+                      >
+                        <Eraser className='h-3.5 w-3.5' />
+                        Clear
+                      </Button>
+                    </div>
                   }
                 />
               </div>
@@ -534,13 +517,13 @@ export function DashboardView({
                       filteredEvents.length > 0 ? (
                         <LogStream
                           events={filteredEvents}
-                          lastSeenAt={lastSeenAt}
+                          lastSeenAt={effectiveLastSeenAt}
                         />
                       ) : null
                     ) : (
                       <StatusBoard
                         rows={filteredEntities}
-                        lastSeenAt={lastSeenAt}
+                        lastSeenAt={effectiveLastSeenAt}
                       />
                     )
                   ) : null}

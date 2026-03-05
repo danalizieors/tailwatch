@@ -299,6 +299,74 @@ function normalizeQueryStatus(value?: string) {
   return undefined
 }
 
+async function collectMatchedPaths(
+  ctx: any,
+  volumeId: string,
+  topicPrefix?: string,
+) {
+  if (!topicPrefix) {
+    return await ctx.db
+      .query('paths')
+      .withIndex('by_volumeId', (q: any) => q.eq('volumeId', volumeId))
+      .collect()
+  }
+
+  const prefix = normalizeTopicPath(topicPrefix)
+  if (!prefix) {
+    return await ctx.db
+      .query('paths')
+      .withIndex('by_volumeId', (q: any) => q.eq('volumeId', volumeId))
+      .collect()
+  }
+
+  const subpathPrefix = `${prefix}/`
+  const exact = await ctx.db
+    .query('paths')
+    .withIndex('by_volumeId_and_path', (q: any) =>
+      q.eq('volumeId', volumeId).eq('path', prefix),
+    )
+    .first()
+  const subpaths = await ctx.db
+    .query('paths')
+    .withIndex('by_volumeId_and_path', (q: any) =>
+      q
+        .eq('volumeId', volumeId)
+        .gte('path', subpathPrefix)
+        .lt('path', nextPrefix(subpathPrefix)),
+    )
+    .collect()
+  return exact ? [exact, ...subpaths] : subpaths
+}
+
+async function getVolumeNotificationByUserAndVolume(
+  ctx: any,
+  userId: string,
+  volumeId: string,
+) {
+  const rows = await ctx.db
+    .query('volumeNotifications')
+    .withIndex('by_user_and_volumeId', (q: any) =>
+      q.eq('userId', userId).eq('volumeId', volumeId),
+    )
+    .collect()
+  if (rows.length === 0) return null
+
+  let primary = rows[0]
+  for (const row of rows) {
+    if ((row.seenAt ?? 0) > (primary.seenAt ?? 0)) {
+      primary = row
+    }
+  }
+
+  for (const row of rows) {
+    if (row._id !== primary._id) {
+      await ctx.db.delete(row._id)
+    }
+  }
+
+  return primary
+}
+
 export const dashboardSnapshot = query({
   args: {
     volume: v.optional(v.string()),
@@ -316,26 +384,153 @@ export const dashboardSnapshot = query({
   },
 })
 
-export const statusSnapshot = dashboardSnapshot
-
-export const unreadCountsByVolume = query({
+export const markVolumeSeen = mutation({
   args: {
-    since: v.optional(v.number()),
+    volumeId: v.string(),
+    seenAt: v.number(),
   },
   handler: async (ctx, args) => {
     const userId = await auth.getUserId(ctx)
-    if (typeof userId !== 'string' || userId.trim().length === 0) return []
+    const ownerId =
+      typeof userId === 'string' && userId.trim().length > 0
+        ? userId.trim()
+        : undefined
+    if (!ownerId) throw new Error('Sign in required')
 
-    const since = Number.isFinite(args.since) ? (args.since as number) : 0
+    const ownedVolume = await ctx.db.get(args.volumeId as any)
+    if (!ownedVolume || ownedVolume.userId !== ownerId) {
+      throw new Error('Volume not found')
+    }
+
+    const incomingSeenAt = Number.isFinite(args.seenAt)
+      ? Math.max(0, Math.floor(args.seenAt))
+      : 0
+
+    const existing = await getVolumeNotificationByUserAndVolume(
+      ctx,
+      ownerId,
+      args.volumeId,
+    )
+    if (existing) {
+      const mergedSeenAt = Math.max(existing.seenAt ?? 0, incomingSeenAt)
+      if (mergedSeenAt !== existing.seenAt) {
+        await ctx.db.patch(existing._id, {
+          seenAt: mergedSeenAt,
+        })
+      }
+      return {
+        volumeId: args.volumeId,
+        seenAt: mergedSeenAt,
+      }
+    }
+
+    await ctx.db.insert('volumeNotifications', {
+      userId: ownerId,
+      volumeId: args.volumeId,
+      seenAt: incomingSeenAt,
+    })
+    return {
+      volumeId: args.volumeId,
+      seenAt: incomingSeenAt,
+    }
+  },
+})
+
+export const deleteByTopicPrefix = mutation({
+  args: {
+    volume: v.optional(v.string()),
+    topicPrefix: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const userId = await auth.getUserId(ctx)
+    const ownerId =
+      typeof userId === 'string' && userId.trim().length > 0
+        ? userId.trim()
+        : undefined
+    if (!ownerId) throw new Error('Sign in required')
+
+    const volumeName = normalizeVolume(args.volume)
+    const topicPrefix = args.topicPrefix
+      ? normalizeTopicPath(args.topicPrefix)
+      : undefined
+
+    const volumeDoc = await ctx.db
+      .query('volumes')
+      .withIndex('by_user_and_name', (q: any) =>
+        q.eq('userId', ownerId).eq('name', volumeName),
+      )
+      .first()
+
+    if (!volumeDoc) {
+      return {
+        volume: volumeName,
+        topicPrefix,
+        deletedPaths: 0,
+        deletedEvents: 0,
+      }
+    }
+
+    const matchedPaths = await collectMatchedPaths(
+      ctx,
+      String(volumeDoc._id),
+      topicPrefix,
+    )
+
+    let deletedEvents = 0
+    for (const pathDoc of matchedPaths) {
+      const events = await ctx.db
+        .query('events')
+        .withIndex('by_pathId', (q: any) => q.eq('pathId', String(pathDoc._id)))
+        .collect()
+
+      for (const event of events) {
+        await ctx.db.delete(event._id)
+        deletedEvents += 1
+      }
+
+      await ctx.db.delete(pathDoc._id)
+    }
+
+    return {
+      volume: volumeName,
+      topicPrefix,
+      deletedPaths: matchedPaths.length,
+      deletedEvents,
+    }
+  },
+})
+
+export const statusSnapshot = dashboardSnapshot
+
+export const unreadCountsByVolume = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await auth.getUserId(ctx)
+    if (typeof userId !== 'string' || userId.trim().length === 0) return []
+    const ownerId = userId.trim()
 
     const volumes = await ctx.db
       .query('volumes')
-      .withIndex('by_user', (q: any) => q.eq('userId', userId))
+      .withIndex('by_user', (q: any) => q.eq('userId', ownerId))
       .collect()
+    const notificationStates = await ctx.db
+      .query('volumeNotifications')
+      .withIndex('by_user', (q: any) => q.eq('userId', ownerId))
+      .collect()
+    const seenAtByVolumeId = new Map<string, number>()
+    for (const state of notificationStates) {
+      const volumeId = String(state.volumeId)
+      const nextSeenAt = Number.isFinite(state.seenAt) ? Number(state.seenAt) : 0
+      const previousSeenAt = seenAtByVolumeId.get(volumeId) ?? 0
+      if (nextSeenAt > previousSeenAt) {
+        seenAtByVolumeId.set(volumeId, nextSeenAt)
+      }
+    }
 
     const rows = await Promise.all(
       volumes.map(async (volume: any) => {
         const volumeId = String(volume._id)
+        const seenAt = seenAtByVolumeId.get(volumeId) ?? 0
         const paths = await ctx.db
           .query('paths')
           .withIndex('by_volumeId', (q: any) => q.eq('volumeId', volumeId))
@@ -352,7 +547,7 @@ export const unreadCountsByVolume = query({
 
             return events.reduce((total: number, event: any) => {
               const timestamp = Date.parse(event.time)
-              return Number.isFinite(timestamp) && timestamp > since
+              return Number.isFinite(timestamp) && timestamp > seenAt
                 ? total + 1
                 : total
             }, 0)
@@ -362,6 +557,7 @@ export const unreadCountsByVolume = query({
         return {
           volumeId,
           volumeName: String(volume.name ?? ''),
+          seenAt,
           count: counts.reduce((total, value) => total + value, 0),
         }
       }),
@@ -407,32 +603,11 @@ async function buildSnapshot(
 
   const volumeId = String(volumeDoc._id)
 
-  let matchedPaths
-  if (args.topicPrefix) {
-    const prefix = normalizeTopicPath(args.topicPrefix)
-    const subpathPrefix = prefix + '/'
-    const exact = await ctx.db
-      .query('paths')
-      .withIndex('by_volumeId_and_path', (q: any) =>
-        q.eq('volumeId', volumeId).eq('path', prefix),
-      )
-      .first()
-    const subpaths = await ctx.db
-      .query('paths')
-      .withIndex('by_volumeId_and_path', (q: any) =>
-        q
-          .eq('volumeId', volumeId)
-          .gte('path', subpathPrefix)
-          .lt('path', nextPrefix(subpathPrefix)),
-      )
-      .collect()
-    matchedPaths = exact ? [exact, ...subpaths] : subpaths
-  } else {
-    matchedPaths = await ctx.db
-      .query('paths')
-      .withIndex('by_volumeId', (q: any) => q.eq('volumeId', volumeId))
-      .collect()
-  }
+  const matchedPaths = await collectMatchedPaths(
+    ctx,
+    volumeId,
+    args.topicPrefix,
+  )
 
   const eventsInVolume = (
     await Promise.all(

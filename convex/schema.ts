@@ -38,4 +38,11 @@ export default defineSchema({
   })
     .index('by_user', ['userId'])
     .index('by_user_and_deviceKey', ['userId', 'deviceKey']),
+  volumeNotifications: defineTable({
+    userId: v.string(),
+    volumeId: v.string(),
+    seenAt: v.number(),
+  })
+    .index('by_user', ['userId'])
+    .index('by_user_and_volumeId', ['userId', 'volumeId']),
 })

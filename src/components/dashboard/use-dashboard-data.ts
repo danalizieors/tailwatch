@@ -1,8 +1,7 @@
-import { useQuery } from 'convex/react'
+import { useMutation, useQuery } from 'convex/react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   getLastSeenTimestamp,
-  NotificationManager,
   setLastSeenTimestamp,
 } from '~/lib/notifications'
 import type { DashboardSnapshot } from '~/lib/types'
@@ -12,6 +11,8 @@ interface UseDashboardDataOptions {
   mode: 'logs' | 'status'
   volume?: string
   topicPrefix?: string
+  isAuthenticated?: boolean
+  activeVolumeId?: string
   pollMs?: number
 }
 
@@ -19,6 +20,8 @@ export function useDashboardData({
   mode,
   volume,
   topicPrefix,
+  isAuthenticated = false,
+  activeVolumeId,
   pollMs = 4000,
 }: UseDashboardDataOptions) {
   const [error] = useState<string | null>(null)
@@ -71,6 +74,7 @@ export function useDashboardData({
     convexApi.events.statusSnapshot,
     mode === 'status' ? statusArgs : 'skip',
   ) as DashboardSnapshot | undefined
+  const markVolumeSeen = useMutation((convexApi as any).events.markVolumeSeen)
 
   const data = mode === 'status' ? statusData : logsData
 
@@ -114,7 +118,16 @@ export function useDashboardData({
 
     setLastSeenTimestamp(newest)
     setLastSeenAtState(newest)
-  }, [data, lastSeenAt])
+
+    if (isAuthenticated && activeVolumeId) {
+      void markVolumeSeen({
+        volumeId: activeVolumeId,
+        seenAt: newest,
+      }).catch(() => {
+        // Keep local behavior even if syncing fails.
+      })
+    }
+  }, [activeVolumeId, data, isAuthenticated, lastSeenAt, markVolumeSeen])
 
   const refresh = () => {
     setIsRefreshing(true)
