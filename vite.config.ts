@@ -44,6 +44,8 @@ export default defineConfig(({ mode }) => {
       tanstackStart({
         prerender: {
           enabled: true,
+          autoStaticPathsDiscovery: false,
+          crawlLinks: false,
         },
       }),
       viteReact(),
