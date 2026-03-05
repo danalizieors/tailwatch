@@ -15,6 +15,12 @@ function normalizeTopicPath(value: string) {
   return value.replace(/^\/+|\/+$/g, '').replace(/\/+/g, '/')
 }
 
+function buildDashboardEventUrl(volumeName: string, topicPath: string) {
+  const safeVolume = encodeURIComponent(normalizeVolume(volumeName))
+  const safePath = encodeURIComponent(normalizeTopicPath(topicPath))
+  return `/dashboard/${safeVolume}?path=${safePath}`
+}
+
 function splitTopicPath(value: string) {
   const clean = normalizeTopicPath(value)
   const segments = clean.split('/').filter(Boolean)
@@ -187,7 +193,7 @@ async function publishResolved(
         ? `${finalPath}: ${input.content}`
         : `${finalPath} is ${status}`
       const tag = `tailwatch:${volumeName}:${finalPath}`
-      const url = `/dashboard/${encodeURIComponent(volumeName)}?path=${encodeURIComponent(finalPath)}`
+      const url = buildDashboardEventUrl(volumeName, finalPath)
 
       for (const target of targets) {
         if (!target.notifications || !target.subscription) continue
