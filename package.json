@@ -11,7 +11,8 @@
     "develop:convex": "convex dev",
     "build": "vite build",
     "typecheck": "tsc --noEmit",
-    "deploy": "wrangler deploy"
+    "deploy": "wrangler deploy && pnpm notify",
+    "notify": "curl --silent https://tailwatch.dev/api/publish/${TAILWATCH_VOLUME_KEY}/deploy -d 'idle --- deploy completed'"
   },
   "dependencies": {
     "@auth/core": "^0.37.4",
