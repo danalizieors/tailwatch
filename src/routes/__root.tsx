@@ -110,11 +110,8 @@ function RootNotFound() {
         404
       </p>
       <h1 className='text-2xl font-semibold tracking-tight sm:text-3xl'>
-        page not found
+        Page not found
       </h1>
-      <p className='text-muted-foreground text-sm sm:text-base'>
-        No route matches this URL:
-      </p>
       <code className='border-border/60 bg-card/40 text-foreground block max-w-full overflow-x-auto rounded-lg border px-3 py-2 text-left font-mono text-xs sm:text-sm'>
         {requestedPath || '/'}
       </code>
@@ -122,7 +119,7 @@ function RootNotFound() {
         to='/'
         className='bg-primary text-primary-foreground inline-flex h-10 items-center justify-center rounded-lg px-4 text-sm font-semibold transition-opacity hover:opacity-90'
       >
-        back to home
+        Back to Home
       </Link>
     </main>
   )
