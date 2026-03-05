@@ -206,8 +206,8 @@ function TailwatchLandingPage() {
             className='relative w-full min-w-0 overflow-hidden border-white/10 bg-zinc-950/65'
           >
             <div className='absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent' />
-            <div className='flex items-center justify-between gap-3 border-b border-white/5 p-5 sm:p-6'>
-              <div>
+            <div className='flex flex-col items-start gap-3 border-b border-white/5 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6'>
+              <div className='min-w-0'>
                 <p className='font-mono text-[10px] tracking-wide text-zinc-500'>
                   Local demo (in-memory)
                 </p>
@@ -215,7 +215,7 @@ function TailwatchLandingPage() {
                   Events and push notifications
                 </h2>
               </div>
-              <Button size='sm' onClick={handleSendTestData}>
+              <Button size='sm' className='self-start sm:self-auto' onClick={handleSendTestData}>
                 <Play className='h-3.5 w-3.5' />
                 Send test event
               </Button>

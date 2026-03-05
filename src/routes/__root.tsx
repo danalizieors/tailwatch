@@ -79,11 +79,11 @@ function RootDocument() {
   }, [])
 
   return (
-    <html lang='en' className='dark'>
+    <html lang='en' className='dark overflow-x-hidden'>
       <head>
         <HeadContent />
       </head>
-      <body className='selection:bg-primary/30 bg-background text-foreground flex min-h-dvh w-full min-w-0 overflow-x-hidden antialiased'>
+      <body className='selection:bg-primary/30 bg-background text-foreground flex min-h-dvh w-full min-w-0 flex-col overflow-x-hidden antialiased'>
         <ConvexAuthProvider client={convex}>
           <DeviceRegistrationBootstrap />
           <Outlet />

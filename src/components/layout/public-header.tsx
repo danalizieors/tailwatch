@@ -11,7 +11,7 @@ interface PublicHeaderProps {
 const GITHUB_REPOSITORY_URL = 'https://github.com/danalizieors/tailwatch'
 
 const publicHeaderActionBaseClassName =
-  'inline-flex min-h-11 items-center gap-2 rounded-lg px-4 sm:px-6 text-xs font-bold tracking-tight transition-all active:scale-[0.98]'
+  'inline-flex min-h-11 items-center gap-2 rounded-lg px-3 sm:px-6 text-xs font-bold tracking-tight transition-all active:scale-[0.98]'
 
 export function PublicHeader({
   navClassName,
@@ -30,7 +30,7 @@ export function PublicHeader({
           navClassName,
         )}
       >
-        <Link to='/'>
+        <Link to='/' className='min-w-0 shrink'>
           <TailwatchBrand />
         </Link>
 
