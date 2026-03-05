@@ -10,7 +10,7 @@ export function PublicFooter({
   maxWidthClassName = 'max-w-7xl',
 }: PublicFooterProps) {
   return (
-    <footer className='border-t border-white/5 bg-zinc-900/60 backdrop-blur-xl'>
+    <footer className='mt-auto border-t border-white/5 bg-zinc-900/60 backdrop-blur-xl'>
       <div
         className={cn(
           'mx-auto flex w-full min-w-0 flex-col gap-6 px-4 py-10 text-sm text-zinc-500 md:flex-row md:items-center md:justify-between md:px-6',
