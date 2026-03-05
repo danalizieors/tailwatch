@@ -56,7 +56,8 @@ const initialEventOffsetsMs = {
 const landingFlowCards = [
   {
     title: '1. Install PWA',
-    detail: 'Install Tailwatch from your browser for an app-like experience.',
+    detail:
+      'Install Tailwatch as a PWA from your browser: use Add to Home Screen for an app-like experience.',
     icon: Monitor,
   },
   {
@@ -118,7 +119,7 @@ const demoLastSeenAt = initialEvents.reduce((latest, event) => {
 export const Route = createFileRoute('/')({
   head: () =>
     buildPublicPageHead({
-      title: 'Tailwatch - Stay entailed',
+      title: 'Tailwatch — Stay entailed',
       description: 'Hierarchical event monitor with push notifications',
       path: '/',
       type: 'website',
@@ -168,7 +169,7 @@ function TailwatchLandingPage() {
       <main className='relative flex w-full min-w-0 flex-1 flex-col overflow-x-hidden'>
         <div className='pixel-grid opacity-30' />
 
-        <section className='mx-auto grid w-full max-w-7xl gap-10 overflow-x-hidden px-4 py-10 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] lg:gap-12 lg:py-16'>
+        <section className='mx-auto grid w-full max-w-6xl gap-10 overflow-x-hidden px-4 py-10 sm:px-6 lg:grid-cols-[minmax(0,30rem)_minmax(0,44rem)] lg:justify-center lg:gap-12 lg:py-16'>
           <div className='border-white/5 flex min-w-0 flex-col justify-start lg:border-r lg:pr-10'>
             <h1 className='mt-6 text-3xl leading-[1.14] font-bold tracking-tight text-balance sm:text-5xl sm:leading-[1.05]'>
               Watch every agent, job, and service.
@@ -202,7 +203,7 @@ function TailwatchLandingPage() {
 
           <Card
             id='live-logs'
-            className='relative min-w-0 overflow-hidden border-white/10 bg-zinc-950/65'
+            className='relative w-full min-w-0 overflow-hidden border-white/10 bg-zinc-950/65'
           >
             <div className='absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent' />
             <div className='flex items-center justify-between gap-3 border-b border-white/5 p-5 sm:p-6'>
@@ -270,46 +271,81 @@ function TailwatchLandingPage() {
           </div>
         </section>
 
-        <section className='mx-auto w-full max-w-7xl px-4 pb-12 sm:px-6 lg:max-w-6xl lg:pb-16 xl:max-w-5xl'>
-          <Card className='overflow-hidden border-white/10 bg-zinc-950/55'>
-            <div className='border-b border-white/5 p-5 sm:p-6'>
-              <p className='font-mono text-[10px] tracking-wide text-zinc-500'>
-                Installable PWA
-              </p>
-              <h3 className='mt-1 text-lg font-semibold tracking-tight sm:text-xl'>
-                Install from your browser, then run the full event flow.
-              </h3>
-              <p className='mt-2 max-w-3xl text-pretty text-sm leading-relaxed text-zinc-400'>
-                Tailwatch runs as a Progressive Web App. Install it from your
-                browser, publish events with curl, follow each path as it moves
-                between busy and idle, and get push notifications when your
-                attention is needed.
-              </p>
-            </div>
+        <section className='mx-auto w-full max-w-6xl px-4 pb-12 sm:px-6 lg:pb-16'>
+          <div className='grid justify-items-center gap-5 xl:grid-cols-[minmax(0,42rem)_minmax(0,30rem)] xl:justify-center'>
+            <Card className='relative w-full overflow-hidden border-primary/20 bg-gradient-to-br from-zinc-950/85 via-zinc-950/75 to-primary/10'>
+              <div className='pointer-events-none absolute -top-20 -right-20 h-48 w-48 rounded-full bg-primary/20 blur-3xl' />
+              <div className='absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent' />
 
-            <div className='grid gap-3 p-5 sm:grid-cols-2 sm:p-6 lg:grid-cols-4'>
-              {landingFlowCards.map((step) => {
-                const Icon = step.icon
+              <div className='relative border-b border-white/5 p-5 sm:p-6'>
+                <p className='font-mono text-[10px] tracking-wide text-zinc-500'>
+                  Installable PWA
+                </p>
+                <h3 className='mt-1 text-lg font-semibold tracking-tight sm:text-xl'>
+                  Install from your browser, then run the full event flow.
+                </h3>
+                <p className='mt-2 max-w-3xl text-pretty text-sm leading-relaxed text-zinc-300'>
+                  Tailwatch runs as a Progressive Web App. Install it from your
+                  browser, publish events with curl, follow each path as it
+                  moves between busy and idle, and get push notifications when
+                  your attention is needed.
+                </p>
+              </div>
 
-                return (
-                  <article
-                    key={step.title}
-                    className='rounded-xl border border-white/10 bg-black/25 p-4'
-                  >
-                    <span className='bg-primary/15 text-primary inline-flex h-8 w-8 items-center justify-center rounded-lg border border-white/10'>
-                      <Icon className='h-4 w-4' />
-                    </span>
-                    <p className='mt-3 text-sm font-semibold tracking-tight text-zinc-100'>
-                      {step.title}
-                    </p>
-                    <p className='mt-1 text-xs leading-relaxed text-zinc-400'>
-                      {step.detail}
-                    </p>
-                  </article>
-                )
-              })}
-            </div>
-          </Card>
+              <ol className='relative grid gap-3 p-5 sm:grid-cols-2 sm:p-6'>
+                {landingFlowCards.map((step) => {
+                  const Icon = step.icon
+
+                  return (
+                    <li
+                      key={step.title}
+                      className='rounded-xl border border-primary/15 bg-black/35 p-4'
+                    >
+                      <div className='flex items-start gap-3'>
+                        <span className='bg-primary/15 text-primary inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-primary/30'>
+                          <Icon className='h-4 w-4' />
+                        </span>
+                        <div>
+                          <p className='text-sm font-semibold tracking-tight text-zinc-100'>
+                            {step.title}
+                          </p>
+                          <p className='mt-1 text-xs leading-relaxed text-zinc-300'>
+                            {step.detail}
+                          </p>
+                        </div>
+                      </div>
+                    </li>
+                  )
+                })}
+              </ol>
+            </Card>
+
+            <Card className='relative w-full max-w-2xl overflow-hidden border-info/25 bg-zinc-950/55 xl:max-w-none'>
+              <div className='pointer-events-none absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-info/15 to-transparent' />
+              <div className='absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-info/60 to-transparent' />
+
+              <div className='relative p-5 sm:p-6'>
+                <p className='font-mono text-[10px] tracking-wide text-zinc-500'>
+                  From the builder
+                </p>
+                <h3 className='mt-1 text-base font-semibold tracking-tight sm:text-lg'>
+                  I want Tailwatch to be useful.
+                </h3>
+                <p className='mt-2 max-w-2xl text-sm leading-relaxed text-zinc-300'>
+                  I built Tailwatch because I wanted a more actionable way to
+                  see what my agents are doing — in fact, I just wanted to turn
+                  my AI agents into microwaves that beep when they're done.
+                </p>
+                <p className='mt-2 max-w-2xl text-sm leading-relaxed text-zinc-300'>
+                  I want it to stay genuinely useful, so the plan is simple:
+                  free for as long as I can, always self-hostable, always
+                  yours. If paid tiers show up, they're just there to cover
+                  infrastructure costs and 1-9 beers — not to squeeze anyone.
+                </p>
+              </div>
+
+            </Card>
+          </div>
         </section>
       </main>
 
