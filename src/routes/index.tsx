@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { ArrowRight, Bell, Play, Terminal } from 'lucide-react'
 import { useState } from 'react'
+import { LogStream } from '~/components/dashboard/log-stream'
 import { PublicFooter } from '~/components/layout/public-footer'
 import { PublicHeader } from '~/components/layout/public-header'
 import { PublicPageShell } from '~/components/layout/public-page-shell'
@@ -8,102 +9,89 @@ import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
 import { Card } from '~/components/ui/card'
 import { buildPublicPageHead } from '~/lib/seo'
+import type { StoredEvent } from '~/lib/types'
 
 interface DemoEventTemplate {
   path: string
-  state: 'busy' | 'done' | 'needs_input' | 'failed'
+  status: 'busy' | 'idle'
   message: string
-  pushes: number
-}
-
-interface DemoEvent extends DemoEventTemplate {
-  id: string
-  at: string
 }
 
 interface DemoNotification {
   id: string
-  title: string
-  detail: string
+  status: 'busy' | 'idle'
+  path: string
+  content: string
   at: string
 }
 
 const demoEventTemplates: DemoEventTemplate[] = [
   {
-    path: '/agents/research/worker-3',
-    state: 'busy',
+    path: 'agents/research/worker-3',
+    status: 'busy',
     message: 'collecting source documents',
-    pushes: 0,
   },
   {
-    path: '/agents/summarizer/final-pass',
-    state: 'needs_input',
+    path: 'agents/summarizer/final-pass',
+    status: 'idle',
     message: 'requires approval for summary tone',
-    pushes: 1,
   },
   {
-    path: '/agents/research/worker-3',
-    state: 'done',
+    path: 'agents/research/worker-3',
+    status: 'idle',
     message: 'context pack ready for review',
-    pushes: 1,
   },
   {
-    path: '/agents/evals/nightly',
-    state: 'failed',
+    path: 'agents/evals/nightly',
+    status: 'busy',
     message: 'timeout while scoring benchmark batch',
-    pushes: 1,
   },
 ]
 
-const initialEvents: DemoEvent[] = [
-  {
-    id: 'seed-1',
-    at: '14:02:11',
-    path: '/agents/router/session-884',
-    state: 'busy',
-    message: 'dispatching planner + executor',
-    pushes: 0,
-  },
-  {
-    id: 'seed-2',
-    at: '14:02:29',
-    path: '/agents/router/session-884',
-    state: 'needs_input',
-    message: 'human confirmation requested for production write',
-    pushes: 1,
-  },
-  {
+const initialEventOffsetsMs = {
+  recent: 45 * 1000,
+  medium: 18 * 60 * 1000,
+  old: 6 * 60 * 60 * 1000 + 12 * 60 * 1000,
+}
+
+const initialEvents: StoredEvent[] = [
+  createDemoEvent({
     id: 'seed-3',
-    at: '14:03:05',
-    path: '/agents/router/session-884',
-    state: 'done',
-    message: 'workflow committed and idle',
-    pushes: 0,
-  },
+    time: isoTimeAgo(initialEventOffsetsMs.recent),
+    path: 'agents/router/session-884',
+    status: 'idle',
+    content: 'workflow committed and idle',
+  }),
+  createDemoEvent({
+    id: 'seed-2',
+    time: isoTimeAgo(initialEventOffsetsMs.medium),
+    path: 'agents/router/session-884',
+    status: 'busy',
+    content: 'human confirmation requested for production write',
+  }),
+  createDemoEvent({
+    id: 'seed-1',
+    time: isoTimeAgo(initialEventOffsetsMs.old),
+    path: 'agents/router/session-884',
+    status: 'busy',
+    content: 'dispatching planner + executor',
+  }),
 ]
 
 const initialNotifications: DemoNotification[] = [
-  {
-    id: 'note-seed-1',
-    title: 'Approval Requested',
-    detail: 'Router session-884 needs operator confirmation.',
-    at: '14:02:30',
-  },
+  createDemoNotification({
+    id: 'note-seed-3',
+    status: initialEvents[0]?.status ?? 'idle',
+    path: initialEvents[0]?.path ?? 'agents/router/session-884',
+    content: initialEvents[0]?.content ?? 'workflow committed and idle',
+    time: initialEvents[0]?.time ?? new Date().toISOString(),
+  }),
 ]
 
-const stateStyles: Record<DemoEvent['state'], string> = {
-  busy: 'bg-warning/15 text-warning',
-  done: 'bg-primary/15 text-primary',
-  needs_input: 'bg-info/15 text-info',
-  failed: 'bg-destructive/15 text-destructive',
-}
-
-const stateLabels: Record<DemoEvent['state'], string> = {
-  busy: 'busy',
-  done: 'done',
-  needs_input: 'needs input',
-  failed: 'failed',
-}
+const demoLastSeenAt = initialEvents.reduce((latest, event) => {
+  const timestamp = new Date(event.time).getTime()
+  return Number.isFinite(timestamp) ? Math.max(latest, timestamp) : latest
+}, 0)
 
 export const Route = createFileRoute('/')({
   head: () =>
@@ -118,7 +106,7 @@ export const Route = createFileRoute('/')({
 })
 
 function TailwatchLandingPage() {
-  const [events, setEvents] = useState<DemoEvent[]>(initialEvents)
+  const [events, setEvents] = useState<StoredEvent[]>(initialEvents)
   const [notifications, setNotifications] = useState<DemoNotification[]>(
     initialNotifications,
   )
@@ -126,37 +114,28 @@ function TailwatchLandingPage() {
 
   const handleSendTestData = () => {
     const template = demoEventTemplates[templateIndex % demoEventTemplates.length]
-    const timestamp = new Date().toLocaleTimeString([], {
-      hour12: false,
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    })
+    const timestamp = new Date().toISOString()
     const eventId = `${Date.now()}-${templateIndex}`
 
-    const nextEvent: DemoEvent = {
-      ...template,
+    const nextEvent = createDemoEvent({
       id: eventId,
-      at: timestamp,
-    }
+      time: timestamp,
+      path: template.path,
+      status: template.status,
+      content: template.message,
+    })
 
     setEvents((prev) => [nextEvent, ...prev].slice(0, 8))
 
-    if (template.pushes > 0) {
-      const nextNotification: DemoNotification = {
-        id: `${eventId}-push`,
-        title:
-          template.state === 'failed'
-            ? 'Agent Failed'
-            : template.state === 'needs_input'
-              ? 'Action Needed'
-              : 'Agent Update',
-        detail: `${template.path} • ${template.message}`,
-        at: timestamp,
-      }
+    const nextNotification = createDemoNotification({
+      id: `${eventId}-push`,
+      status: template.status,
+      path: template.path,
+      content: template.message,
+      time: timestamp,
+    })
 
-      setNotifications((prev) => [nextNotification, ...prev].slice(0, 4))
-    }
+    setNotifications((prev) => [nextNotification, ...prev].slice(0, 4))
 
     setTemplateIndex((prev) => prev + 1)
   }
@@ -168,8 +147,8 @@ function TailwatchLandingPage() {
       <main className='relative flex w-full min-w-0 flex-1 overflow-hidden'>
         <div className='pixel-grid opacity-30' />
 
-        <section className='mx-auto grid w-full max-w-7xl gap-10 px-4 py-10 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] lg:gap-12 lg:py-16'>
-          <div className='border-white/5 flex min-w-0 flex-col justify-center lg:border-r lg:pr-10'>
+        <section className='mx-auto grid w-full max-w-7xl gap-10 px-4 py-10 sm:px-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] xl:gap-12 xl:py-16'>
+          <div className='border-white/5 flex min-w-0 flex-col justify-center xl:border-r xl:pr-10'>
             <Badge
               variant='outline'
               className='border-primary/30 bg-primary/10 text-primary w-fit rounded-full px-4 py-1 text-[10px] tracking-[0.24em] uppercase'
@@ -237,45 +216,10 @@ function TailwatchLandingPage() {
               </Button>
             </div>
 
-            <div className='grid gap-4 p-5 sm:grid-cols-[minmax(0,1fr)_15rem] sm:p-6'>
-              <div className='min-w-0 rounded-xl border border-white/10 bg-black/40'>
-                <div className='flex items-center justify-between border-b border-white/5 px-4 py-3'>
-                  <p className='text-xs font-semibold tracking-wide text-zinc-300'>
-                    Agent events
-                  </p>
-                  <span className='font-mono text-[10px] tracking-widest text-zinc-500 uppercase'>
-                    live
-                  </span>
-                </div>
-
-                <div className='scroll-thin max-h-[380px] space-y-2 overflow-y-auto p-3'>
-                  {events.map((event) => (
-                    <article
-                      key={event.id}
-                      className='rounded-lg border border-white/10 bg-zinc-900/55 p-3'
-                    >
-                      <div className='mb-2 flex items-center justify-between gap-3'>
-                        <span className='font-mono text-[10px] tracking-wider text-zinc-500 uppercase'>
-                          {event.at}
-                        </span>
-                        <span
-                          className={`rounded-full px-2.5 py-1 text-[10px] font-semibold tracking-wide uppercase ${stateStyles[event.state]}`}
-                        >
-                          {stateLabels[event.state]}
-                        </span>
-                      </div>
-                      <p className='truncate font-mono text-[11px] text-zinc-400'>
-                        {event.path}
-                      </p>
-                      <p className='mt-1 text-sm text-zinc-200'>{event.message}</p>
-                      {event.pushes > 0 ? (
-                        <div className='mt-2 flex items-center gap-1.5 text-[11px] text-info'>
-                          <Bell className='h-3 w-3' />
-                          push dispatched to subscribed devices
-                        </div>
-                      ) : null}
-                    </article>
-                  ))}
+            <div className='grid gap-4 p-5 sm:p-6 2xl:grid-cols-[minmax(0,1fr)_15rem]'>
+              <div className='min-w-0'>
+                <div className='h-[380px]'>
+                  <LogStream events={events} lastSeenAt={demoLastSeenAt} />
                 </div>
               </div>
 
@@ -292,15 +236,24 @@ function TailwatchLandingPage() {
                       className='rounded-lg border border-info/25 bg-info/10 p-2.5'
                     >
                       <div className='flex items-center justify-between gap-2'>
-                        <p className='text-[11px] font-semibold text-info'>
-                          {notification.title}
-                        </p>
+                        <span
+                          className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase ${
+                            notification.status === 'busy'
+                              ? 'border-zinc-400/40 bg-zinc-500/15 text-zinc-200'
+                              : 'border-primary/40 bg-primary/15 text-primary'
+                          }`}
+                        >
+                          {notification.status}
+                        </span>
                         <span className='font-mono text-[10px] text-info/70'>
                           {notification.at}
                         </span>
                       </div>
+                      <p className='mt-1 truncate font-mono text-[11px] text-zinc-300'>
+                        {notification.path}
+                      </p>
                       <p className='mt-1 text-[11px] leading-relaxed text-zinc-300'>
-                        {notification.detail}
+                        {notification.content}
                       </p>
                     </article>
                   ))}
@@ -314,4 +267,71 @@ function TailwatchLandingPage() {
       <PublicFooter />
     </PublicPageShell>
   )
+}
+
+function createDemoEvent({
+  id,
+  time,
+  path,
+  status,
+  content,
+}: {
+  id: string
+  time: string
+  path: string
+  status: 'busy' | 'idle'
+  content: string
+}): StoredEvent {
+  const normalizedPath = path.replace(/^\/+/, '').replace(/\/+/g, '/')
+  const segments = normalizedPath.split('/').filter(Boolean)
+  return {
+    id,
+    volume: 'demo',
+    path: normalizedPath,
+    segments,
+    time,
+    ingestedAt: time,
+    status,
+    content,
+    entityId: segments[segments.length - 1],
+    entityType: 'path',
+  }
+}
+
+function isoTimeAgo(offsetMs: number) {
+  return new Date(Date.now() - offsetMs).toISOString()
+}
+
+function createDemoNotification({
+  id,
+  status,
+  path,
+  content,
+  time,
+}: {
+  id: string
+  status: 'busy' | 'idle'
+  path: string
+  content: string
+  time: string
+}): DemoNotification {
+  return {
+    id,
+    status,
+    path,
+    content,
+    at: formatNotificationTime(time),
+  }
+}
+
+function formatNotificationTime(value: string) {
+  const date = new Date(value)
+  return Number.isFinite(date.getTime())
+    ? date.toLocaleTimeString([], {
+        hour12: false,
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      })
+    : '--:--:--'
 }
