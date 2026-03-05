@@ -15,7 +15,9 @@ import { ConvexReactClient } from 'convex/react'
 import { useEffect } from 'react'
 import { DeviceRegistrationBootstrap } from '~/components/device/device-registration-bootstrap'
 
-const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string)
+const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string, {
+  unsavedChangesWarning: false,
+})
 
 export const Route = createRootRoute({
   head: () => ({
@@ -62,6 +64,26 @@ export const Route = createRootRoute({
 })
 
 function RootDocument() {
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    const suppressBeforeUnloadPrompt = (event: BeforeUnloadEvent) => {
+      event.stopImmediatePropagation()
+    }
+
+    // Prevent third-party beforeunload handlers from triggering browser
+    // "Leave site?" confirmation prompts.
+    window.addEventListener('beforeunload', suppressBeforeUnloadPrompt, true)
+
+    return () => {
+      window.removeEventListener(
+        'beforeunload',
+        suppressBeforeUnloadPrompt,
+        true,
+      )
+    }
+  }, [])
+
   useEffect(() => {
     console.info(
       `[Tailwatch] build ${import.meta.env.VITE_APP_COMMIT_SHA || 'unknown'}`,
