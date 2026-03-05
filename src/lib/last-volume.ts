@@ -13,8 +13,18 @@ export function normalizeVolumeToken(value?: string | null): string | null {
   if (typeof value !== 'string') return null
   const trimmed = value.trim()
   if (!trimmed) return null
-  if (trimmed.includes('/')) return null
-  return trimmed
+
+  let decoded = trimmed
+  try {
+    decoded = decodeURIComponent(trimmed)
+  } catch {
+    decoded = trimmed
+  }
+
+  const normalized = decoded.trim()
+  if (!normalized) return null
+  if (normalized.includes('/')) return null
+  return normalized
 }
 
 export function getStoredLastVolumeName(): string | null {

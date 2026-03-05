@@ -19,6 +19,7 @@ import { getClientDeviceName, getUAInfo } from '~/lib/device-identity'
 import {
   findManagedVolumeByToken,
   getStoredLastVolumeName,
+  normalizeVolumeToken,
   resolveManagedVolumeName,
   setStoredLastVolumeName,
 } from '~/lib/last-volume'
@@ -93,11 +94,10 @@ export function DashboardView({
       }>
     | undefined
   const activeVolumeId = useMemo(() => {
-    const matchedVolume =
-      (managedVolumes ?? []).find((row) => row.name === activeVolume) ??
-      (activeVolume === 'personal'
-        ? (managedVolumes ?? []).find((row) => row.isDefault)
-        : undefined)
+    const matchedVolume = findManagedVolumeByToken(
+      managedVolumes ?? [],
+      activeVolume,
+    )
     return matchedVolume ? String(matchedVolume.id) : undefined
   }, [managedVolumes, activeVolume])
 
@@ -245,11 +245,15 @@ export function DashboardView({
   useEffect(() => {
     if (!isAuthenticated) return
     if (managedVolumes === undefined) return
+    const normalizedActiveVolume = normalizeVolumeToken(activeVolume) ?? 'personal'
 
     const matchedVolume = findManagedVolumeByToken(managedVolumes, activeVolume)
     if (matchedVolume) {
       const canonicalVolume = matchedVolume.name.trim() || 'personal'
-      if (canonicalVolume !== activeVolume) {
+      if (
+        (normalizeVolumeToken(canonicalVolume) ?? 'personal') !==
+        normalizedActiveVolume
+      ) {
         void navigate({
           to: '/dashboard/$volumeId',
           params: { volumeId: canonicalVolume },
@@ -266,7 +270,10 @@ export function DashboardView({
       managedVolumes,
       getStoredLastVolumeName(),
     )
-    if (fallbackVolume !== activeVolume) {
+    if (
+      (normalizeVolumeToken(fallbackVolume) ?? 'personal') !==
+      normalizedActiveVolume
+    ) {
       void navigate({
         to: '/dashboard/$volumeId',
         params: { volumeId: fallbackVolume },
