@@ -266,7 +266,7 @@ function DeviceSettingsPage() {
           url: '/dashboard/settings/devices',
         },
         options: {
-          ttl: 300,
+          ttl: 0,
           topic: 'tailwatch_test',
           urgency: 'high',
         },

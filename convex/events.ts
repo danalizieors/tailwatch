@@ -86,10 +86,7 @@ function markdownToPlainText(input?: string) {
     /!\[([^\]]*)\]\(([^)]+)\)/g,
     '$1',
   )
-  const withoutLinks = withoutImages.replace(
-    /\[([^\]]+)\]\(([^)]+)\)/g,
-    '$1',
-  )
+  const withoutLinks = withoutImages.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1')
   const withoutHeadings = withoutLinks.replace(/^\s{0,3}#{1,6}\s+/gm, '')
   const withoutQuotes = withoutHeadings.replace(/^\s{0,3}>\s?/gm, '')
   const withoutListBullets = withoutQuotes.replace(
@@ -274,7 +271,7 @@ async function publishResolved(
           deviceId: target._id,
           payload: { title, body: bodyText, tag, url },
           options: {
-            ttl: 300,
+            ttl: 0,
             topic,
             urgency: 'high',
           },
@@ -592,7 +589,9 @@ export const unreadCountsByVolume = query({
     const seenAtByVolumeId = new Map<string, number>()
     for (const state of notificationStates) {
       const volumeId = String(state.volumeId)
-      const nextSeenAt = Number.isFinite(state.seenAt) ? Number(state.seenAt) : 0
+      const nextSeenAt = Number.isFinite(state.seenAt)
+        ? Number(state.seenAt)
+        : 0
       const previousSeenAt = seenAtByVolumeId.get(volumeId) ?? 0
       if (nextSeenAt > previousSeenAt) {
         seenAtByVolumeId.set(volumeId, nextSeenAt)
@@ -636,9 +635,15 @@ export const unreadCountsByVolume = query({
     )
 
     return rows.sort((left, right) => {
-      if (left.volumeName === DEFAULT_VOLUME && right.volumeName !== DEFAULT_VOLUME)
+      if (
+        left.volumeName === DEFAULT_VOLUME &&
+        right.volumeName !== DEFAULT_VOLUME
+      )
         return -1
-      if (left.volumeName !== DEFAULT_VOLUME && right.volumeName === DEFAULT_VOLUME)
+      if (
+        left.volumeName !== DEFAULT_VOLUME &&
+        right.volumeName === DEFAULT_VOLUME
+      )
         return 1
       return left.volumeName.localeCompare(right.volumeName)
     })
