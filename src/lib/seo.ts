@@ -1,4 +1,6 @@
 const DEFAULT_SITE_URL = 'https://tailwatch.dev'
+const DEFAULT_ORGANIZATION_NAME = 'Tailwatch'
+const DEFAULT_ORGANIZATION_LOGO_PATH = '/android-chrome-512x512.png'
 
 function normalizeSiteUrl(value: string) {
   const trimmed = value.trim()
@@ -21,6 +23,22 @@ function absoluteUrl(path: string) {
   return `${siteUrl}${normalizedPath}`
 }
 
+function buildOrganizationStructuredData() {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: DEFAULT_ORGANIZATION_NAME,
+    url: siteUrl,
+    logo: {
+      '@type': 'ImageObject',
+      url: absoluteUrl(DEFAULT_ORGANIZATION_LOGO_PATH),
+      width: 512,
+      height: 512,
+    },
+    image: absoluteUrl(DEFAULT_ORGANIZATION_LOGO_PATH),
+  }
+}
+
 interface PublicPageHeadOptions {
   title: string
   description: string
@@ -31,20 +49,30 @@ interface PublicPageHeadOptions {
 export function buildPublicPageHead(options: PublicPageHeadOptions) {
   const canonicalUrl = absoluteUrl(options.path)
   const ogType = options.type ?? 'website'
+  const organizationStructuredData = buildOrganizationStructuredData()
+  const previewImageUrl = absoluteUrl(DEFAULT_ORGANIZATION_LOGO_PATH)
 
   return {
     meta: [
       { title: options.title },
       { name: 'description', content: options.description },
       { name: 'robots', content: 'index, follow' },
-      { property: 'og:site_name', content: 'Tailwatch' },
+      { property: 'og:site_name', content: DEFAULT_ORGANIZATION_NAME },
       { property: 'og:type', content: ogType },
       { property: 'og:title', content: options.title },
       { property: 'og:description', content: options.description },
       { property: 'og:url', content: canonicalUrl },
+      { property: 'og:image', content: previewImageUrl },
+      { property: 'og:image:secure_url', content: previewImageUrl },
+      { property: 'og:image:width', content: '512' },
+      { property: 'og:image:height', content: '512' },
+      { property: 'og:image:type', content: 'image/png' },
+      { property: 'og:image:alt', content: `${DEFAULT_ORGANIZATION_NAME} logo` },
       { name: 'twitter:card', content: 'summary_large_image' },
       { name: 'twitter:title', content: options.title },
       { name: 'twitter:description', content: options.description },
+      { name: 'twitter:image', content: previewImageUrl },
+      { 'script:ld+json': organizationStructuredData },
     ],
     links: [{ rel: 'canonical', href: canonicalUrl }],
   }
