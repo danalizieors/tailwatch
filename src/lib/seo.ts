@@ -13,7 +13,7 @@ function normalizeSiteUrl(value: string) {
   }
 }
 
-const siteUrl = normalizeSiteUrl(import.meta.env.VITE_SITE_URL ?? DEFAULT_SITE_URL)
+const siteUrl = normalizeSiteUrl(DEFAULT_SITE_URL)
 
 function absoluteUrl(path: string) {
   const normalizedPath = path.startsWith('/') ? path : `/${path}`

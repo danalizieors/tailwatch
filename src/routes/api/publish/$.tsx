@@ -10,12 +10,7 @@ type PublishPayload = {
   content?: string
 }
 
-const convexUrl =
-  import.meta.env.VITE_CONVEX_URL ||
-  (globalThis as any).process?.env?.VITE_CONVEX_URL ||
-  (globalThis as any).process?.env?.CONVEX_URL
-
-const convex = convexUrl ? new ConvexHttpClient(convexUrl) : null
+const convex = new ConvexHttpClient(import.meta.env.VITE_CONVEX_URL as string)
 
 export const Route = createFileRoute('/api/publish/$')({
   server: {
@@ -38,14 +33,6 @@ export const Route = createFileRoute('/api/publish/$')({
           'Access-Control-Allow-Methods': 'POST, OPTIONS',
           'Access-Control-Allow-Headers':
             'Content-Type, x-volume-key, x-tailwatch-volume, x-event-status',
-        }
-
-        if (!convex) {
-          console.error('[API/Publish] VITE_CONVEX_URL is missing')
-          return Response.json(
-            { error: 'Server configuration error (missing database URL)' },
-            { status: 500, headers: corsHeaders },
-          )
         }
 
         try {
