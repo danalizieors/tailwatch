@@ -276,7 +276,7 @@ async function publishResolved(
           options: {
             ttl: 300,
             topic,
-            urgency: status === 'busy' ? 'high' : 'normal',
+            urgency: 'high',
           },
         })
       }
