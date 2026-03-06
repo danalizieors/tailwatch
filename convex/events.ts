@@ -5,6 +5,7 @@ import { mutation, query } from './_generated/server'
 import { auth } from './auth'
 
 const DEFAULT_VOLUME = 'personal'
+const WEB_PUSH_TOPIC_MAX_LENGTH = 32
 
 function normalizeVolume(value?: string) {
   const next = value?.trim()
@@ -34,6 +35,42 @@ function splitTopicPath(value: string) {
 function normalizeEventStatus(input?: string) {
   const normalized = input?.trim().toLowerCase()
   return normalized === 'busy' ? 'busy' : 'idle'
+}
+
+function normalizePushToken(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
+function hashPushTopic(value: string) {
+  let hash = 2166136261
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index)
+    hash = Math.imul(hash, 16777619) >>> 0
+  }
+  return hash.toString(36)
+}
+
+function buildPushNotificationTag(volumeName: string, topicPath: string) {
+  const volumeToken = normalizePushToken(volumeName) || DEFAULT_VOLUME
+  const pathToken = normalizePushToken(topicPath.replace(/\//g, '-')) || 'event'
+  return `tailwatch-${volumeToken}-${pathToken}`.slice(0, 80)
+}
+
+function buildWebPushTopic(volumeName: string, topicPath: string) {
+  const seed = `${normalizeVolume(volumeName)}:${normalizeTopicPath(topicPath)}`
+  const hash = hashPushTopic(seed)
+  const pathToken = normalizePushToken(topicPath) || 'event'
+  const prefix = `tw_${hash}_`
+  const suffix = pathToken.slice(
+    0,
+    Math.max(0, WEB_PUSH_TOPIC_MAX_LENGTH - prefix.length),
+  )
+  const topic = `${prefix}${suffix}`
+  return topic.slice(0, WEB_PUSH_TOPIC_MAX_LENGTH)
 }
 
 function markdownToPlainText(input?: string) {
@@ -226,7 +263,8 @@ async function publishResolved(
       const title = `${statusLabel} | ${finalPath}`
       const plainBody = markdownToPlainText(input.content)
       const bodyText = plainBody || `${finalPath} is ${statusLabel}`
-      const tag = `tailwatch:${volumeName}:${finalPath}`
+      const tag = buildPushNotificationTag(volumeName, finalPath)
+      const topic = buildWebPushTopic(volumeName, finalPath)
       const url = buildDashboardEventUrl(volumeName, finalPath)
 
       for (const target of targets) {
@@ -237,7 +275,7 @@ async function publishResolved(
           payload: { title, body: bodyText, tag, url },
           options: {
             ttl: 300,
-            topic: tag,
+            topic,
             urgency: status === 'busy' ? 'high' : 'normal',
           },
         })

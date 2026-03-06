@@ -15,6 +15,17 @@ self.addEventListener('notificationclick', (event) => {
   event.waitUntil(openTailwatch(event))
 })
 
+function normalizeTag(value) {
+  if (typeof value !== 'string') return 'tailwatch-event'
+  const trimmed = value.trim()
+  if (!trimmed) return 'tailwatch-event'
+  const safe = trimmed
+    .replace(/[^a-zA-Z0-9._:-]/g, '-')
+    .replace(/-+/g, '-')
+    .slice(0, 64)
+  return safe || 'tailwatch-event'
+}
+
 function readPushPayload(event) {
   const fallback = {
     title: 'Tailwatch',
@@ -50,10 +61,7 @@ function readPushPayload(event) {
           typeof value.body === 'string' && value.body.trim()
             ? value.body
             : fallback.body,
-        tag:
-          typeof value.tag === 'string' && value.tag.trim()
-            ? value.tag
-            : fallback.tag,
+        tag: normalizeTag(value.tag),
         url:
           typeof value.url === 'string' && value.url.trim()
             ? value.url

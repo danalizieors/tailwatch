@@ -52,11 +52,17 @@ export const sendPushNotification = action({
     })
 
     if (!response.ok) {
-      await ctx.runMutation(internal.devices.clearSubscriptionInternal, {
-        deviceId: args.deviceId,
-      })
+      if (response.status === 404 || response.status === 410) {
+        await ctx.runMutation(internal.devices.clearSubscriptionInternal, {
+          deviceId: args.deviceId,
+        })
+        return { ok: false, reason: 'subscription_expired' }
+      }
 
-      return { ok: false, reason: 'subscription_expired' }
+      return {
+        ok: false,
+        reason: `push_delivery_failed_${response.status}`,
+      }
     }
 
     return { ok: true }

@@ -262,12 +262,12 @@ function DeviceSettingsPage() {
         payload: {
           title: 'Tailwatch Test',
           body: `Test notification for ${device.name}`,
-          tag: 'aa:test',
+          tag: 'tailwatch-test',
           url: '/dashboard/settings/devices',
         },
         options: {
           ttl: 300,
-          topic: 'bb:test',
+          topic: 'tailwatch_test',
           urgency: 'high',
         },
       })
