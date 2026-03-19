@@ -126,7 +126,7 @@ const demoLastSeenAt = initialEvents.reduce((latest, event) => {
 export const Route = createFileRoute('/')({
   head: () =>
     buildPublicPageHead({
-      title: 'Tailwatch — Stay entailed',
+      title: 'Tailwatch — Hierarchical event monitor with push notifications',
       description:
         'Publish events with curl, track hierarchical paths in real time, and get push notifications when jobs go busy or idle.',
       path: '/',
@@ -139,9 +139,8 @@ function TailwatchLandingPage() {
   const { isAuthenticated, isLoading: isAuthLoading } = useConvexAuth()
   const navigate = useNavigate()
   const [events, setEvents] = useState<StoredEvent[]>(initialEvents)
-  const [notifications, setNotifications] = useState<DemoNotification[]>(
-    initialNotifications,
-  )
+  const [notifications, setNotifications] =
+    useState<DemoNotification[]>(initialNotifications)
   const [templateIndex, setTemplateIndex] = useState(0)
   const [dashboardVolume, setDashboardVolume] = useState('personal')
 
@@ -171,7 +170,8 @@ function TailwatchLandingPage() {
   }, [isAuthLoading, isAuthenticated, managedVolumes, navigate])
 
   const handleSendTestData = () => {
-    const template = demoEventTemplates[templateIndex % demoEventTemplates.length]
+    const template =
+      demoEventTemplates[templateIndex % demoEventTemplates.length]
     const timestamp = new Date().toISOString()
     const eventId = `${Date.now()}-${templateIndex}`
 
@@ -205,8 +205,8 @@ function TailwatchLandingPage() {
       <main className='relative flex w-full min-w-0 flex-1 flex-col overflow-x-clip'>
         <div className='pixel-grid opacity-30' />
 
-        <section className='mx-auto grid w-full min-w-0 max-w-6xl gap-10 overflow-x-clip px-4 py-10 sm:px-6 lg:grid-cols-[minmax(0,30rem)_minmax(0,44rem)] lg:justify-center lg:gap-12 lg:py-16'>
-          <div className='border-white/5 flex min-w-0 flex-col justify-start lg:border-r lg:pr-10'>
+        <section className='mx-auto grid w-full max-w-6xl min-w-0 gap-10 overflow-x-clip px-4 py-10 sm:px-6 lg:grid-cols-[minmax(0,30rem)_minmax(0,44rem)] lg:justify-center lg:gap-12 lg:py-16'>
+          <div className='flex min-w-0 flex-col justify-start border-white/5 lg:border-r lg:pr-10'>
             <h1 className='mt-6 text-3xl leading-[1.14] font-bold tracking-tight text-balance sm:text-5xl sm:leading-[1.05]'>
               Watch every agent, job, and service.
               <span className='text-primary mt-2 block'>
@@ -234,14 +234,13 @@ function TailwatchLandingPage() {
             <div className='mt-8 hidden lg:block'>
               <CurlIngestSnippet />
             </div>
-
           </div>
 
           <Card
             id='live-logs'
             className='relative w-full min-w-0 overflow-hidden border-white/10 bg-zinc-950/65'
           >
-            <div className='absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent' />
+            <div className='via-primary/40 absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent to-transparent' />
             <div className='flex flex-col items-start gap-3 border-b border-white/5 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6'>
               <div className='min-w-0'>
                 <p className='font-mono text-[10px] tracking-wide text-zinc-500'>
@@ -251,7 +250,11 @@ function TailwatchLandingPage() {
                   Events and push notifications
                 </h2>
               </div>
-              <Button size='sm' className='self-start sm:self-auto' onClick={handleSendTestData}>
+              <Button
+                size='sm'
+                className='self-start sm:self-auto'
+                onClick={handleSendTestData}
+              >
                 <Play className='h-3.5 w-3.5' />
                 Send test event
               </Button>
@@ -269,11 +272,11 @@ function TailwatchLandingPage() {
                   Push notifications
                 </div>
 
-                <div className='scroll-thin h-[240px] min-w-0 space-y-2 overflow-x-hidden overflow-y-scroll [scrollbar-gutter:stable] pr-1'>
+                <div className='scroll-thin h-[240px] min-w-0 space-y-2 overflow-x-hidden overflow-y-scroll pr-1 [scrollbar-gutter:stable]'>
                   {notifications.map((notification) => (
                     <article
                       key={notification.id}
-                      className='min-w-0 rounded-lg border border-info/25 bg-info/10 p-2.5'
+                      className='border-info/25 bg-info/10 min-w-0 rounded-lg border p-2.5'
                     >
                       <div className='flex items-center justify-between gap-2'>
                         <span
@@ -285,14 +288,14 @@ function TailwatchLandingPage() {
                         >
                           {notification.status}
                         </span>
-                        <span className='font-mono text-[10px] text-info/70'>
+                        <span className='text-info/70 font-mono text-[10px]'>
                           {notification.at}
                         </span>
                       </div>
                       <p className='mt-1 truncate font-mono text-[11px] text-zinc-300'>
                         {notification.path}
                       </p>
-                      <p className='mt-1 break-words text-[11px] leading-relaxed text-zinc-300'>
+                      <p className='mt-1 text-[11px] leading-relaxed break-words text-zinc-300'>
                         {notification.content}
                       </p>
                     </article>
@@ -307,11 +310,11 @@ function TailwatchLandingPage() {
           </div>
         </section>
 
-        <section className='mx-auto w-full min-w-0 max-w-6xl px-4 pb-12 sm:px-6 lg:pb-16'>
+        <section className='mx-auto w-full max-w-6xl min-w-0 px-4 pb-12 sm:px-6 lg:pb-16'>
           <div className='grid justify-items-center gap-5 xl:grid-cols-[minmax(0,42rem)_minmax(0,30rem)] xl:justify-center'>
-            <Card className='relative w-full min-w-0 overflow-hidden border-primary/20 bg-gradient-to-br from-zinc-950/85 via-zinc-950/75 to-primary/10'>
-              <div className='pointer-events-none absolute -top-20 -right-20 h-48 w-48 rounded-full bg-primary/20 blur-3xl' />
-              <div className='absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent' />
+            <Card className='border-primary/20 to-primary/10 relative w-full min-w-0 overflow-hidden bg-gradient-to-br from-zinc-950/85 via-zinc-950/75'>
+              <div className='bg-primary/20 pointer-events-none absolute -top-20 -right-20 h-48 w-48 rounded-full blur-3xl' />
+              <div className='via-primary/50 absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent to-transparent' />
 
               <div className='relative border-b border-white/5 p-5 sm:p-6'>
                 <p className='font-mono text-[10px] tracking-wide text-zinc-500'>
@@ -320,7 +323,7 @@ function TailwatchLandingPage() {
                 <h3 className='mt-1 text-lg font-semibold tracking-tight sm:text-xl'>
                   Install from your browser, then run the full event flow.
                 </h3>
-                <p className='mt-2 max-w-3xl text-pretty text-sm leading-relaxed text-zinc-300'>
+                <p className='mt-2 max-w-3xl text-sm leading-relaxed text-pretty text-zinc-300'>
                   Tailwatch runs as a Progressive Web App. Install it from your
                   browser, publish events with curl, follow each path as it
                   moves between busy and idle, and get push notifications when
@@ -335,10 +338,10 @@ function TailwatchLandingPage() {
                   return (
                     <li
                       key={step.title}
-                      className='rounded-xl border border-primary/15 bg-black/35 p-4'
+                      className='border-primary/15 rounded-xl border bg-black/35 p-4'
                     >
                       <div className='flex items-start gap-3'>
-                        <span className='bg-primary/15 text-primary inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-primary/30'>
+                        <span className='bg-primary/15 text-primary border-primary/30 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border'>
                           <Icon className='h-4 w-4' />
                         </span>
                         <div>
@@ -356,9 +359,9 @@ function TailwatchLandingPage() {
               </ol>
             </Card>
 
-            <Card className='relative w-full min-w-0 max-w-2xl overflow-hidden border-info/25 bg-zinc-950/55 xl:max-w-none'>
-              <div className='pointer-events-none absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-info/15 to-transparent' />
-              <div className='absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-info/60 to-transparent' />
+            <Card className='border-info/25 relative w-full max-w-2xl min-w-0 overflow-hidden bg-zinc-950/55 xl:max-w-none'>
+              <div className='from-info/15 pointer-events-none absolute inset-y-0 right-0 w-24 bg-gradient-to-l to-transparent' />
+              <div className='via-info/60 absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent to-transparent' />
 
               <div className='relative p-5 sm:p-6'>
                 <p className='font-mono text-[10px] tracking-wide text-zinc-500'>
@@ -374,8 +377,8 @@ function TailwatchLandingPage() {
                 </p>
                 <p className='mt-2 max-w-2xl text-sm leading-relaxed text-zinc-300'>
                   I want it to stay genuinely useful, so the plan is simple:
-                  free for as long as I can, always self-hostable, always
-                  yours. If paid tiers show up, they're just there to cover
+                  free for as long as I can, always self-hostable, always yours.
+                  If paid tiers show up, they're just there to cover
                   infrastructure costs and 1-9 beers — not to squeeze anyone.
                 </p>
                 <p className='mt-2 max-w-2xl text-sm leading-relaxed text-zinc-300'>
@@ -383,7 +386,6 @@ function TailwatchLandingPage() {
                   and the occasional surprise.
                 </p>
               </div>
-
             </Card>
           </div>
         </section>
@@ -467,8 +469,8 @@ function CurlIngestSnippet() {
       <div className='mb-3 text-xs font-semibold tracking-wide text-zinc-300'>
         Publish events with curl
       </div>
-      <pre className='text-primary/80 max-w-full overflow-hidden rounded-lg border border-white/10 bg-black/40 p-4 font-mono text-[10px] leading-relaxed whitespace-pre-wrap break-words sm:text-[11px]'>
-        <code className='block whitespace-pre-wrap break-all'>{`curl https://tailwatch.dev/api/publish/YOUR_VOLUME_KEY/path \\
+      <pre className='text-primary/80 max-w-full overflow-hidden rounded-lg border border-white/10 bg-black/40 p-4 font-mono text-[10px] leading-relaxed break-words whitespace-pre-wrap sm:text-[11px]'>
+        <code className='block break-all whitespace-pre-wrap'>{`curl https://tailwatch.dev/api/publish/YOUR_VOLUME_KEY/path \\
    -d 'busy --- example content'`}</code>
       </pre>
     </div>
