@@ -127,7 +127,8 @@ export const Route = createFileRoute('/')({
   head: () =>
     buildPublicPageHead({
       title: 'Tailwatch — Stay entailed',
-      description: 'Hierarchical event monitor with push notifications',
+      description:
+        'Publish events with curl, track hierarchical paths in real time, and get push notifications when jobs go busy or idle.',
       path: '/',
       type: 'website',
     }),
