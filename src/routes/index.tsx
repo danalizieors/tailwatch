@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, Link, useNavigate, useRouterState } from '@tanstack/react-router'
 import { useConvexAuth, useQuery } from 'convex/react'
 import { Activity, Bell, Monitor, Play, Send } from 'lucide-react'
 import { useEffect, useState } from 'react'
@@ -136,8 +136,11 @@ export const Route = createFileRoute('/')({
 })
 
 function TailwatchLandingPage() {
-  const { isAuthenticated, isLoading: isAuthLoading } = useConvexAuth()
+  const { isAuthenticated } = useConvexAuth()
   const navigate = useNavigate()
+  const shouldAutoRedirectToDashboard = useRouterState({
+    select: (state) => state.location.state.__TSR_index === 0,
+  })
   const [events, setEvents] = useState<StoredEvent[]>(initialEvents)
   const [notifications, setNotifications] =
     useState<DemoNotification[]>(initialNotifications)
@@ -154,7 +157,7 @@ function TailwatchLandingPage() {
   }, [])
 
   useEffect(() => {
-    if (isAuthLoading || !isAuthenticated) return
+    if (!isAuthenticated) return
     if (managedVolumes === undefined) return
 
     const targetVolume = resolveManagedVolumeName(
@@ -162,12 +165,20 @@ function TailwatchLandingPage() {
       getStoredLastVolumeNameOrDefault(),
     )
     setStoredLastVolumeName(targetVolume)
+    setDashboardVolume(targetVolume)
+    if (!shouldAutoRedirectToDashboard) return
+
     void navigate({
       to: '/dashboard/$volumeId',
       params: { volumeId: targetVolume },
       replace: true,
     })
-  }, [isAuthLoading, isAuthenticated, managedVolumes, navigate])
+  }, [
+    isAuthenticated,
+    managedVolumes,
+    navigate,
+    shouldAutoRedirectToDashboard,
+  ])
 
   const handleSendTestData = () => {
     const template =
